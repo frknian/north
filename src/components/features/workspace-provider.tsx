@@ -194,7 +194,24 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const archive: ProgressArchive = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), reason, completedTasks: current.tasks.filter((task) => task.status === "completed").length, focusMinutes: current.focusSessions.reduce((sum, session) => sum + session.durationMinutes, 0), labsCompleted: current.labs.filter((lab) => lab.status === "completed").length, coachMessages: current.coachMessages.length };
       const profile = reason === "full_reset" ? demoState.profile : current.profile;
       const onboarding = reason === "full_reset" ? undefined : current.coaching.onboarding;
-      return { ...demoState, profile, tasks: current.tasks.map((task) => ({ ...task, status: "pending", isDailyMission: false, completedAt: undefined, reflection: undefined })), sourceLocks: current.sourceLocks, resources: demoState.resources, coaching: { ...demoState.coaching, onboarding, archives: [archive, ...current.coaching.archives].slice(0, 10), preferences: current.coaching.preferences } };
+      const resetSkills = current.skills.map((skill) => ({ ...skill, score: 0, previousScore: 0, evidence: "Henüz doğrulanmış kanıt yok." }));
+      return {
+        ...demoState,
+        profile,
+        tasks: current.tasks.map((task) => ({ ...task, status: "pending", isDailyMission: false, completedAt: undefined, reflection: undefined })),
+        focusSessions: [],
+        labs: [],
+        skills: resetSkills,
+        notes: [],
+        reports: [],
+        portfolio: [],
+        jobs: [],
+        applications: [],
+        interviews: [],
+        sourceLocks: current.sourceLocks,
+        resources: demoState.resources,
+        coaching: { ...demoState.coaching, onboarding, archives: [archive, ...current.coaching.archives].slice(0, 10), preferences: current.coaching.preferences },
+      };
     }),
     recordResourceUse: (resourceId, taskId) => mutate((current) => {
       const today = new Date().toISOString().slice(0, 10);
