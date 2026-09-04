@@ -92,6 +92,11 @@ export interface Lab {
   walkthroughUsed: boolean;
   notes: string;
   keyLearnings: string[];
+  targetOs?: string;
+  initialAccess?: string;
+  retryAt?: string;
+  missedPoints?: string[];
+  skillsGained?: string[];
 }
 
 export interface Skill {
