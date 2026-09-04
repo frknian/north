@@ -6,7 +6,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { toast } from "sonner";
 import { demoState } from "@/lib/demo-data";
 import { getFirebase } from "@/lib/firebase/client";
-import type { CoachAction, CoachMessage, CoachingOnboarding, DailyCheckin, FocusSession, Lab, Note, Profile, ProgressArchive, Report, ResourceRating, Review, Task, VocabularyItem, WorkspaceState } from "@/lib/types";
+import type { CoachAction, CoachMessage, CoachingOnboarding, DailyCheckin, FocusSession, InterviewAttempt, JobApplication, JobPosting, Lab, Note, PortfolioProject, Profile, ProgressArchive, Report, ResourceRating, Review, Task, VocabularyItem, WorkspaceState } from "@/lib/types";
 
 const STORAGE_KEY = "cybercoach:v1";
 const LEGACY_STORAGE_KEY = "cyber-career-os:v1";
@@ -39,6 +39,11 @@ interface WorkspaceContextValue extends WorkspaceState {
   recordResourceUse: (resourceId: string, taskId: string) => void;
   rateResource: (resourceId: string, taskId: string, rating: ResourceRating) => void;
   setSourceLock: (skill: string, resourceId: string) => void;
+  addPortfolioProject: (project: PortfolioProject) => void;
+  addJob: (job: JobPosting) => void;
+  addApplication: (application: JobApplication) => void;
+  updateApplication: (id: string, patch: Partial<JobApplication>) => void;
+  addInterview: (attempt: InterviewAttempt) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -61,6 +66,7 @@ function normalizeState(saved: Partial<WorkspaceState>): WorkspaceState {
       archives: saved.coaching?.archives ?? [],
       preferences: { ...demoState.coaching.preferences, ...saved.coaching?.preferences },
     },
+    portfolio: saved.portfolio ?? [], jobs: saved.jobs ?? [], applications: saved.applications ?? [], interviews: saved.interviews ?? [],
   };
 }
 
@@ -198,6 +204,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }),
     rateResource: (resourceId, taskId, rating) => mutate((current) => ({ ...current, resourceHistory: current.resourceHistory.map((usage, index, all) => usage.resourceId === resourceId && usage.taskId === taskId && all.findIndex((item) => item.resourceId === resourceId && item.taskId === taskId) === index ? { ...usage, rating } : usage), resources: current.resources.map((resource) => resource.id === resourceId ? { ...resource, rating } : resource) })),
     setSourceLock: (skill, resourceId) => mutate((current) => ({ ...current, sourceLocks: { ...current.sourceLocks, [skill]: resourceId } })),
+    addPortfolioProject: (project) => mutate((current) => ({ ...current, portfolio: [project, ...current.portfolio] })),
+    addJob: (job) => mutate((current) => ({ ...current, jobs: [job, ...current.jobs] })),
+    addApplication: (application) => mutate((current) => ({ ...current, applications: [application, ...current.applications] })),
+    updateApplication: (id, patch) => mutate((current) => ({ ...current, applications: current.applications.map((application) => application.id === id ? { ...application, ...patch } : application) })),
+    addInterview: (attempt) => mutate((current) => ({ ...current, interviews: [attempt, ...current.interviews] })),
   }), [mutate, ready, state, syncMode]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

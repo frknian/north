@@ -269,6 +269,11 @@ export interface CoachingState {
   preferences: CoachingPreferences;
 }
 
+export interface PortfolioProject { id: string; title: string; url?: string; description: string; skills: string[]; readmeQuality: 0 | 1 | 2 | 3 | 4 | 5; securityRelevance: 0 | 1 | 2 | 3 | 4 | 5; lastCommitAt?: string; status: "idea" | "building" | "published"; }
+export interface JobPosting { id: string; company: string; position: string; url?: string; text: string; addedAt: string; requiredSkills: string[]; niceToHave: string[]; matchScore: number; missingSkills: string[]; analysis?: string; }
+export interface JobApplication { id: string; company: string; position: string; url?: string; appliedAt: string; stage: "saved" | "applied" | "interview" | "offer" | "rejected"; remote: "remote" | "hybrid" | "onsite"; salary?: string; contact?: string; notes?: string; rejectionReason?: string; }
+export interface InterviewAttempt { id: string; role: "hr" | "junior_security" | "pentest" | "networking" | "linux" | "active_directory" | "cloud"; language: "tr" | "en"; question: string; answer: string; score?: number; feedback?: string; createdAt: string; }
+
 export interface WorkspaceState {
   profile: Profile;
   weeklyPlan: WeeklyPlan;
@@ -285,4 +290,8 @@ export interface WorkspaceState {
   resourceHistory: ResourceUsage[];
   sourceLocks: Record<string, string>;
   coaching: CoachingState;
+  portfolio: PortfolioProject[];
+  jobs: JobPosting[];
+  applications: JobApplication[];
+  interviews: InterviewAttempt[];
 }

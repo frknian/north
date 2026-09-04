@@ -119,4 +119,5 @@ export const demoState: WorkspaceState = {
     archives: [],
     preferences: { dailyReminderEnabled: true, weeklyReviewReminderEnabled: true, dailyAiLimit: 20, aiUsage: { date: "", count: 0 } },
   },
+  portfolio: [], jobs: [], applications: [], interviews: [],
 };
