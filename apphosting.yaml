@@ -1,0 +1,18 @@
+# CyberCoach Firebase App Hosting çalışma zamanı ayarları.
+# OPENAI_API_KEY Firebase Secret Manager'da tutulur; bu dosyada değer bulunmaz.
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 40
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  - variable: OPENAI_API_KEY
+    secret: openaiApiKey
+    availability:
+      - RUNTIME
+  - variable: OPENAI_MODEL
+    value: gpt-5.6-luna
+    availability:
+      - RUNTIME
