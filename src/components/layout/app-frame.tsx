@@ -9,7 +9,7 @@ import { useWorkspace } from "@/components/features/workspace-provider";
 const nav = [
   { href: "/", label: "Ana Sayfa", icon: Home }, { href: "/plan", label: "Plan", icon: Layers3 },
   { href: "/labs", label: "Lablar", icon: FlaskConical }, { href: "/skills", label: "Beceriler", icon: BarChart3 },
-  { href: "/resources", label: "Kaynaklar", icon: BookOpen }, { href: "/coach", label: "AI Koç", icon: Bot }, { href: "/reviews", label: "Değerlendirmeler", icon: BrainCircuit }, { href: "/profile", label: "Profil", icon: UserRound },
+  { href: "/resources", label: "Kaynaklar", icon: BookOpen }, { href: "/coach", label: "CyberCoach", icon: Bot }, { href: "/insights", label: "İçgörüler", icon: BrainCircuit }, { href: "/reviews", label: "Değerlendirme", icon: BrainCircuit }, { href: "/profile", label: "Profil", icon: UserRound },
 ];
 
 export function AppFrame({ children }: { children: React.ReactNode }) {

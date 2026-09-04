@@ -71,6 +71,11 @@ export const coachInputSchema = z.object({
     resources: z.array(z.object({ id: z.string(), title: z.string(), provider: z.string(), category: z.string(), subcategory: z.string(), resourceType: z.string(), priority: z.enum(["primary", "secondary", "optional"]), recommendedForSkills: z.array(z.string()), rating: z.string().optional() })).max(30),
     resourceHistory: z.array(z.object({ resourceId: z.string(), completed: z.boolean(), rating: z.string().optional() })).max(30),
     sourceLocks: z.record(z.string(), z.string()),
+    coaching: z.object({
+      onboarding: z.object({ currentLevel: z.string(), englishLevel: z.string(), labAccess: z.string(), preferredStyle: z.string(), constraints: z.string() }).nullable().optional(),
+      checkins: z.array(z.object({ date: z.string(), availableMinutes: z.number(), energy: z.string(), outcome: z.string(), blocker: z.string().optional(), note: z.string().optional() })).max(7),
+      milestones: z.array(z.object({ title: z.string(), horizonDays: z.number(), description: z.string(), status: z.string() })).max(6),
+    }).optional(),
   }),
 });
 

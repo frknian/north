@@ -107,4 +107,16 @@ export const demoState: WorkspaceState = {
   resources: initialResources,
   resourceHistory: [],
   sourceLocks: initialSourceLocks,
+  coaching: {
+    milestones: [
+      { id: "milestone-30", title: "Temel keşif akışı", horizonDays: 30, description: "Ağ keşfi ve temel enumeration akışını kanıtlarla tekrarla.", successCriteria: ["4 odak oturumu", "2 bağımsız kolay lab", "Tekrar kullanılabilir keşif notu"], status: "active" },
+      { id: "milestone-60", title: "Web ve iç ağ temeli", horizonDays: 60, description: "Web güvenliği ve SMB/AD temelinde ilk bağımsız çıktılarını üret.", successCriteria: ["2 web labı", "1 SMB checklist", "1 teknik bulgu"], status: "upcoming" },
+      { id: "milestone-90", title: "Portföy kanıtı", horizonDays: 90, description: "Seçili alanda işe dönük kanıt ve rapor örnekleri biriktir.", successCriteria: ["3 lab günlüğü", "2 kaliteli bulgu", "Kendi öğrenme özetin"], status: "upcoming" },
+    ],
+    checkins: [],
+    pendingActions: [],
+    actionHistory: [],
+    archives: [],
+    preferences: { dailyReminderEnabled: true, weeklyReviewReminderEnabled: true, dailyAiLimit: 20, aiUsage: { date: "", count: 0 } },
+  },
 };

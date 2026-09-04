@@ -5,6 +5,8 @@ export type Difficulty = "easy" | "medium" | "hard";
 export type ResourceType = "documentation" | "course" | "lab" | "challenge" | "vulnerable-machine" | "tool" | "article" | "reference";
 export type ResourcePriority = "primary" | "secondary" | "optional";
 export type ResourceRating = "very_useful" | "useful" | "neutral" | "not_useful";
+export type EnergyLevel = "low" | "medium" | "high";
+export type CheckinOutcome = "ready" | "stuck" | "rest" | "completed";
 
 export interface Profile {
   id: string;
@@ -196,6 +198,77 @@ export interface CoachMessage {
   failed?: boolean;
 }
 
+export interface CoachingOnboarding {
+  completedAt: string;
+  currentLevel: "beginner" | "foundation" | "intermediate";
+  englishLevel: "basic" | "working" | "comfortable";
+  labAccess: "browser" | "local_vm" | "both";
+  preferredStyle: "guided" | "balanced" | "independent";
+  constraints: string;
+}
+
+export interface Milestone {
+  id: string;
+  title: string;
+  horizonDays: 30 | 60 | 90;
+  description: string;
+  successCriteria: string[];
+  status: "upcoming" | "active" | "completed";
+}
+
+export interface DailyCheckin {
+  id: string;
+  date: string;
+  availableMinutes: 30 | 45 | 60 | 90;
+  energy: EnergyLevel;
+  outcome: CheckinOutcome;
+  blocker?: string;
+  note?: string;
+}
+
+export interface PendingCoachAction {
+  id: string;
+  messageId: string;
+  createdAt: string;
+  actions: CoachAction[];
+}
+
+export interface CoachActionHistory {
+  id: string;
+  pendingActionId: string;
+  appliedAt: string;
+  summaries: string[];
+  before: Pick<WorkspaceState, "tasks" | "weeklyPlan">;
+  revertedAt?: string;
+}
+
+export interface ProgressArchive {
+  id: string;
+  createdAt: string;
+  reason: "progress_reset" | "full_reset";
+  completedTasks: number;
+  focusMinutes: number;
+  labsCompleted: number;
+  coachMessages: number;
+}
+
+export interface CoachingPreferences {
+  dailyReminderEnabled: boolean;
+  weeklyReviewReminderEnabled: boolean;
+  dailyAiLimit: number;
+  aiUsage: { date: string; count: number };
+}
+
+export interface CoachingState {
+  onboarding?: CoachingOnboarding;
+  milestones: Milestone[];
+  checkins: DailyCheckin[];
+  pendingActions: PendingCoachAction[];
+  actionHistory: CoachActionHistory[];
+  archives: ProgressArchive[];
+  preferences: CoachingPreferences;
+}
+
 export interface WorkspaceState {
   profile: Profile;
   weeklyPlan: WeeklyPlan;
@@ -211,4 +284,5 @@ export interface WorkspaceState {
   resources: Resource[];
   resourceHistory: ResourceUsage[];
   sourceLocks: Record<string, string>;
+  coaching: CoachingState;
 }

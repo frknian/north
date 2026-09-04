@@ -35,6 +35,7 @@ export async function loadWorkspaceState(
     resources: [],
     resourceHistory: [],
     sourceLocks: {},
+    coaching: fallback.coaching,
   };
 }
 

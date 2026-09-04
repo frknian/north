@@ -5,15 +5,23 @@ import { careerModel, hasAiConfiguration, securityBoundary } from "@/lib/ai/mode
 import { coachInputSchema, coachOutputSchema } from "@/lib/ai/schemas";
 import { verifyFirebaseRequest } from "@/lib/firebase/admin";
 
+const DAILY_LIMIT = 20;
+const requestsByUser = new Map<string, { date: string; count: number }>();
+
 export async function POST(request: Request) {
   const user = await verifyFirebaseRequest(request);
   if (!user) return NextResponse.json({ error: "AI koçunu kullanmak için Firebase hesabına giriş yapmalısın." }, { status: 401 });
+  const today = new Date().toISOString().slice(0, 10);
+  const previous = requestsByUser.get(user.uid);
+  const count = previous?.date === today ? previous.count : 0;
+  if (count >= DAILY_LIMIT) return NextResponse.json({ error: "Bugünkü AI koç limitine ulaştın. Önce önerilen görevi uygula." }, { status: 429 });
   const parsed = coachInputSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Koçluk bağlamı geçersiz." }, { status: 400 });
   if (!hasAiConfiguration()) return NextResponse.json({ error: "OpenAI API anahtarı henüz eklenmedi." }, { status: 503 });
 
   const { generationId, message, history, workspace } = parsed.data;
   try {
+    requestsByUser.set(user.uid, { date: today, count: count + 1 });
     const result = await generateText({
       model: careerModel,
       output: Output.object({ schema: coachOutputSchema }),
