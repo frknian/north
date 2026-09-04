@@ -84,3 +84,8 @@ export const coachOutputSchema = z.object({
   actions: z.array(coachActionSchema).max(12),
   analysis: z.object({ strongestSignal: z.string().max(240), bottleneck: z.string().max(240), nextPriority: z.string().max(240) }).optional(),
 });
+
+export const jobAnalysisInputSchema = z.object({ company: z.string().min(1), position: z.string().min(1), text: z.string().min(30).max(12000), skills: z.array(z.object({ name: z.string(), score: z.number() })).max(30) });
+export const jobAnalysisOutputSchema = z.object({ requiredSkills: z.array(z.string()).max(15), niceToHave: z.array(z.string()).max(15), missingSkills: z.array(z.string()).max(10), matchScore: z.number().int().min(0).max(100), analysis: z.string().max(900), gapPlan: z.array(z.string()).max(5) });
+export const interviewInputSchema = z.object({ role: z.string(), language: z.enum(["tr", "en"]), question: z.string().min(5), answer: z.string().min(10).max(5000) });
+export const interviewOutputSchema = z.object({ score: z.number().int().min(0).max(100), technicalAccuracy: z.string().max(400), completeness: z.string().max(400), communication: z.string().max(400), nextAttempt: z.string().max(500) });
