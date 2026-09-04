@@ -1,0 +1,2 @@
+import type { MetadataRoute } from "next";
+export default function manifest(): MetadataRoute.Manifest { return { name: "CyberCoach", short_name: "CyberCoach", description: "Siber güvenlik kariyerin için AI destekli çalışma ve gelişim koçu.", start_url: "/", display: "standalone", background_color: "#0b0d10", theme_color: "#0b0d10", icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }] }; }
