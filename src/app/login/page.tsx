@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +38,7 @@ export default function LoginPage() {
   }
 
   return <main className="grid min-h-dvh place-items-center px-4 py-10"><div className="w-full max-w-md">
-    <div className="mb-6 flex items-center justify-center gap-3"><div className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground"><ShieldCheck className="size-5" /></div><div><p className="font-semibold">CyberCoach</p><p className="text-xs text-muted-foreground">AI destekli siber güvenlik gelişimi.</p></div></div>
+    <div className="mb-6 flex items-center justify-center gap-3"><div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-[#061d2d]"><Image src="/north-mark.png" alt="North" width={40} height={40} className="size-10 object-contain" priority /></div><div><p className="font-semibold">North</p><p className="text-xs text-muted-foreground">AI destekli siber güvenlik gelişimi.</p></div></div>
     <Card><CardHeader><CardTitle>Gelişimine devam et</CardTitle><CardDescription>Görevlerini, lablarını ve değerlendirmelerini cihazların arasında eşitle.</CardDescription></CardHeader><CardContent className="space-y-4">{configured ? <>
       <div className="space-y-2"><Label htmlFor="email">E-posta</Label><Input id="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="sen@example.com" /></div>
       <div className="space-y-2"><Label htmlFor="password">Şifre</Label><Input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div>

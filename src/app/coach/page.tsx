@@ -40,7 +40,7 @@ export default function CoachPage() {
     workspace.addCoachMessage({ id: crypto.randomUUID(), role: "user", content: clean, createdAt: new Date().toISOString() });
     try {
       const token = await getFirebase()?.auth.currentUser?.getIdToken();
-      if (!token) throw new Error("CyberCoach'u kullanmak için önce Firebase hesabına giriş yapmalısın.");
+      if (!token) throw new Error("North'u kullanmak için önce Firebase hesabına giriş yapmalısın.");
       const response = await fetch("/api/ai/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -56,13 +56,13 @@ export default function CoachPage() {
         toast.success("Koç değişiklik önerileri hazırladı. Uygulamadan önce onayını bekliyor.");
       }
     } catch (error) {
-      const content = error instanceof Error ? error.message : "CyberCoach yanıt veremedi.";
+      const content = error instanceof Error ? error.message : "North yanıt veremedi.";
       workspace.addCoachMessage({ id: crypto.randomUUID(), role: "assistant", content, createdAt: new Date().toISOString(), generationId, failed: true });
       toast.error(content);
     } finally { setBusy(false); }
   }
 
-  return <><PageHeader eyebrow="Tanı → planla → uygula → ölç" title="CyberCoach" description="Planını kanıtlara göre düzenleyen; öneriyi senden onay almadan uygulamayan çalışma koçu." /><div className="mx-auto grid max-w-7xl gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-8">
+  return <><PageHeader eyebrow="Tanı → planla → uygula → ölç" title="North AI Koç" description="Planını kanıtlara göre düzenleyen; öneriyi senden onay almadan uygulamayan çalışma koçu." /><div className="mx-auto grid max-w-7xl gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-8">
     {!workspace.coaching.onboarding ? <Onboarding onComplete={workspace.completeOnboarding} /> : <CoachConversation messages={messages} busy={busy} input={input} setInput={setInput} onSend={send} />}
     <aside className="space-y-4">
       <CoachContext metrics={metrics} limit={workspace.coaching.preferences.dailyAiLimit} usage={workspace.coaching.preferences.aiUsage.count} />

@@ -116,7 +116,7 @@ export default function CareerPage() {
     workspace.addPortfolioProject({
       id: crypto.randomUUID(),
       title: projectTitle.trim(),
-      description: "CyberCoach içinde eklenen portföy projesi.",
+      description: "North içinde eklenen portföy projesi.",
       skills: [],
       readmeQuality: 0,
       securityRelevance: 0,
@@ -182,7 +182,7 @@ export default function CareerPage() {
       {tab === "jobs" && (
         <div className="space-y-4">
           <Card className="space-y-4 p-5">
-            <div><p className="font-semibold">İlanı AI ile analiz et</p><p className="text-sm text-muted-foreground">İlan metnini yapıştır; CyberCoach beceri eşleşmeni ve eksik kapatma planını çıkarsın.</p></div>
+            <div><p className="font-semibold">İlanı AI ile analiz et</p><p className="text-sm text-muted-foreground">İlan metnini yapıştır; North beceri eşleşmeni ve eksik kapatma planını çıkarsın.</p></div>
             <div className="grid gap-3 sm:grid-cols-2"><Input value={company} onChange={(event) => setCompany(event.target.value)} placeholder="Şirket" /><Input value={position} onChange={(event) => setPosition(event.target.value)} placeholder="Pozisyon" /></div>
             <Textarea value={jobText} onChange={(event) => setJobText(event.target.value)} rows={7} placeholder="İlan metnini buraya yapıştır…" />
             {jobError && <p className="text-sm text-destructive">{jobError}</p>}

@@ -1,4 +1,4 @@
-# CyberCoach
+# North
 
 Kişisel siber güvenlik çalışma planını, lab günlüğünü, bağımsız çözüm oranını ve AI destekli değerlendirmeleri yöneten Türkçe web uygulaması.
 

@@ -9,10 +9,10 @@ import { ServiceWorkerRegistration } from "@/components/features/service-worker-
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "CyberCoach", template: "%s · CyberCoach" },
+  title: { default: "North", template: "%s · North" },
   description: "Siber güvenlik kariyerin için AI destekli çalışma ve gelişim koçu.",
-  applicationName: "CyberCoach",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "CyberCoach" },
+  applicationName: "North",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "North" },
 };
 
 export const viewport: Viewport = { themeColor: "#0b0d10", width: "device-width", initialScale: 1 };
