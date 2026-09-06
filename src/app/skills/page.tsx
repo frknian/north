@@ -1,24 +1,2 @@
-"use client";
-
-import { ArrowRight, Check, Info, TrendingUp } from "lucide-react";
-import { PageHeader } from "@/components/layout/page-header";
-import { useWorkspace } from "@/components/features/workspace-provider";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-
-const subskills: Record<string, string[]> = {
-  Networking: ["TCP/IP", "DNS", "Routing", "Subnetting", "Nmap", "Wireshark"],
-  "Pentest Workflow": ["Recon", "Enumeration", "Vulnerability analysis", "Exploitation", "Privilege escalation"],
-  Linux: ["Shell", "Permissions", "Processes", "Services"], "Web Security": ["HTTP", "Access control", "Burp Suite", "OWASP"],
-  "Active Directory": ["LDAP", "Kerberos", "SMB", "Attack paths"], "Python/Bash": ["Automation", "Parsing", "CLI tools"],
-  Reporting: ["Evidence", "Impact", "Remediation"], English: ["Technical vocabulary", "Speaking"], Portfolio: ["Lab notes", "Findings", "Projects"],
-};
-
-export default function SkillsPage() {
-  const { skills } = useWorkspace(); const readiness = Math.round(skills.reduce((sum, skill) => sum + skill.score / 10 * skill.weight * 100, 0));
-  return <><PageHeader eyebrow="Kanıt temelli güven" title="Beceriler ve kariyer hazırlığı" description="Scores move from completed practice, independent solving, repeated exposure and AI dependency—not self-rating alone." /><div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6 lg:p-8"><Card className="border-primary/25"><CardContent className="grid gap-6 pt-6 lg:grid-cols-[220px_1fr]"><div><div className="flex items-center gap-2"><p className="text-sm font-medium">Kariyer hazırlığı</p><Tooltip><TooltipTrigger aria-label="How readiness is calculated"><Info className="size-3.5 text-muted-foreground" /></TooltipTrigger><TooltipContent className="max-w-64">Deterministic weighted score from skill records. AI writes explanations but cannot invent the number.</TooltipContent></Tooltip></div><p className="metric-number mt-2 text-5xl font-semibold">{readiness}<span className="text-xl text-muted-foreground">/100</span></p><p className="mt-2 text-xs leading-5 text-muted-foreground">Target: first internship, SOC, analyst, junior security or pentest role.</p></div><div className="space-y-3">{skills.map((skill) => <div key={skill.id} className="grid grid-cols-[115px_1fr_34px] items-center gap-3 text-xs"><span className="truncate text-muted-foreground">{skill.name}</span><Progress value={skill.score * 10} /><span className="metric-number text-right">{skill.score.toFixed(1)}</span></div>)}</div></CardContent></Card><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{skills.map((skill) => { const changed = skill.score - skill.previousScore; return <Card key={skill.id}><CardHeader><div className="flex items-start justify-between gap-4"><div><CardTitle>{skill.name}</CardTitle><CardDescription>{Math.round(skill.weight * 100)}% readiness weight</CardDescription></div><span className="metric-number text-2xl font-semibold">{skill.score.toFixed(1)}</span></div><Progress value={skill.score * 10} /></CardHeader><CardContent><div className="mb-4 flex flex-wrap gap-1.5">{(subskills[skill.name] ?? [skill.category]).map((item) => <Badge variant="outline" key={item} className="font-normal">{item}</Badge>)}</div><div className="flex gap-2 border-t pt-4"><TrendingUp className="mt-0.5 size-4 shrink-0 text-primary" /><p className="text-xs leading-5 text-muted-foreground"><span className="text-foreground">{changed > 0 ? `${skill.previousScore.toFixed(1)} → ${skill.score.toFixed(1)}.` : "Stable."}</span> {skill.evidence}</p></div></CardContent></Card>; })}</div><Card><CardHeader><CardTitle>12 aylık yol haritası</CardTitle><CardDescription>Your primary direction stays broad enough for the first role while building toward offensive security.</CardDescription></CardHeader><CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Roadmap active title="Months 1–3" body="Networking + pentest workflow + independent labs" /><Roadmap title="Months 4–6" body="Internal pentest + Active Directory + basic cloud + portfolio" /><Roadmap title="Months 7–9" body="AD + Azure/AWS security + harder labs + applications" /><Roadmap title="Months 10–12" body="Network/cloud attack paths + mock pentests + interviews" /></CardContent></Card></div></>;
-}
-
-function Roadmap({ title, body, active = false }: { title: string; body: string; active?: boolean }) { return <div className={active ? "rounded-lg border border-primary/30 bg-primary/5 p-4" : "rounded-lg border p-4"}><div className="mb-2 flex items-center justify-between"><span className="font-mono text-xs text-muted-foreground">{title}</span>{active ? <Check className="size-4 text-primary" /> : <ArrowRight className="size-4 text-muted-foreground" />}</div><p className="text-sm leading-5">{body}</p></div>; }
+import { SkillOverview } from "@/components/features/skill-overview";
+export default function SkillsPage() { return <SkillOverview />; }

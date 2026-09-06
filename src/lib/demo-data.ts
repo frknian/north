@@ -36,6 +36,7 @@ const taskOutputs = [
 ] as const;
 
 export const demoState: WorkspaceState = {
+  certifications: [],
   profile: {
     id: "00000000-0000-4000-8000-000000000010",
     fullName: "Furkan",

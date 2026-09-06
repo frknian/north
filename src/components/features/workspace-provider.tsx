@@ -5,8 +5,10 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { toast } from "sonner";
 import { demoState } from "@/lib/demo-data";
+import { createEmptyWorkspaceState, createPersonalizedWorkspace } from "@/lib/onboarding";
+import { dayKey, initializeNorth, type NorthState } from "@/lib/north";
 import { getFirebase } from "@/lib/firebase/client";
-import type { CoachAction, CoachMessage, CoachingOnboarding, DailyCheckin, FocusSession, InterviewAttempt, JobApplication, JobPosting, Lab, Note, PortfolioProject, Profile, ProgressArchive, Report, ResourceRating, Review, Task, VocabularyItem, WorkspaceState } from "@/lib/types";
+import type { Certification, CoachAction, CoachMessage, CoachingOnboarding, DailyCheckin, FocusSession, InitialSetupInput, InterviewAttempt, JobApplication, JobPosting, Lab, Note, PortfolioProject, Profile, ProgressArchive, Report, ResourceRating, Review, Task, VocabularyItem, WorkspaceState } from "@/lib/types";
 
 const STORAGE_KEY = "cybercoach:v1";
 const LEGACY_STORAGE_KEY = "cyber-career-os:v1";
@@ -14,8 +16,11 @@ const WORKSPACE_ID = "cybercoach";
 const LEGACY_WORKSPACE_ID = "career-os";
 
 interface WorkspaceContextValue extends WorkspaceState {
+  updateNorth: (update: (state: NorthState) => NorthState) => void;
   ready: boolean;
   syncMode: "local" | "firebase";
+  authStatus: "loading" | "signed_out" | "signed_in" | "local";
+  userEmail: string | null;
   updateTask: (id: string, patch: Partial<Task>) => void;
   setDailyMission: (id: string) => void;
   addFocusSession: (session: FocusSession) => void;
@@ -25,6 +30,9 @@ interface WorkspaceContextValue extends WorkspaceState {
   replaceTasks: (tasks: Task[], summary: string) => void;
   addReview: (review: Review) => void;
   addNote: (note: Note) => void;
+  updateNote: (id: string, patch: Partial<Note>) => void;
+  saveCertification: (certification: Certification) => void;
+  updatePortfolioProject: (id: string, patch: Partial<PortfolioProject>) => void;
   addReport: (report: Report) => void;
   addVocabulary: (item: VocabularyItem) => void;
   addCoachMessage: (message: CoachMessage) => void;
@@ -33,8 +41,10 @@ interface WorkspaceContextValue extends WorkspaceState {
   dismissPendingActions: (pendingActionId: string) => void;
   undoActionBatch: (historyId: string) => void;
   completeOnboarding: (onboarding: Omit<CoachingOnboarding, "completedAt">) => void;
+  completeInitialSetup: (input: InitialSetupInput) => void;
   saveCheckin: (checkin: Omit<DailyCheckin, "id" | "date">) => void;
   updateCoachingPreferences: (patch: Partial<WorkspaceState["coaching"]["preferences"]>) => void;
+  updateMilestone: (id: string, status: WorkspaceState["coaching"]["milestones"][number]["status"]) => void;
   resetProgress: (reason: ProgressArchive["reason"]) => void;
   recordResourceUse: (resourceId: string, taskId: string) => void;
   rateResource: (resourceId: string, taskId: string, rating: ResourceRating) => void;
@@ -52,6 +62,7 @@ function normalizeState(saved: Partial<WorkspaceState>): WorkspaceState {
   return {
     ...demoState,
     ...saved,
+    certifications: saved.certifications ?? [],
     coachMessages: saved.coachMessages ?? [],
     resources: saved.resources ?? demoState.resources,
     resourceHistory: saved.resourceHistory ?? [],
@@ -91,12 +102,39 @@ function applyActions(state: WorkspaceState, actions: CoachAction[]): WorkspaceS
 }
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<WorkspaceState>(demoState);
+  const [state, setState] = useState<WorkspaceState>(() => createEmptyWorkspaceState());
   const [ready, setReady] = useState(false);
   const [syncMode, setSyncMode] = useState<"local" | "firebase">("local");
+  const [authStatus, setAuthStatus] = useState<"loading" | "signed_out" | "signed_in" | "local">("loading");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const userIdRef = useRef<string | null>(null);
   const firebase = useMemo(() => getFirebase(), []);
-  const mutate = useCallback((fn: (current: WorkspaceState) => WorkspaceState) => setState(fn), []);
+  const mutate = useCallback((fn: (current: WorkspaceState) => WorkspaceState) => setState(current => {
+    let next = fn(current);
+    if (!next.north) return next;
+    if (next.north !== current.north) {
+      next = { ...next, tasks: next.tasks.map(task => {
+        const linked = next.north!.tasks.find(t => t.id === task.id);
+        if (!linked) return task;
+        return { ...task, title: linked.title, duration: linked.minutes, status: linked.status === "done" ? "completed" : linked.status === "partial" ? "partial" : linked.status === "skipped" || linked.status === "cancelled" ? "failed" : "pending", completedAt: linked.status === "done" ? task.completedAt ?? new Date().toISOString() : undefined };
+      }) };
+    } else if (next.tasks !== current.tasks) {
+      const migrated = initializeNorth(next);
+      const oldIds = new Set(current.tasks.map(t => t.id));
+      next = { ...next, north: { ...next.north, tasks: [
+        ...next.north.tasks.filter(t => !oldIds.has(t.id)),
+        ...migrated.tasks.map(t => {
+          const existing = next.north!.tasks.find(n => n.id === t.id);
+          return existing ? { ...existing, title: t.title, minutes: t.minutes, status: t.status } : t;
+        }),
+      ] } };
+    }
+    if (next.focusSessions !== current.focusSessions) {
+      const migrated = initializeNorth(next);
+      next = { ...next, north: { ...next.north!, activities: [...next.north!.activities, ...migrated.activities.filter(a => !next.north!.activities.some(n => n.id === a.id))] } };
+    }
+    return next;
+  }), []);
 
   useEffect(() => {
     let active = true;
@@ -105,20 +143,25 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       if (!firebase) {
         const stored = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
         if (stored) try { setState(normalizeState(JSON.parse(stored))); } catch { window.localStorage.removeItem(STORAGE_KEY); }
+        setAuthStatus("local");
         if (active) setReady(true);
         return;
       }
       unsubscribe = onAuthStateChanged(firebase.auth, async (user) => {
         if (!active) return;
+        setReady(false);
         if (!user) {
           userIdRef.current = null;
+          setUserEmail(null);
+          setAuthStatus("signed_out");
           setSyncMode("local");
-          const stored = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
-          if (stored) try { setState(normalizeState(JSON.parse(stored))); } catch { window.localStorage.removeItem(STORAGE_KEY); }
+          setState(createEmptyWorkspaceState());
           setReady(true);
           return;
         }
         userIdRef.current = user.uid;
+        setUserEmail(user.email);
+        setAuthStatus("signed_in");
         setSyncMode("firebase");
         const ref = doc(firebase.db, "users", user.uid, "workspaces", WORKSPACE_ID);
         let snapshot = await getDoc(ref);
@@ -131,7 +174,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
         if (!active) return;
         if (snapshot.exists()) setState(normalizeState(snapshot.data().state as Partial<WorkspaceState>));
-        else await setDoc(ref, { state: JSON.parse(JSON.stringify(demoState)), updatedAt: new Date().toISOString() });
+        else {
+          const emptyState = createEmptyWorkspaceState();
+          setState(emptyState);
+          await setDoc(ref, { state: JSON.parse(JSON.stringify(emptyState)), updatedAt: new Date().toISOString() }, { merge: true });
+        }
         setReady(true);
       });
     };
@@ -141,6 +188,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
+    if (!firebase || !userIdRef.current) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return;
+    }
     const timeout = window.setTimeout(() => {
       if (firebase && userIdRef.current) {
         setDoc(doc(firebase.db, "users", userIdRef.current, "workspaces", WORKSPACE_ID), { state: JSON.parse(JSON.stringify(state)), updatedAt: new Date().toISOString() }, { merge: true }).catch(() => toast.error("Firebase eşitlemesi başarısız oldu. Mevcut ekranın değişmedi."));
@@ -150,9 +201,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [firebase, ready, state]);
 
   const value = useMemo<WorkspaceContextValue>(() => ({
+    updateNorth: (update) => mutate(current => ({ ...current, north: update(current.north ?? initializeNorth(current)) })),
     ...state,
     ready,
     syncMode,
+    authStatus,
+    userEmail,
     updateTask: (id, patch) => mutate((current) => ({ ...current, tasks: current.tasks.map((task) => task.id === id ? { ...task, ...patch } : task) })),
     setDailyMission: (id) => mutate((current) => ({ ...current, tasks: current.tasks.map((task) => ({ ...task, isDailyMission: task.id === id })) })),
     addFocusSession: (session) => mutate((current) => {
@@ -162,9 +216,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }),
     addLab: (lab) => mutate((current) => ({ ...current, labs: [lab, ...current.labs] })),
     updateLab: (id, patch) => mutate((current) => ({ ...current, labs: current.labs.map((lab) => lab.id === id ? { ...lab, ...patch } : lab) })),
-    updateProfile: (patch) => mutate((current) => ({ ...current, profile: { ...current.profile, ...patch }, weeklyPlan: patch.universityMode ? { ...current.weeklyPlan, mode: patch.universityMode, targetBlocks: patch.universityMode === "exam" ? 4 : patch.universityMode === "free" ? 14 : 10 } : current.weeklyPlan })),
+    updateProfile: (patch) => mutate((current) => {
+      const profile = { ...current.profile, ...patch };
+      const primaryAreaId = current.north?.areas.some(area => area.id === "primary-goal") ? "primary-goal" : "cyber";
+      const north = current.north ? { ...current.north, weeklyHours: patch.weeklyCapacityHours ?? current.north.weeklyHours, areas: current.north.areas.map(area => area.id === primaryAreaId ? { ...area, name: patch.primaryFocus?.trim() || area.name, goal: patch.goal ?? area.goal, weeklyMinutes: patch.weeklyCapacityHours !== undefined ? patch.weeklyCapacityHours * 60 : area.weeklyMinutes } : area) } : current.north;
+      return { ...current, profile, north, weeklyPlan: patch.universityMode ? { ...current.weeklyPlan, mode: patch.universityMode, targetBlocks: patch.universityMode === "exam" ? 4 : patch.universityMode === "free" ? 14 : 10 } : current.weeklyPlan };
+    }),
     replaceTasks: (tasks, summary) => mutate((current) => ({ ...current, tasks, weeklyPlan: { ...current.weeklyPlan, aiSummary: summary, targetBlocks: tasks.length } })),
     addReview: (review) => mutate((current) => ({ ...current, reviews: [review, ...current.reviews] })),
+    updateNote: (id, patch) => mutate((current) => ({ ...current, notes: current.notes.map(note => note.id === id ? { ...note, ...patch } : note) })),
+    saveCertification: (certification) => mutate((current) => ({ ...current, certifications: [...current.certifications.filter(item => item.id !== certification.id), certification] })),
+    updatePortfolioProject: (id, patch) => mutate((current) => ({ ...current, portfolio: current.portfolio.map(item => item.id === id ? { ...item, ...patch } : item) })),
     addNote: (note) => mutate((current) => ({ ...current, notes: [note, ...current.notes] })),
     addReport: (report) => mutate((current) => ({ ...current, reports: [report, ...current.reports] })),
     addVocabulary: (item) => mutate((current) => ({ ...current, vocabulary: [item, ...current.vocabulary] })),
@@ -184,16 +246,19 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       return { ...current, tasks: history.before.tasks, weeklyPlan: history.before.weeklyPlan, coaching: { ...current.coaching, actionHistory: current.coaching.actionHistory.map((item) => item.id === historyId ? { ...item, revertedAt: new Date().toISOString() } : item) } };
     }),
     completeOnboarding: (onboarding) => mutate((current) => ({ ...current, coaching: { ...current.coaching, onboarding: { ...onboarding, completedAt: new Date().toISOString() } } })),
+    completeInitialSetup: (input) => setState(createPersonalizedWorkspace(input)),
     saveCheckin: (checkin) => mutate((current) => {
-      const date = new Date().toISOString().slice(0, 10);
+      const date = dayKey();
       const item: DailyCheckin = { ...checkin, id: crypto.randomUUID(), date };
-      return { ...current, coaching: { ...current.coaching, checkins: [item, ...current.coaching.checkins.filter((existing) => existing.date !== date)] } };
+      return { ...current, north: current.north ? { ...current.north, energy: { date, level: checkin.energy === "medium" ? "normal" : checkin.energy } } : current.north, coaching: { ...current.coaching, checkins: [item, ...current.coaching.checkins.filter((existing) => existing.date !== date)] } };
     }),
     updateCoachingPreferences: (patch) => mutate((current) => ({ ...current, coaching: { ...current.coaching, preferences: { ...current.coaching.preferences, ...patch } } })),
+    updateMilestone: (id, status) => mutate((current) => ({ ...current, coaching: { ...current.coaching, milestones: current.coaching.milestones.map((milestone) => milestone.id === id ? { ...milestone, status } : milestone) } })),
     resetProgress: (reason) => mutate((current) => {
       const archive: ProgressArchive = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), reason, completedTasks: current.tasks.filter((task) => task.status === "completed").length, focusMinutes: current.focusSessions.reduce((sum, session) => sum + session.durationMinutes, 0), labsCompleted: current.labs.filter((lab) => lab.status === "completed").length, coachMessages: current.coachMessages.length };
-      const profile = reason === "full_reset" ? demoState.profile : current.profile;
-      const onboarding = reason === "full_reset" ? undefined : current.coaching.onboarding;
+      if (reason === "full_reset") return createEmptyWorkspaceState();
+      const profile = current.profile;
+      const onboarding = current.coaching.onboarding;
       const resetSkills = current.skills.map((skill) => ({ ...skill, score: 0, previousScore: 0, evidence: "Henüz doğrulanmış kanıt yok." }));
       return {
         ...demoState,
@@ -226,7 +291,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     addApplication: (application) => mutate((current) => ({ ...current, applications: [application, ...current.applications] })),
     updateApplication: (id, patch) => mutate((current) => ({ ...current, applications: current.applications.map((application) => application.id === id ? { ...application, ...patch } : application) })),
     addInterview: (attempt) => mutate((current) => ({ ...current, interviews: [attempt, ...current.interviews] })),
-  }), [mutate, ready, state, syncMode]);
+  }), [authStatus, mutate, ready, state, syncMode, userEmail]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

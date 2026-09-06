@@ -129,6 +129,10 @@ export interface Note {
   category: string;
   content: string;
   updatedAt: string;
+  nextReviewAt?: string;
+  reviewIntervalDays?: number;
+  reviewCount?: number;
+  linkedSkill?: string;
 }
 
 export interface Report {
@@ -210,6 +214,23 @@ export interface CoachingOnboarding {
   labAccess: "browser" | "local_vm" | "both";
   preferredStyle: "guided" | "balanced" | "independent";
   constraints: string;
+  assessmentScore?: number;
+  assessmentTotal?: number;
+  assessmentBySkill?: Record<string, { correct: number; total: number }>;
+}
+
+export interface InitialSetupInput {
+  fullName: string;
+  goal: string;
+  track: string;
+  primaryFocus: string;
+  weeklyCapacityHours: number;
+  preferredSessionMinutes: 45 | 50 | 60;
+  englishLevel: CoachingOnboarding["englishLevel"];
+  labAccess: CoachingOnboarding["labAccess"];
+  preferredStyle: CoachingOnboarding["preferredStyle"];
+  constraints: string;
+  assessmentAnswers: Record<string, string>;
 }
 
 export interface Milestone {
@@ -276,10 +297,14 @@ export interface CoachingState {
 
 export interface PortfolioProject { id: string; title: string; url?: string; description: string; skills: string[]; readmeQuality: 0 | 1 | 2 | 3 | 4 | 5; securityRelevance: 0 | 1 | 2 | 3 | 4 | 5; lastCommitAt?: string; status: "idea" | "building" | "published"; }
 export interface JobPosting { id: string; company: string; position: string; url?: string; text: string; addedAt: string; requiredSkills: string[]; niceToHave: string[]; matchScore: number; missingSkills: string[]; analysis?: string; }
-export interface JobApplication { id: string; company: string; position: string; url?: string; appliedAt: string; stage: "saved" | "applied" | "interview" | "offer" | "rejected"; remote: "remote" | "hybrid" | "onsite"; salary?: string; contact?: string; notes?: string; rejectionReason?: string; }
+export interface JobApplication { cvVersion?: string; interviewAt?: string; followUpAt?: string; id: string; company: string; position: string; url?: string; appliedAt: string; stage: "saved" | "applied" | "interview" | "offer" | "rejected"; remote: "remote" | "hybrid" | "onsite"; salary?: string; contact?: string; notes?: string; rejectionReason?: string; }
 export interface InterviewAttempt { id: string; role: "hr" | "junior_security" | "pentest" | "networking" | "linux" | "active_directory" | "cloud"; language: "tr" | "en"; question: string; answer: string; score?: number; feedback?: string; createdAt: string; }
 
+export interface Certification { id: string; title: string; targetDate: string; sourceUrl: string; topics: { id: string; title: string; completed: boolean }[]; }
+
 export interface WorkspaceState {
+  north?: import("./north").NorthState;
+  certifications: Certification[];
   profile: Profile;
   weeklyPlan: WeeklyPlan;
   tasks: Task[];

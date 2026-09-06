@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { CheckinOutcome, EnergyLevel } from "@/lib/types";
+import { dayKey } from "@/lib/north";
 
 export function DailyCheckinCard() {
   const workspace = useWorkspace();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dayKey();
   const saved = workspace.coaching.checkins.find((item) => item.date === today);
   const [minutes, setMinutes] = useState<"30" | "45" | "60" | "90">(String(saved?.availableMinutes ?? 45) as "30" | "45" | "60" | "90");
   const [energy, setEnergy] = useState<EnergyLevel>(saved?.energy ?? "medium");

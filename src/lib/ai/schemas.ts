@@ -18,6 +18,13 @@ export const plannerInputSchema = z.object({
   resources: z.array(z.object({ id: z.string(), title: z.string(), provider: z.string(), category: z.string(), subcategory: z.string(), resourceType: z.string(), priority: z.enum(["primary", "secondary", "optional"]), recommendedForSkills: z.array(z.string()), rating: z.string().optional() })).max(30),
   resourceHistory: z.array(z.object({ resourceId: z.string(), completed: z.boolean(), rating: z.string().optional() })).max(30),
   sourceLocks: z.record(z.string(), z.string()),
+  intelligence: z.object({
+    observationCount:z.number(), summary:z.string(), metrics:z.array(z.object({label:z.string(),value:z.string(),detail:z.string()})),
+    reliablePatterns:z.array(z.object({type:z.string(),areaId:z.string().optional(),timeRange:z.string().optional(),sampleSize:z.number(),metric:z.string(),value:z.number(),confidence:z.string(),recommendation:z.string()})),
+    rolling4Weeks:z.object({sessions:z.number(),completionRate:z.number(),actualMinutes:z.number(),planningAccuracy:z.number()}),
+    rolling12Weeks:z.object({sessions:z.number(),completionRate:z.number(),actualMinutes:z.number(),planningAccuracy:z.number()}),
+    sustainableWeeklyMinutes:z.number(), userLocks:z.object({schedule:z.record(z.string(),z.string()),durations:z.record(z.string(),z.number())}),
+  }).optional(),
 });
 
 export const plannerOutputSchema = z.object({ summary: z.string().max(500), tasks: z.array(taskSchema).min(3).max(16) });
@@ -31,6 +38,7 @@ export const reviewInputSchema = z.object({
   period: z.enum(["weekly", "monthly"]), completedTasks: z.number(), totalTasks: z.number(), totalMinutes: z.number(),
   labsAttempted: z.number(), labsCompleted: z.number(), independentSolves: z.number(), aiLevels: z.record(z.string(), z.number()),
   missedTasks: z.array(z.string()).max(16), skillChanges: z.array(z.string()).max(20),
+  intelligence: z.object({ summary:z.string().max(1600), observationCount:z.number(), reliablePatterns:z.array(z.object({type:z.string(),sampleSize:z.number(),recommendation:z.string()})).max(8) }).optional(),
 });
 
 export const reviewOutputSchema = z.object({ summary: z.string().max(1400), strongestArea: z.string(), weakestArea: z.string(), nextFocus: z.string().max(400) });

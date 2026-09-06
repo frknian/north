@@ -1,31 +1,65 @@
 "use client";
-
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, Bot, BriefcaseBusiness, FlaskConical, Home, Layers3, Search, UserRound } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { usePathname, useRouter } from "next/navigation";
+import { BarChart3, Bot, CalendarDays, Home, Layers3, ShieldCheck, UserRound } from "lucide-react";
+import { WorkspaceSearch } from "@/components/features/workspace-search";
 import { useWorkspace } from "@/components/features/workspace-provider";
+import { isFirebaseConfigured } from "@/lib/firebase/client";
+import { cn } from "@/lib/utils";
 
-const primaryNav = [
-  { href: "/", label: "Ana Sayfa", icon: Home }, { href: "/plan", label: "Plan", icon: Layers3 },
-  { href: "/labs", label: "Lablar", icon: FlaskConical }, { href: "/resources", label: "Kaynaklar", icon: BookOpen },
-  { href: "/skills", label: "Beceriler", icon: BarChart3 }, { href: "/reviews", label: "Değerlendirmeler", icon: BarChart3 },
+const navigation = [
+  { href: "/", label: "Bugün", icon: Home },
+  { href: "/calendar", label: "Takvim", icon: CalendarDays },
+  { href: "/areas", label: "Alanlar", icon: Layers3 },
+  { href: "/progress", label: "İlerleme", icon: BarChart3 },
+  { href: "/north-ai", label: "North Koç", icon: Bot },
 ];
-const secondaryNav = [{ href: "/career", label: "Kariyer", icon: BriefcaseBusiness }, { href: "/evidence", label: "Kanıtlar", icon: BarChart3 }, { href: "/insights", label: "İçgörüler", icon: BarChart3 }];
-
-export function AppFrame({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname(); const { syncMode } = useWorkspace();
-  if (pathname.startsWith("/login") || pathname.startsWith("/auth")) return <>{children}</>;
-  return <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
-    <aside className="hidden border-r border-sidebar-border bg-sidebar md:fixed md:inset-y-0 md:flex md:w-[232px] md:flex-col">
-      <div className="flex h-[72px] items-center gap-3 px-5"><div className="grid size-9 place-items-center overflow-hidden rounded-lg bg-[#061d2d]"><Image src="/north-mark.png" alt="North" width={36} height={36} className="size-9 object-contain" priority /></div><div><p className="text-sm font-semibold tracking-tight">North</p><p className="text-[11px] text-muted-foreground">Kariyer çalışma alanı</p></div></div>
-      <nav className="flex flex-1 flex-col gap-0.5 px-3 py-3" aria-label="Ana navigasyon"><p className="px-3 pb-2 text-[11px] font-medium text-muted-foreground">ÇALIŞMA ALANI</p>{primaryNav.map((item) => <NavLink key={item.href} item={item} pathname={pathname} />)}<p className="px-3 pb-2 pt-6 text-[11px] font-medium text-muted-foreground">KARİYER</p>{secondaryNav.map((item) => <NavLink key={item.href} item={item} pathname={pathname} />)}</nav>
-      <div className="border-t border-sidebar-border p-3"><Link href="/profile" className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground", pathname.startsWith("/profile") && "bg-sidebar-accent text-foreground")}><UserRound className="size-4" />Profil ve ayarlar</Link><div className="mt-3 px-3 text-[11px] text-muted-foreground"><span className={cn("mr-1.5 inline-block size-1.5 rounded-full", syncMode === "firebase" ? "bg-emerald-400" : "bg-amber-400")} />{syncMode === "firebase" ? "Firebase eşitleniyor" : "Yerel çalışma alanı"}</div></div>
-    </aside>
-    <main className="min-w-0 pb-24 md:col-start-2 md:pb-8"><div className="flex h-14 items-center justify-between border-b border-border/80 px-4 sm:px-6 lg:px-8"><div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex"><Search className="size-4" /><span>Kaynak, konu veya lab ara…</span><kbd className="ml-2 rounded border px-1.5 py-0.5 text-[10px]">⌘ K</kbd></div><span className="text-sm font-medium sm:hidden">North</span><Link href="/coach" className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><Bot className="size-4" />AI Koç</Link></div>{children}</main>
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-border/80 bg-background/95 px-1 pt-2 backdrop-blur md:hidden" aria-label="Mobil navigasyon">{[{ href: "/", label: "Ana Sayfa", icon: Home }, { href: "/plan", label: "Plan", icon: Layers3 }, { href: "/labs", label: "Lablar", icon: FlaskConical }, { href: "/resources", label: "Kaynaklar", icon: BookOpen }, { href: "/profile", label: "Diğer", icon: UserRound }].map((item) => { const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href); return <Link key={item.href} href={item.href} className={cn("flex min-w-0 flex-col items-center gap-1 rounded-md py-1 text-[10px] text-muted-foreground", active && "text-primary")}><item.icon className="size-4" /><span className="truncate">{item.label}</span></Link>; })}</nav>
+const areaRoutes = ["/labs", "/skills", "/resources", "/career", "/evidence", "/knowledge", "/certifications", "/plan"];
+const titles: Record<string,string> = {"/":"Bugün","/calendar":"Takvim","/areas":"Alanlar","/progress":"İlerleme","/north-ai":"North Koç","/week":"Haftalık havuz","/coach":"North Koç","/profile":"Profil ve ayarlar","/data":"Verilerim ve güvenlik","/labs":"Lablar","/skills":"Beceriler","/resources":"Kaynaklar","/career":"Kariyer","/evidence":"Kanıtlar","/knowledge":"Bilgi bankası","/certifications":"Sertifikalar","/plan":"Siber güvenlik planı","/reviews":"Değerlendirmeler","/insights":"İçgörüler","/login":"Giriş","/kvkk":"KVKK Aydınlatma Metni","/onboarding":"Başlangıç kurulumu"};
+function activeTab(path: string) {
+  if(path === "/week")return "/";
+  if(areaRoutes.some(route=>path===route||path.startsWith(route+"/")))return "/areas";
+  if(path==="/reviews"||path==="/insights")return "/progress";
+  if(path==="/coach")return "/north-ai";
+  return navigation.find(n=>n.href!=="/"&&path.startsWith(n.href))?.href ?? (path==="/" ? "/" : "");
+}
+export function AppFrame({children}:{children:React.ReactNode}) {
+  const pathname=usePathname(); const router=useRouter(); const workspace=useWorkspace(); const {syncMode,north}=workspace;const [scrolled,setScrolled]=useState(false);
+  const area=pathname.startsWith("/areas/")?north?.areas.find(a=>a.id===pathname.split("/")[2]):undefined;
+  const primaryArea=north?.areas.find(a=>a.id==="primary-goal")??north?.areas.find(a=>a.id==="cyber");
+  const pageTitle=area?.name??titles[pathname]??(pathname.startsWith("/focus/")?"Odak":pathname.startsWith("/areas/")?"Alan": "North");
+  useEffect(()=>{document.title=pageTitle==="North"?"North":pageTitle+" — North";},[pageTitle]);
+  useEffect(()=>{const onScroll=()=>setScrolled(window.scrollY>24);onScroll();window.addEventListener("scroll",onScroll,{passive:true});return()=>window.removeEventListener("scroll",onScroll);},[]);
+  useEffect(()=>{
+    if(!isFirebaseConfigured()||!workspace.ready||workspace.authStatus==="loading")return;
+    const publicRoute=pathname.startsWith("/login")||pathname.startsWith("/auth")||pathname.startsWith("/account-reset")||pathname.startsWith("/kvkk");
+    if(workspace.authStatus==="signed_out"&&!publicRoute){router.replace("/login");return;}
+    if(workspace.authStatus==="signed_in"&&!workspace.coaching.onboarding&&pathname!=="/onboarding"){router.replace("/onboarding");return;}
+    if(workspace.authStatus==="signed_in"&&workspace.coaching.onboarding&&pathname==="/onboarding")router.replace("/");
+  },[pathname,router,workspace.authStatus,workspace.coaching.onboarding,workspace.ready]);
+  if(pathname.startsWith("/login")||pathname.startsWith("/auth")||pathname.startsWith("/account-reset")||pathname.startsWith("/kvkk")||pathname==="/onboarding"||pathname.startsWith("/focus/"))return <div className="north-route">{children}</div>;
+  if(isFirebaseConfigured()&&(!workspace.ready||workspace.authStatus!=="signed_in"||!workspace.coaching.onboarding))return <main className="grid min-h-dvh place-items-center px-6 text-center"><div><Image src="/north-mark.png" alt="" width={48} height={48} className="mx-auto mb-4 rounded-xl bg-white p-1"/><p className="text-sm text-muted-foreground">North hazırlanıyor…</p></div></main>;
+  return <div className="north-shell min-h-dvh">
+    <a className="skip-link" href="#north-content">İçeriğe geç</a>
+    <header className={cn("north-topbar",scrolled&&"is-scrolled")}>
+      <div className="north-topbar-inner">
+        <Link href="/" aria-label="North — Bugün" className="north-brand"><Image src="/north-mark.png" alt="" width={36} height={36} className="rounded-lg bg-white p-1" priority/><span>North</span></Link>
+        <TopNavigation pathname={pathname}/>
+        <div className="north-tools"><WorkspaceSearch/><Link href="/data" className="north-profile" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link><Link href="/profile" className="north-profile" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link></div>
+      </div>
+    </header>
+    <main id="north-content" className="north-main" tabIndex={-1}>
+      {areaRoutes.some(p=>pathname===p||pathname.startsWith(p+"/"))&&<div className="north-context"><Link href={`/areas/${primaryArea?.id??"cyber"}`}>Alanlar / {primaryArea?.name??"Ana hedef"}</Link><span>/ {titles[pathname]??"Ayrıntı"}</span></div>}
+      <div key={pathname} className="north-route">{children}</div>
+    </main>
+    <MobileNavigation pathname={pathname}/>
   </div>;
 }
-
-function NavLink({ item, pathname }: { item: (typeof primaryNav)[number]; pathname: string }) { const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href); return <Link href={item.href} className={cn("flex h-9 items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground", active && "bg-sidebar-accent text-foreground")}><item.icon className="size-4" />{item.label}</Link>; }
+function TopNavigation({pathname}:{pathname:string}) {
+ return <nav className="north-desktop-tabs" aria-label="Ana navigasyon">{navigation.map(n=><Link key={n.href} href={n.href} className={cn("north-top-tab",activeTab(pathname)===n.href&&"is-active")} aria-current={activeTab(pathname)===n.href?"page":undefined}>{n.label}</Link>)}</nav>;
+}
+function MobileNavigation({pathname}:{pathname:string}) {
+ return <nav className="north-mobile-tabs safe-bottom" aria-label="Mobil navigasyon">{navigation.map(n=><Link key={n.href} href={n.href} className={cn(activeTab(pathname)===n.href&&"is-active")} aria-current={activeTab(pathname)===n.href?"page":undefined}><n.icon size={19}/><span>{n.href==="/north-ai"?"Koç":n.label}</span></Link>)}</nav>;
+}

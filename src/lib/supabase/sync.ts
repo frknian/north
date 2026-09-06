@@ -21,6 +21,7 @@ export async function loadWorkspaceState(
   const p = profile.data;
   const w = plan.data;
   return {
+    certifications: fallback.certifications,
     profile: { id: p.id, fullName: p.full_name, goal: p.goal, track: p.track, primaryFocus: p.primary_focus, secondaryFocus: p.secondary_focus, futureFocus: p.future_focus, universityMode: p.university_mode, preferredSessionMinutes: p.preferred_session_minutes, weeklyCapacityHours: p.weekly_capacity_hours },
     weeklyPlan: { id: w.id, weekStart: w.week_start, mode: w.mode, targetBlocks: w.target_blocks, aiSummary: w.ai_summary },
     tasks: (tasks.data ?? []).map((t) => ({ id: t.id, weeklyPlanId: t.weekly_plan_id, title: t.title, description: t.description, category: t.category, duration: t.duration_minutes, difficulty: t.difficulty, objectives: t.objectives ?? [], successCriteria: t.success_criteria ?? [], recommendedResources: t.recommended_resources ?? [], outputRequirement: "Çalışma sonunda ölçülebilir bir çıktı üret.", aiHelpLimit: t.ai_help_limit, status: t.status, isDailyMission: t.is_daily_mission, completedAt: t.completed_at ?? undefined, reflection: t.reflection ?? undefined })),

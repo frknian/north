@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node tests/north-focus.cjs && node tests/north-intelligence.cjs && node tests/north-modules.cjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.58",
@@ -22,7 +23,6 @@
     "clsx": "^2.1.1",
     "cn": "^0.2.5",
     "firebase": "^12.18.0",
-    "firebase-admin": "^14.3.0",
     "geist": "^1.7.2",
     "lucide-react": "^1.41.0",
     "next": "16.3.4",

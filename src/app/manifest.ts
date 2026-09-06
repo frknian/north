@@ -1,2 +1,8 @@
 import type { MetadataRoute } from "next";
-export default function manifest(): MetadataRoute.Manifest { return { name: "North", short_name: "North", description: "Siber güvenlik kariyerin için AI destekli çalışma ve gelişim koçu.", start_url: "/", display: "standalone", background_color: "#0b0d10", theme_color: "#0b0d10", icons: [{ src: "/north-mark.png", sizes: "1254x1254", type: "image/png" }] }; }
+export default function manifest(): MetadataRoute.Manifest {
+  return { id:"/", name:"North", short_name:"North", lang:"tr", description:"Daha az karar. Daha iyi odak. Kişisel odak koçun.", start_url:"/", scope:"/", display:"standalone", background_color:"#121315", theme_color:"#121315", icons:[
+    {src:"/north-192.png",sizes:"192x192",type:"image/png",purpose:"any"},
+    {src:"/north-512.png",sizes:"512x512",type:"image/png",purpose:"any"},
+    {src:"/north-maskable-512.png",sizes:"512x512",type:"image/png",purpose:"maskable"},
+  ] };
+}

@@ -21,6 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { authenticatedAiFetch } from "@/lib/ai/client";
+import { CareerExtensions } from "@/components/features/career-extensions";
 import type { InterviewAttempt } from "@/lib/types";
 
 type JobAnalysis = {
@@ -126,17 +127,17 @@ export default function CareerPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="north-career-page page-content space-y-6">
       <PageHeader
         eyebrow="Kariyer merkezi"
         title="Hedeften işe uzanan sistem"
         description="Projelerini, iş fırsatlarını, başvurularını ve AI destekli görüşme çalışmalarını tek yerde yönet."
       />
 
-      <div className="flex flex-wrap gap-2 rounded-xl border border-border bg-muted/25 p-2">
+      <div className="north-internal-tabs">
         {[["roadmap", "Yol Haritası", Target], ["portfolio", "Portföy", FolderGit2], ["jobs", "İş Analizi", BriefcaseBusiness], ["applications", "Başvurular", FileText], ["interviews", "Mülakat", Users]].map(([value, label, Icon]) => {
           const TabIcon = Icon as typeof Target;
-          return <Button key={value as string} variant={tab === value ? "default" : "ghost"} onClick={() => setTab(value as string)}><TabIcon className="size-4" />{label as string}</Button>;
+          return <Button key={value as string} variant={tab === value ? "secondary" : "ghost"} aria-pressed={tab === value} onClick={() => setTab(value as string)}><TabIcon className="size-4" />{label as string}</Button>;
         })}
       </div>
 
@@ -161,7 +162,7 @@ export default function CareerPage() {
       )}
 
       {tab === "portfolio" && (
-        <div className="space-y-4">
+        <div className="space-y-4"><CareerExtensions section="portfolio" />
           <Card className="flex flex-col gap-3 p-5 sm:flex-row">
             <Input value={projectTitle} onChange={(event) => setProjectTitle(event.target.value)} placeholder="Yeni proje adı" />
             <Button onClick={addProject}><Plus className="size-4" /> Proje ekle</Button>
@@ -204,7 +205,7 @@ export default function CareerPage() {
       )}
 
       {tab === "applications" && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2"><div className="lg:col-span-2"><CareerExtensions section="applications" /></div>
           {workspace.applications.map((application) => (
             <Card key={application.id} className="space-y-3 p-5">
               <div className="flex justify-between gap-3"><div><p className="font-semibold">{application.position}</p><p className="text-sm text-muted-foreground">{application.company}</p></div><Badge variant="secondary">{application.stage}</Badge></div>

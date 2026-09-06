@@ -9,13 +9,16 @@ import { ServiceWorkerRegistration } from "@/components/features/service-worker-
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "North", template: "%s · North" },
-  description: "Siber güvenlik kariyerin için AI destekli çalışma ve gelişim koçu.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://cybercoach.vercel.app"),
+  title: { default: "North", template: "%s — North" },
+  description: "Daha az karar, daha iyi odak. Hedeflerin, alanların ve gerçek ilerlemen için kişisel AI koçun.",
   applicationName: "North",
+  icons: { icon:[{url:"/favicon.ico",sizes:"any"},{url:"/north-192.png",sizes:"192x192",type:"image/png"}], apple:[{url:"/north-180.png",sizes:"180x180",type:"image/png"}] },
+  openGraph: { title:"North", description:"Daha az karar. Daha iyi odak.", siteName:"North", locale:"tr_TR", images:[{url:"/north-512.png",width:512,height:512,alt:"North"}] },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "North" },
 };
 
-export const viewport: Viewport = { themeColor: "#0b0d10", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#121315", width: "device-width", initialScale: 1, viewportFit:"cover" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
