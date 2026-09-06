@@ -29,4 +29,7 @@ assert.equal(result.lastPracticed, '2026-09-05');
 const empty = skillEvidence({labs:[], tasks:[], notes:[], portfolio:[], reports:[]}, {name:'Networking',category:'Networking'});
 assert.equal(empty.count, 0);
 assert.equal(empty.lastPracticed, undefined);
-console.log('North module checks passed: repetition boundaries, linked evidence, pending exclusion, Turkish categories, empty state.');
+const onboardingSource = fs.readFileSync('src/lib/onboarding.ts', 'utf8');
+assert.match(onboardingSource, /Başarıya ulaştığını gösterecek somut sonucu ne kadar net tanımladın\?/);
+assert.doesNotMatch(onboardingSource, /hedefinde başarıyı hangi somut sonuçla/);
+console.log('North module checks passed: repetition boundaries, linked evidence, pending exclusion, natural Turkish assessment prompts, empty state.');

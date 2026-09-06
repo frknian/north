@@ -126,14 +126,13 @@ const assessmentQuestionSets: Record<string, AssessmentQuestion[]> = {
 export const assessmentQuestions = fundamentalsQuestions;
 
 export function getAssessmentQuestions(primaryFocus: string) {
-  const focus = primaryFocus.trim() || "hedefin";
   return assessmentQuestionSets[primaryFocus] ?? [
-    { id: "goal-clarity", skill: "Hedef Netliği", prompt: `${focus} hedefinde başarıyı hangi somut sonuçla ölçeceğini ne kadar net biliyorsun?`, options: selfAssessmentOptions("Henüz net değil", "Kabaca biliyorum", "Ölçülebilir sonucum net"), correct: "2" },
-    { id: "goal-foundation", skill: "Temel Bilgi", prompt: `${focus} için gerekli temel kavramları kendi cümlelerinle açıklama düzeyin nedir?`, options: selfAssessmentOptions("Henüz açıklayamıyorum", "Bazılarını açıklayabilirim", "Temelleri rahatça açıklayabilirim"), correct: "2" },
-    { id: "goal-practice", skill: "Uygulama", prompt: `${focus} alanında tek başına uygulama veya pratik yapma düzeyin nedir?`, options: selfAssessmentOptions("Henüz başlamadım", "Yönlendirmeyle yapabiliyorum", "Bağımsız uygulayabiliyorum"), correct: "2" },
-    { id: "goal-output", skill: "Kanıt Üretme", prompt: `${focus} hedefi için gösterebileceğin bir çıktı, kayıt veya kanıtın var mı?`, options: selfAssessmentOptions("Henüz yok", "Taslak veya yarım çıktı var", "Tamamlanmış kanıtım var"), correct: "2" },
-    { id: "goal-consistency", skill: "Süreklilik", prompt: `${focus} üzerinde son dört haftadaki çalışma düzenin nasıldı?`, options: selfAssessmentOptions("Düzenli çalışmadım", "Ara sıra çalıştım", "Haftalık düzenim oluştu"), correct: "2" },
-    { id: "goal-obstacles", skill: "Engel Yönetimi", prompt: `Bu hedefte tıkandığında bir sonraki küçük adımı belirleyebilme düzeyin nedir?`, options: selfAssessmentOptions("Genellikle tamamen duruyorum", "Bazen yol bulabiliyorum", "Sorunu küçültüp devam edebiliyorum"), correct: "2" },
+    { id: "goal-clarity", skill: "Hedef Netliği", prompt: "Başarıya ulaştığını gösterecek somut sonucu ne kadar net tanımladın?", options: selfAssessmentOptions("Henüz net değil", "Kabaca biliyorum", "Ölçülebilir sonucum net"), correct: "2" },
+    { id: "goal-foundation", skill: "Temel Bilgi", prompt: "Hedefin için gerekli temel kavramları kendi cümlelerinle açıklama düzeyin nedir?", options: selfAssessmentOptions("Henüz açıklayamıyorum", "Bazılarını açıklayabilirim", "Temelleri rahatça açıklayabilirim"), correct: "2" },
+    { id: "goal-practice", skill: "Uygulama", prompt: "Hedefinle ilgili tek başına uygulama veya pratik yapma düzeyin nedir?", options: selfAssessmentOptions("Henüz başlamadım", "Yönlendirmeyle yapabiliyorum", "Bağımsız uygulayabiliyorum"), correct: "2" },
+    { id: "goal-output", skill: "Kanıt Üretme", prompt: "Şimdiye kadar gösterebileceğin bir çıktı, kayıt veya kanıt ürettin mi?", options: selfAssessmentOptions("Henüz yok", "Taslak veya yarım çıktı var", "Tamamlanmış kanıtım var"), correct: "2" },
+    { id: "goal-consistency", skill: "Süreklilik", prompt: "Son dört haftadaki çalışma düzenin nasıldı?", options: selfAssessmentOptions("Düzenli çalışmadım", "Ara sıra çalıştım", "Haftalık düzenim oluştu"), correct: "2" },
+    { id: "goal-obstacles", skill: "Engel Yönetimi", prompt: "Tıkandığında bir sonraki küçük adımı belirleyebilme düzeyin nedir?", options: selfAssessmentOptions("Genellikle tamamen duruyorum", "Bazen yol bulabiliyorum", "Sorunu küçültüp devam edebiliyorum"), correct: "2" },
   ];
 }
 
