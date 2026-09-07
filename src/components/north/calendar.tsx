@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarPlus, Pencil, Plus } from "lucide-react";
-import { dayKey, isAreaActive, shiftDay, weekKey, type NorthEvent, type NorthTask } from "@/lib/north";
+import { useState, useEffect } from "react";
+import { CalendarPlus, Pencil, Plus, RefreshCw, Zap } from "lucide-react";
+import { dayKey, isAreaActive, shiftDay, weekKey, distributePlanTasksToCalendar, rolloverUnfinishedTasks, type NorthEvent, type NorthTask } from "@/lib/north";
 import { useNorth, Heading, Field, fieldClass } from "./shared";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const taskSymbols: Record<NonNullable<NorthTask["taskType"]>, string> = { deep_work: "◎", practice: "✦", problem_solving: "◈", lab: "⚗", review: "↻", reading: "▤", creative: "◇", administrative: "□", light: "·" };
 const taskLabels = { deep_work: "Derin çalışma", practice: "Pratik", problem_solving: "Problem çözme", lab: "Lab", review: "Tekrar", reading: "Okuma", creative: "Yaratıcı çalışma", administrative: "İdari iş", light: "Hafif görev" } as const;
@@ -24,6 +25,7 @@ export function NorthCalendar() {
   const [view, setView] = useState("week");
   const [eventDraft, setEventDraft] = useState<NorthEvent | null>(null);
   const [taskDraft, setTaskDraft] = useState<NorthTask | null>(null);
+  const [rolloverNotice, setRolloverNotice] = useState<string | null>(null);
   const activeAreas = state.areas.filter(isAreaActive);
   const start = view === "day" ? date : view === "week" ? weekKey(date) : date.slice(0, 7) + "-01";
   const count = view === "day" ? 1 : view === "week" ? 7 : new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)), 0).getDate();
@@ -37,6 +39,32 @@ export function NorthCalendar() {
   const selectedEvents = state.events.filter(event => event.date === date);
   const selectedBlockingEvents = selectedEvents.filter(e => ["class", "shift", "personal", "block"].includes(e.kind));
 
+  // In-week smart rollover: If there are uncompleted tasks from past days in the week, roll them over automatically without guilt
+  useEffect(() => {
+    const today = dayKey();
+    const overdue = state.tasks.filter(t => t.date && t.date < today && !["done", "cancelled"].includes(t.status));
+    if (overdue.length > 0) {
+      const result = rolloverUnfinishedTasks(state, today);
+      if (result.rolledOverCount > 0) {
+        update(() => result.state);
+        const sample = result.details.slice(0, 2).map(d => `"${d.taskTitle}" (${d.fromDate} → ${d.toDate})`).join(", ");
+        setRolloverNotice(`Bu hafta önceki günlerde tamamlanamayan ${result.rolledOverCount} görev, suçluluk veya borç hissi olmadan bu haftanın uygun günlerine aktarıldı: ${sample}`);
+      }
+    }
+  }, [state, update]);
+
+  const handleRebalance = () => {
+    const today = dayKey();
+    const distributed = distributePlanTasksToCalendar(state.tasks, {
+      weeklyHours: state.weeklyHours,
+      events: state.events,
+      today,
+    });
+    const rolled = rolloverUnfinishedTasks({ ...state, tasks: distributed }, today);
+    update(() => rolled.state);
+    toast.success("Plan günlere ve haftaya dengeli şekilde dağıtıldı.");
+  };
+
   const addTask = (mandatory: boolean, plannedDate = date) => {
     const area = activeAreas[0];
     if (!area) return;
@@ -49,8 +77,23 @@ export function NorthCalendar() {
   };
 
   return <div className="page-content space-y-6">
-    <Heading title="Takvim" description="Ders, vardiya, kişisel bloklar ve çalışmalar tek bakışta burada. Çakışmalar otomatik gözetilir."><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={!activeAreas.length} onClick={() => addTask(false)}><Plus />İsteğe bağlı ek çalışma</Button><Button disabled={!activeAreas.length} onClick={() => setEventDraft({ id: crypto.randomUUID(), areaId: activeAreas[0].id, title: "", date, time: "", kind: "block", minutes: activeAreas[0].preferredSessionMinutes ?? 50 })}><CalendarPlus />Etkinlik ekle</Button></div></Heading>
+    <Heading title="Takvim" description="Ders, vardiya, kişisel bloklar ve çalışmalar tek bakışta burada. Çakışmalar otomatik gözetilir."><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={handleRebalance}><Zap className="size-4 text-amber-500" />Planı Günlere Dağıt</Button><Button variant="outline" disabled={!activeAreas.length} onClick={() => addTask(false)}><Plus />İsteğe bağlı ek çalışma</Button><Button disabled={!activeAreas.length} onClick={() => setEventDraft({ id: crypto.randomUUID(), areaId: activeAreas[0].id, title: "", date, time: "", kind: "block", minutes: activeAreas[0].preferredSessionMinutes ?? 50 })}><CalendarPlus />Etkinlik ekle</Button></div></Heading>
     <div className="north-calendar-toolbar"><div className="north-calendar-controls">{[["day", "Gün"], ["week", "Hafta"], ["month", "Ay"]].map(([value, label]) => <Button key={value} variant={view === value ? "secondary" : "ghost"} aria-pressed={view === value} onClick={() => setView(value)}>{label}</Button>)}</div><input aria-label="Takvim tarihi" className={fieldClass + " max-w-44"} type="date" value={date} onChange={event => { if (event.target.value) setDate(event.target.value); }} /></div>
+
+    {/* IN-WEEK SMART ROLLOVER NOTICE */}
+    {rolloverNotice && (
+      <div className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs">
+        <div className="flex items-start gap-2.5">
+          <Zap className="mt-0.5 size-4 shrink-0 text-amber-500" />
+          <p className="text-foreground">
+            <strong className="font-semibold text-amber-600 dark:text-amber-400">⚡ Hafta İçi Akıllı Aktarım:</strong> {rolloverNotice}
+          </p>
+        </div>
+        <Button variant="ghost" size="xs" onClick={() => setRolloverNotice(null)} className="text-muted-foreground hover:text-foreground">
+          Kapat
+        </Button>
+      </div>
+    )}
     
     <section className="north-calendar-summary" aria-label="Seçili gün özeti">
       <div><span>SEÇİLİ GÜN</span><strong>{selectedTasks.length} görev</strong><small>{selectedMinutes} dk planlı çalışma {selectedEvents.length ? `· ${selectedEvents.length} etkinlik/blok` : ""}</small></div>
@@ -106,7 +149,23 @@ export function NorthCalendar() {
               const meta = eventKindLabels[event.kind] ?? eventKindLabels.block;
               return <button type="button" key={event.id} onClick={() => setEventDraft({ ...event })} className="north-calendar-event" style={{ borderLeftColor: area?.accent }}><span>{meta.icon}</span><div><small>{meta.label} · {area?.name}</small>{event.time && `${event.time} · `}{event.title}</div></button>;
             })}
-            {tasks.map(task => { const area = areaFor(task.areaId); const done = task.status === "done"; return <button type="button" key={task.id} onClick={() => setTaskDraft({ ...task })} className={`north-calendar-task ${done ? "is-done" : ""} ${task.mandatory ? "is-mandatory" : "is-optional"}`} style={{ borderLeftColor: area?.accent }}><span className="north-calendar-task-symbol">{done ? "✓" : taskSymbols[task.taskType ?? "deep_work"]}</span><div><small>{area?.name} · {task.mandatory ? "Öncelikli" : "İsteğe bağlı"}</small><strong>{task.title}</strong><em>{task.minutes} dk</em></div><Pencil className="size-3" aria-hidden="true"/></button>; })}
+            {tasks.map(task => {
+              const area = areaFor(task.areaId);
+              const done = task.status === "done";
+              const isRolledOver = (task.rescheduledCount ?? 0) > 0;
+              return <button type="button" key={task.id} onClick={() => setTaskDraft({ ...task })} className={`north-calendar-task ${done ? "is-done" : ""} ${task.mandatory ? "is-mandatory" : "is-optional"}`} style={{ borderLeftColor: area?.accent }}>
+                <span className="north-calendar-task-symbol">{done ? "✓" : taskSymbols[task.taskType ?? "deep_work"]}</span>
+                <div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <small>{area?.name} · {task.mandatory ? "Öncelikli" : "İsteğe bağlı"}</small>
+                    {isRolledOver && <span className="inline-flex items-center rounded bg-amber-500/15 px-1 py-0.2 text-[9px] font-medium text-amber-600 dark:text-amber-400">⚡ Aktarıldı</span>}
+                  </div>
+                  <strong>{task.title}</strong>
+                  <em>{task.minutes} dk</em>
+                </div>
+                <Pencil className="size-3" aria-hidden="true"/>
+              </button>;
+            })}
             {state.tasks.filter(task => task.deadline === currentDate && task.date !== currentDate && !["done", "cancelled"].includes(task.status)).map(task => <p key={task.id} className="north-calendar-deadline">! Son tarih: {task.title}</p>)}
             {activity.map(item => <p key={item.id} className="north-calendar-complete">✓ {areaFor(item.areaId)?.name} · {item.minutes} dk</p>)}
             {!tasks.length && !events.length && view !== "month" && <button type="button" className="north-calendar-add-day" onClick={() => { setDate(currentDate); addTask(false, currentDate); }}>+ İsteğe bağlı ek çalışma</button>}

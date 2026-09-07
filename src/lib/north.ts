@@ -92,6 +92,187 @@ export function isAreaActive(area: Area) { return areaStatus(area) === "active";
 export function createArea(kind: AreaKind, id: string): Area {
   return { id, kind, name: kindLabels[kind], icon: ({math:"∑",cyber:"⌘",reading:"▤",chess:"♞",projects:"◇",custom:"◎"})[kind], goal: "", priority: 2, weeklyMinutes: 0, minimumMinutes: 10, archived: false, metric: metricDefaults[kind], target: 0, notes: "", resources: "", description: "", preferredSessionMinutes: 50, accent: areaAccents[0], status: "active" };
 }
+export interface RolloverDetail {
+  taskId: string;
+  taskTitle: string;
+  fromDate: string;
+  toDate: string;
+}
+
+export interface RolloverResult {
+  state: NorthState;
+  rolledOverCount: number;
+  details: RolloverDetail[];
+}
+
+export function distributePlanTasksToCalendar(
+  tasks: NorthTask[],
+  options: {
+    weeklyHours?: number;
+    events?: NorthEvent[];
+    today?: string;
+  } = {}
+): NorthTask[] {
+  const today = options.today || dayKey();
+  const currentWeek = weekKey(today);
+  const events = options.events || [];
+  const weeklyMinutes = (options.weeklyHours ?? 10) * 60;
+  const dailyTargetCapacity = Math.max(45, Math.round(weeklyMinutes / 5));
+
+  const dayMinutes: Record<string, number> = {};
+
+  for (const t of tasks) {
+    if (t.date && t.status !== "cancelled") {
+      dayMinutes[t.date] = (dayMinutes[t.date] || 0) + t.minutes;
+    }
+  }
+
+  for (const ev of events) {
+    if (ev.date && ["class", "shift", "personal", "block", "exam"].includes(ev.kind)) {
+      dayMinutes[ev.date] = (dayMinutes[ev.date] || 0) + Math.min(ev.minutes, 360);
+    }
+  }
+
+  const daysInCurrentWeek: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    daysInCurrentWeek.push(shiftDay(currentWeek, i));
+  }
+
+  const availableDays = daysInCurrentWeek.filter(d => d >= today);
+  if (availableDays.length === 0) {
+    for (let i = 0; i < 7; i++) {
+      availableDays.push(shiftDay(today, i));
+    }
+  }
+
+  let dayIndex = 0;
+
+  return tasks.map(task => {
+    if (task.date) {
+      return task;
+    }
+
+    if (task.mandatory && (!dayMinutes[today] || dayMinutes[today] < dailyTargetCapacity)) {
+      dayMinutes[today] = (dayMinutes[today] || 0) + task.minutes;
+      return {
+        ...task,
+        date: today,
+        week: weekKey(today),
+      };
+    }
+
+    let bestDay = availableDays[dayIndex % availableDays.length];
+    let foundUnderCapacity = false;
+
+    for (let attempt = 0; attempt < availableDays.length; attempt++) {
+      const candidateDay = availableDays[(dayIndex + attempt) % availableDays.length];
+      const currentLoad = dayMinutes[candidateDay] || 0;
+      if (currentLoad + task.minutes <= dailyTargetCapacity) {
+        bestDay = candidateDay;
+        dayIndex = (dayIndex + attempt + 1) % availableDays.length;
+        foundUnderCapacity = true;
+        break;
+      }
+    }
+
+    if (!foundUnderCapacity) {
+      bestDay = availableDays.reduce((minDay, d) => {
+        return (dayMinutes[d] || 0) < (dayMinutes[minDay] || 0) ? d : minDay;
+      }, availableDays[0]);
+      dayIndex = (dayIndex + 1) % availableDays.length;
+    }
+
+    dayMinutes[bestDay] = (dayMinutes[bestDay] || 0) + task.minutes;
+
+    return {
+      ...task,
+      date: bestDay,
+      week: weekKey(bestDay),
+    };
+  });
+}
+
+export function rolloverUnfinishedTasks(state: NorthState, today = dayKey()): RolloverResult {
+  const currentWeek = weekKey(today);
+  const weekEnd = shiftDay(currentWeek, 6);
+  const events = state.events || [];
+  const weeklyMinutes = capacity(state);
+  const dailyTargetCapacity = Math.max(45, Math.round(weeklyMinutes / 5));
+
+  const candidateDays: string[] = [];
+  for (let d = today; d <= weekEnd; d = shiftDay(d, 1)) {
+    candidateDays.push(d);
+  }
+  if (candidateDays.length === 0) {
+    candidateDays.push(today);
+  }
+
+  const dayMinutes: Record<string, number> = {};
+  for (const t of state.tasks) {
+    if (t.date && t.date >= today && t.status !== "cancelled") {
+      dayMinutes[t.date] = (dayMinutes[t.date] || 0) + t.minutes;
+    }
+  }
+  for (const ev of events) {
+    if (ev.date && ev.date >= today && ["class", "shift", "personal", "block", "exam"].includes(ev.kind)) {
+      dayMinutes[ev.date] = (dayMinutes[ev.date] || 0) + Math.min(ev.minutes, 360);
+    }
+  }
+
+  const details: RolloverDetail[] = [];
+
+  const updatedTasks = state.tasks.map(task => {
+    if (task.date && task.date < today && !["done", "cancelled"].includes(task.status)) {
+      const fromDate = task.date;
+
+      let targetDay = candidateDays[0];
+      let foundDay = false;
+
+      for (const d of candidateDays) {
+        const load = dayMinutes[d] || 0;
+        if (load + task.minutes <= dailyTargetCapacity) {
+          targetDay = d;
+          foundDay = true;
+          break;
+        }
+      }
+
+      if (!foundDay) {
+        targetDay = candidateDays.reduce((minD, d) => {
+          return (dayMinutes[d] || 0) < (dayMinutes[minD] || 0) ? d : minD;
+        }, candidateDays[0]);
+      }
+
+      dayMinutes[targetDay] = (dayMinutes[targetDay] || 0) + task.minutes;
+
+      details.push({
+        taskId: task.id,
+        taskTitle: task.title,
+        fromDate,
+        toDate: targetDay,
+      });
+
+      return {
+        ...task,
+        date: targetDay,
+        week: weekKey(targetDay),
+        rescheduledCount: (task.rescheduledCount ?? 0) + 1,
+        why: `${task.why ? `${task.why} · ` : ""}Önceki gün (${fromDate}) tamamlanamadığı için North tarafından bu haftanın (${targetDay}) gününe aktarıldı (borçsuz esnek plan).`.trim(),
+      };
+    }
+    return task;
+  });
+
+  return {
+    state: {
+      ...state,
+      tasks: updatedTasks,
+    },
+    rolledOverCount: details.length,
+    details,
+  };
+}
+
 export function initializeNorth(workspace: WorkspaceState): NorthState {
   const interests = (workspace.profile.interests?.length ? workspace.profile.interests : [workspace.profile.primaryFocus]).map(item => item.trim()).filter(Boolean);
   const areas = interests.map((name, index) => {
@@ -111,9 +292,57 @@ export function initializeNorth(workspace: WorkspaceState): NorthState {
     return area;
   });
   const primary = areas[0] ?? createArea("custom", "primary-goal");
-  return { version: 1, areas, weeklyHours: workspace.profile.weeklyCapacityHours, mode: "normal", customMode: "", energy: { date: "", level: "normal" }, events: [], protection: [],
-    tasks: workspace.tasks.map(t => { const taskArea=areas.find(area=>area.name===t.category)??primary; return { id:t.id, areaId:taskArea.id, title:t.title, goal:t.outputRequirement || t.description, minutes:t.duration, intensity:t.difficulty === "hard" ? "high" : "normal", mandatory:t.isDailyMission, status:t.status === "completed" ? "done" : t.status === "partial" ? "partial" : t.status === "failed" ? "skipped" : "pending", date:"", deadline:"", resource: workspace.resources.find(r => r.id === t.practicalResourceId)?.url ?? "", why:"Kişisel başlangıç planından aktarıldı.", week:weekKey(), taskType:t.taskType }; }),
-    activities: workspace.focusSessions.map(s => ({id:s.id, taskId:s.taskId,areaId:primary.id,date:dayKey(new Date(s.completedAt)),minutes:s.durationMinutes,outcome:s.status === "completed" ? "done" : "partial",difficulty:"",reflection:s.notes,amount:0,metric:primary.metric,endedAt:s.completedAt})),
+  const baseTasks: NorthTask[] = workspace.tasks.map(t => {
+    const taskArea = areas.find(area => area.name === t.category) ?? primary;
+    const status: NorthTaskStatus = t.status === "completed" ? "done" : t.status === "partial" ? "partial" : t.status === "failed" ? "skipped" : "pending";
+    const date = t.completedAt ? dayKey(new Date(t.completedAt)) : (t.isDailyMission ? dayKey() : "");
+    return {
+      id: t.id,
+      areaId: taskArea.id,
+      title: t.title,
+      goal: t.outputRequirement || t.description,
+      minutes: t.duration,
+      intensity: t.difficulty === "hard" ? "high" : "normal",
+      mandatory: t.isDailyMission,
+      status,
+      date,
+      deadline: "",
+      resource: workspace.resources.find(r => r.id === t.practicalResourceId)?.url ?? "",
+      why: "Kişisel başlangıç planından aktarıldı.",
+      week: date ? weekKey(date) : weekKey(),
+      taskType: t.taskType,
+      completedAt: t.completedAt,
+    };
+  });
+
+  const distributedTasks = distributePlanTasksToCalendar(baseTasks, {
+    weeklyHours: workspace.profile.weeklyCapacityHours,
+    today: dayKey(),
+  });
+
+  return {
+    version: 1,
+    areas,
+    weeklyHours: workspace.profile.weeklyCapacityHours,
+    mode: "normal",
+    customMode: "",
+    energy: { date: "", level: "normal" },
+    events: [],
+    protection: [],
+    tasks: distributedTasks,
+    activities: workspace.focusSessions.map(s => ({
+      id: s.id,
+      taskId: s.taskId,
+      areaId: primary.id,
+      date: dayKey(new Date(s.completedAt)),
+      minutes: s.durationMinutes,
+      outcome: s.status === "completed" ? "done" : "partial",
+      difficulty: "",
+      reflection: s.notes,
+      amount: 0,
+      metric: primary.metric,
+      endedAt: s.completedAt,
+    })),
   };
 }
 function basicDomainProfile(name:string){const value=name.toLocaleLowerCase("tr-TR");if(/robotik|arduino|raspberry|embedded|gömülü|mikrodenetleyici|elektronik/.test(value))return {id:"robotics",kind:"projects" as const,icon:"⚙",metric:"Çalışan prototip",resources:["Arduino Documentation — https://docs.arduino.cc/","Raspberry Pi Documentation — https://www.raspberrypi.com/documentation/"]};if(/borsa|yatırım|finans|hisse|trading|kripto|portföy/.test(value))return {id:"finance",kind:"custom" as const,icon:"↗",metric:"Analiz edilen şirket",resources:["Borsa İstanbul Akademi — https://www.borsaistanbul.com/","SPK Yatırımcı Bilgilendirme — https://spk.gov.tr/"]};if(/inşaat|betonarme|şantiye|statik|zemin|metraj/.test(value))return {id:"civil-engineering",kind:"custom" as const,icon:"▰",metric:"Tamamlanan teknik çalışma",resources:["Türkiye Bina Deprem Yönetmeliği — https://www.afad.gov.tr/","MIT OpenCourseWare Civil Engineering — https://ocw.mit.edu/"]};if(/matematik|calculus|istatistik|lineer cebir|geometri/.test(value))return {id:"mathematics",kind:"math" as const,icon:"∑",metric:"Çözülen problem",resources:["Khan Academy — https://www.khanacademy.org/math","MIT OpenCourseWare — https://ocw.mit.edu/"]};if(/satranç|satranc|chess/.test(value))return {id:"chess",kind:"chess" as const,icon:"♞",metric:"Çözülen taktik",resources:["Lichess Studies — https://lichess.org/study","Chess.com Lessons — https://www.chess.com/lessons"]};if(/yazılım|uygulama|programlama|kodlama|web geliştirme|mobil geliştirme|frontend|backend/.test(value))return {id:"software",kind:"projects" as const,icon:"◇",metric:"Tamamlanan çıktı",resources:["MDN Web Docs — https://developer.mozilla.org/","The Odin Project — https://www.theodinproject.com/"]};return undefined;}

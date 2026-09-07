@@ -8,6 +8,7 @@ import {
   Compass,
   Plus,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import {
   capacity,
@@ -16,6 +17,7 @@ import {
   isAreaActive,
   poolTask,
   postponeTask,
+  rolloverUnfinishedTasks,
   shiftDay,
   shrinkTask,
   weekKey,
@@ -158,6 +160,17 @@ export function NorthWeek() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                className="rounded-lg text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
+                onClick={() => {
+                  const result = rolloverUnfinishedTasks(state);
+                  update(() => result.state);
+                }}
+              >
+                <Zap className="mr-1 size-3.5" />
+                Hafta İçi Uygun Günlere Aktar
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -504,9 +517,13 @@ export function NorthWeek() {
               <div key={task.id} className="flex flex-wrap items-center justify-between gap-4 py-3.5">
                 <div>
                   <p className="text-sm font-semibold text-foreground">{task.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {state.areas.find((a) => a.id === task.areaId)?.name} · {task.minutes} dk ·{" "}
-                    {task.date || "Esnek Havuz"} · {task.mandatory ? "Öncelikli" : "İsteğe Bağlı"}
+                  <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                    <span>{state.areas.find((a) => a.id === task.areaId)?.name} · {task.minutes} dk · {task.date || "Esnek Havuz"} · {task.mandatory ? "Öncelikli" : "İsteğe Bağlı"}</span>
+                    {(task.rescheduledCount ?? 0) > 0 && (
+                      <span className="inline-flex items-center rounded bg-amber-500/15 px-1 py-0.2 text-[9px] font-medium text-amber-600 dark:text-amber-400">
+                        ⚡ Aktarıldı
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
