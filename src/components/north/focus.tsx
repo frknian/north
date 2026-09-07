@@ -1,21 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   ArrowLeft,
   BookOpen,
+  Brain,
+  Camera,
   Check,
   Copy,
   ExternalLink,
+  Heart,
   HelpCircle,
   ListChecks,
+  Maximize2,
   Pause,
   Play,
   Sparkles,
   Square,
   Terminal,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
@@ -26,6 +32,11 @@ import { useNorth, fieldClass } from "./shared";
 import { Button } from "@/components/ui/button";
 import { Companion } from "./shared";
 import { getTaskGuidance } from "@/lib/task-guidance";
+import { ambientSound } from "@/lib/ambient-sound";
+import { PipTimerController } from "@/lib/pip-timer";
+import { BrainDumpModal } from "./brain-dump";
+import { BreathworkModal } from "./breathwork-modal";
+import { toast } from "sonner";
 
 const FocusCoach = dynamic(() => import("./ai").then((m) => m.NorthAI));
 
@@ -39,7 +50,7 @@ type Timer = {
 };
 
 export function NorthFocus({ id }: { id: string }) {
-  const { state, update, ready } = useNorth();
+  const { state, update, ready, workspace } = useNorth();
   const router = useRouter();
   const task = state.tasks.find((t) => t.id === id);
   const area = state.areas.find((a) => a.id === task?.areaId);
@@ -59,6 +70,14 @@ export function NorthFocus({ id }: { id: string }) {
   const [saved, setSaved] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const [supportSources, setSupportSources] = useState<SupportSource[]>(["none"]);
+
+  // Phase 1: Ambient Sound, PiP Floating Timer, Brain Dump, Breathwork & Photo Proof
+  const pipControllerRef = useRef<PipTimerController | null>(null);
+  const [pipActive, setPipActive] = useState(false);
+  const [brainDumpOpen, setBrainDumpOpen] = useState(false);
+  const [breathworkOpen, setBreathworkOpen] = useState(false);
+  const [activeSound, setActiveSound] = useState<"none" | "rain" | "noise" | "cafe" | "drone">("none");
+  const [photoProof, setPhotoProof] = useState<string | null>(null);
 
   const toggleDifficulty = (value: string) => setDifficulty((current) => (current === value ? "" : value));
 
@@ -187,6 +206,45 @@ export function NorthFocus({ id }: { id: string }) {
   const minutesStr = String(Math.floor(remainingSeconds / 60)).padStart(2, "0");
   const secondsStr = String(remainingSeconds % 60).padStart(2, "0");
 
+  useEffect(() => {
+    if (pipControllerRef.current?.isActive() && task) {
+      pipControllerRef.current.update(task.title, `${minutesStr}:${secondsStr}`, area?.name || "North Odak", !timer?.running);
+    }
+  }, [minutesStr, secondsStr, task, area, timer?.running]);
+
+  useEffect(() => {
+    return () => {
+      ambientSound?.stop();
+      if (pipControllerRef.current?.isActive()) {
+        void pipControllerRef.current.close();
+      }
+    };
+  }, []);
+
+  const handleTogglePip = async () => {
+    if (!pipControllerRef.current) {
+      pipControllerRef.current = new PipTimerController();
+    }
+    if (pipActive) {
+      await pipControllerRef.current.close();
+      setPipActive(false);
+    } else {
+      const ok = await pipControllerRef.current.start(task?.title || "Odak Görevi", `${minutesStr}:${secondsStr}`, area?.name || "North Odak");
+      if (ok) setPipActive(true);
+      else toast.error("Tarayıcınız Picture-in-Picture yüzen pencereyi desteklemiyor.");
+    }
+  };
+
+  const handleSoundChange = (type: "none" | "rain" | "noise" | "cafe" | "drone") => {
+    setActiveSound(type);
+    if (!ambientSound) return;
+    if (type === "none") {
+      ambientSound.stop();
+    } else {
+      ambientSound.play(type, 0.4);
+    }
+  };
+
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:py-12">
       {/* TOPBAR NAVIGATION & AREA BADGE */}
@@ -230,6 +288,56 @@ export function NorthFocus({ id }: { id: string }) {
                 <ExternalLink className="size-3" />
               </a>
             )}
+          </div>
+
+          {/* FOCUS COMPANION TOOLS: AMBIENT SOUNDS, PiP & BRAIN DUMP */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            <div className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-card p-1 text-xs shadow-xs">
+              <span className="px-2 text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                {activeSound === "none" ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5 text-primary" />}
+                Ses:
+              </span>
+              {([
+                ["none", "Kapalı"],
+                ["rain", "🌧️ Yağmur"],
+                ["cafe", "☕ Kafe"],
+                ["noise", "📻 Beyaz"],
+                ["drone", "🧘 432Hz"],
+              ] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => handleSoundChange(val)}
+                  className={`rounded-lg px-2 py-1 text-[11px] font-medium transition-colors ${
+                    activeSound === val ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              variant={pipActive ? "secondary" : "outline"}
+              size="sm"
+              className="rounded-xl text-xs h-8"
+              onClick={handleTogglePip}
+              title="Diğer uygulamalarda da ekranın üstünde kalan yüzen mini sayaç"
+            >
+              <Maximize2 className="mr-1.5 size-3.5" />
+              {pipActive ? "PiP Kapat" : "Yüzen Sayaç"}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs h-8"
+              onClick={() => setBrainDumpOpen(true)}
+              title="Çalışırken aklına gelen alakasız düşünceleri kaydet"
+            >
+              <Brain className="mr-1.5 size-3.5 text-sky-500" />
+              Aklındakini Dök
+            </Button>
           </div>
 
           {/* CIRCULAR ZEN TIMER */}
@@ -649,6 +757,7 @@ export function NorthFocus({ id }: { id: string }) {
             </div>
 
             {/* REFLECTION NOTE */}
+            {/* REFLECTION NOTE */}
             <div className="mt-5">
               <label className="block text-xs font-semibold text-foreground">
                 Kısa bir not eklemek ister misin? <span className="text-muted-foreground font-normal">(İsteğe bağlı)</span>
@@ -659,6 +768,41 @@ export function NorthFocus({ id }: { id: string }) {
                 onChange={(e) => setReflection(e.target.value)}
                 placeholder="Nerede tıkandın veya ne iyi gitti?"
               />
+            </div>
+
+            {/* PHOTO PROOF UPLOAD */}
+            <div className="mt-5">
+              <label className="block text-xs font-semibold text-foreground">
+                Fotoğraflı Çalışma Kanıtı <span className="text-muted-foreground font-normal">(Defter, masa, test veya ekran fotoğrafı)</span>
+              </label>
+              <div className="mt-2 flex items-center gap-3">
+                <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-primary hover:text-foreground">
+                  <Camera className="size-4" />
+                  <span>{photoProof ? "Fotoğrafı Değiştir" : "Fotoğraf Seç"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 4 * 1024 * 1024) {
+                        toast.error("Fotoğraf 4MB'dan küçük olmalıdır.");
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = () => setPhotoProof(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
+                {photoProof && (
+                  <div className="relative size-12 overflow-hidden rounded-lg border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photoProof} alt="Kanıt önizleme" className="size-full object-cover" />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* SUBMIT OR NEXT STEPS */}
@@ -694,6 +838,19 @@ export function NorthFocus({ id }: { id: string }) {
                       taskType: inferTaskType(task, area.kind),
                       supportSources,
                     };
+
+                    if (photoProof && workspace.addDomainProof) {
+                      workspace.addDomainProof({
+                        id: crypto.randomUUID(),
+                        areaId: area.id,
+                        title: `${task.title} (Fotoğraflı Kanıt)`,
+                        kind: "other",
+                        description: reflection || `${task.title} çalışması tamamlandı.`,
+                        url: photoProof,
+                        createdAt: new Date().toISOString(),
+                      });
+                    }
+
                     update((s) => {
                       if (s.activities.some((a) => a.id === timer.id)) return s;
                       const next = {
@@ -712,12 +869,16 @@ export function NorthFocus({ id }: { id: string }) {
                 </Button>
               ) : (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                  <p className="text-xs font-medium text-foreground">Oturum kaydedildi. Şimdi ne yapmak istersin?</p>
+                  <p className="text-xs font-medium text-foreground">Oturum başarıyla kaydedildi. Şimdi ne yapmak istersin?</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button size="sm" onClick={() => router.push("/")}>
                       Günün Sıradaki Adımına Geç →
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => router.push("/north-ai")}>
+                    <Button size="sm" variant="outline" onClick={() => setBreathworkOpen(true)}>
+                      <Heart className="mr-1.5 size-3.5 text-teal-500" />
+                      2 Dk Nefes ve Göz Dinlendirme
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => router.push("/north-ai")}>
                       North ile Planı Gözden Geçir
                     </Button>
                   </div>
@@ -727,6 +888,10 @@ export function NorthFocus({ id }: { id: string }) {
           </div>
         </section>
       )}
+
+      {/* BRAIN DUMP & BREATHWORK MODALS */}
+      <BrainDumpModal open={brainDumpOpen} onOpenChange={setBrainDumpOpen} />
+      <BreathworkModal open={breathworkOpen} onOpenChange={setBreathworkOpen} />
 
       {/* COACH DRAWER DIALOG */}
       <Dialog open={coachOpen} onOpenChange={setCoachOpen}>

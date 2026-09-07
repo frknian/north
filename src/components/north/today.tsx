@@ -1,14 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Play, Sparkles } from "lucide-react";
-import { dailySelection, dayKey } from "@/lib/north";
+import { ArrowRight, Feather, Moon, Play, Sparkles, Sun, Users } from "lucide-react";
+import { dailySelection, dayKey, rolloverUnfinishedTasks } from "@/lib/north";
 import { useNorth, Companion } from "./shared";
 import { Button } from "@/components/ui/button";
 import { RestCelebrationCard } from "./progress-charts";
+import { getTodayWisdom } from "@/lib/daily-wisdom";
+import { MicroHabitsWidget, MorningCompassModal, EveningWinddownModal } from "./daily-rituals";
 
 export function NorthToday() {
   const { state, update, ready } = useNorth();
+  const [morningOpen, setMorningOpen] = useState(false);
+  const [eveningOpen, setEveningOpen] = useState(false);
   const today = dayKey();
   const sequence = dailySelection(state, today);
   const current = sequence[0];
@@ -22,13 +27,51 @@ export function NorthToday() {
     ? `Bugünün ana önceliği ${currentArea.name}. ${next[0] ? `${state.areas.find(area => area.id === next[0].areaId)?.name ?? "Sonraki görev"} ikinci sırada.` : "Tek bir anlamlı adım yeterli."}`
     : "North, sıradaki anlamlı adımını bulmaya hazır.";
 
+  const wisdom = getTodayWisdom();
+  const hour = new Date().getHours();
+  const libraryCount = hour < 6 ? 16 : hour < 10 ? 38 : hour < 15 ? 64 : hour < 19 ? 82 : hour < 23 ? 56 : 24;
+
   if (!ready) return <div className="page-content" aria-busy="true">North hazırlanıyor…</div>;
 
-  return <div className="page-content north-today-v2">
+  return (
+    <div className="page-content north-today-v2 space-y-6">
     <header className="north-today-header">
-      <div><p className="north-eyebrow">{dateLabel}</p><h1>Bugün ne yapacaksın?</h1><p>{direction}</p></div>
-      <Companion state={state}/>
+      <div>
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <p className="north-eyebrow mb-0">{dateLabel}</p>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <Users className="size-3" />
+            Sanal Kütüphane: {libraryCount} kişi odakta
+          </span>
+        </div>
+        <h1>Bugün ne yapacaksın?</h1>
+        <p>{direction}</p>
+      </div>
+      <div className="flex flex-col sm:items-end gap-2">
+        <Companion state={state}/>
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="xs" onClick={() => setMorningOpen(true)} className="rounded-lg text-[11px] h-7">
+            <Sun className="mr-1 size-3 text-amber-500" />
+            Sabah Pusulası
+          </Button>
+          <Button variant="outline" size="xs" onClick={() => setEveningOpen(true)} className="rounded-lg text-[11px] h-7">
+            <Moon className="mr-1 size-3 text-indigo-400" />
+            Günü Kapat
+          </Button>
+        </div>
+      </div>
     </header>
+
+    <div className="rounded-2xl border border-border/60 bg-card/40 px-4 py-3 text-xs flex items-start gap-2.5 shadow-xs">
+      <Feather className="size-4 text-primary shrink-0 mt-0.5" />
+      <div>
+        <p className="italic text-foreground font-serif text-[13px] leading-relaxed">
+          &ldquo;{wisdom.quote}&rdquo;
+        </p>
+        <span className="text-[10px] text-muted-foreground font-sans mt-0.5 block">— {wisdom.author}</span>
+      </div>
+    </div>
 
     {adaptation && <section className="north-adaptation" aria-live="polite">
       <Sparkles size={17}/><div><p>North gününü yeniden okudu</p><span>{adaptation.message}</span></div>
@@ -58,6 +101,32 @@ export function NorthToday() {
 
     {next.length > 0 && <section className="north-next-section"><div className="north-next-heading"><div><p>SONRAKİ</p><h2>Sıra sende değil, planında.</h2></div><Link href="/week">Planı düzenle <ArrowRight size={15}/></Link></div><div className="north-next-list">{next.map((task, index) => { const area = state.areas.find(item => item.id === task.areaId); return <article key={task.id}><span>{String(index + 2).padStart(2, "0")}</span><div><p>{area?.name}</p><h3>{task.title}</h3></div><time>{task.minutes} dk</time></article>; })}</div></section>}
 
+    <MicroHabitsWidget />
+
     <footer className="north-today-footer"><span><b>{completed}</b> / {Math.max(completed + sequence.length, 1)} tamamlandı</span><span><b>{plannedMinutes}</b> dk sırada</span><Link href="/progress">Gerçek ilerlemeyi gör <ArrowRight size={14}/></Link></footer>
-  </div>;
+
+    {/* RITUAL MODALS */}
+    <MorningCompassModal
+      open={morningOpen}
+      onOpenChange={setMorningOpen}
+      state={state}
+      onSelectPrimary={(taskId) => {
+        update((curr) => ({
+          ...curr,
+          tasks: curr.tasks.map((t) => (t.id === taskId ? { ...t, mandatory: true, date: today } : t)),
+        }));
+      }}
+    />
+
+    <EveningWinddownModal
+      open={eveningOpen}
+      onOpenChange={setEveningOpen}
+      state={state}
+      onApplyRollover={() => {
+        const result = rolloverUnfinishedTasks(state, today);
+        update(() => result.state);
+      }}
+    />
+  </div>
+  );
 }
