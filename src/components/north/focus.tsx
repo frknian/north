@@ -328,7 +328,7 @@ export function NorthFocus({ id }: { id: string }) {
                     <h2 className="text-sm font-semibold text-foreground">Bu Oturumda Ne Yapacaksın?</h2>
                   </div>
                   {guidance.steps.length > 0 && (
-                    <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    <span className="rounded-full bg-muted/60 border border-border/50 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                       {guidance.steps.filter((s) => completedSteps[s.id]).length} / {guidance.steps.length} tamamlandı
                     </span>
                   )}
@@ -338,9 +338,9 @@ export function NorthFocus({ id }: { id: string }) {
 
                 {/* Progress bar */}
                 {guidance.steps.length > 0 && (
-                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted/40 border border-border/40">
                     <div
-                      className="h-full bg-primary transition-all duration-300"
+                      className="h-full bg-primary transition-all duration-300 rounded-full"
                       style={{
                         width: `${
                           (guidance.steps.filter((s) => completedSteps[s.id]).length / guidance.steps.length) * 100
@@ -390,11 +390,11 @@ export function NorthFocus({ id }: { id: string }) {
                                 e.stopPropagation();
                                 handleCopy(step.command!);
                               }}
-                              className="mt-2 inline-flex items-center gap-2 rounded-md bg-muted/80 px-2.5 py-1 font-mono text-[11px] text-foreground transition-colors hover:bg-muted"
+                              className="mt-2.5 inline-flex items-center gap-2 rounded-lg border border-border/70 bg-zinc-900 px-3 py-1 font-mono text-[11px] text-zinc-100 transition-colors hover:border-primary/60 hover:bg-zinc-800 dark:bg-black/60"
                               title="Tıkla ve kopyala"
                             >
-                              <code>{step.command}</code>
-                              <span className="text-[10px] text-primary">
+                              <code className="text-zinc-200">{step.command}</code>
+                              <span className="text-[10px] font-sans font-medium text-primary">
                                 {copiedCmd === step.command ? "Kopyalandı ✓" : "Kopyala"}
                               </span>
                             </div>

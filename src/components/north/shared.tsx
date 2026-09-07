@@ -80,9 +80,9 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 sm:p-7">
+        <DialogContent className="max-w-md rounded-2xl p-6 sm:p-7 bg-card text-card-foreground border border-border shadow-2xl">
           <DialogHeader className="text-center sm:text-center">
-            <DialogTitle className="text-lg font-bold">
+            <DialogTitle className="text-lg font-bold text-foreground">
               {displayName}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
@@ -117,7 +117,7 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
           </div>
 
           {/* GROWTH REQUIREMENTS */}
-          <div className="space-y-2 rounded-xl border bg-muted/20 p-4 text-xs">
+          <div className="space-y-2 rounded-xl border border-border/80 bg-muted/20 p-4 text-xs">
             <div className="flex items-center justify-between font-semibold">
               <span className="flex items-center gap-1.5 text-foreground">
                 <Trophy className="size-3.5 text-primary" />
@@ -128,7 +128,7 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
               </span>
             </div>
 
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40 border border-border/40">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
@@ -139,11 +139,11 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-muted-foreground">
-              <div className="rounded-lg border bg-background/60 p-2 text-center">
+              <div className="rounded-lg border border-border/60 bg-background/80 p-2.5 text-center">
                 <span className="font-semibold text-foreground">{completed} Seans</span>
                 <p className="text-[10px] text-muted-foreground">Tamamlanan odak (+1 puan)</p>
               </div>
-              <div className="rounded-lg border bg-background/60 p-2 text-center">
+              <div className="rounded-lg border border-border/60 bg-background/80 p-2.5 text-center">
                 <span className="font-semibold text-foreground">{milestones} Hedef</span>
                 <p className="text-[10px] text-muted-foreground">Belirlenen hedef alan (+2 puan)</p>
               </div>
@@ -164,7 +164,7 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Örn: Pusulam, Atlas, Sirius, Nova..."
-                className="text-xs"
+                className="text-xs bg-background border-border"
                 maxLength={24}
               />
               <Button size="sm" onClick={handleSaveName} className="shrink-0 text-xs">

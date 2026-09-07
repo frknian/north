@@ -139,7 +139,6 @@
 }
 
 /* North presentation system: shared across legacy and multi-area routes. */
-.dark { --popover:#ffffff; --secondary:#eff4ff; --muted:#f2f4f7; --accent:#edf4ff; --border:#e4e7ec; --input:#d0d5dd; }
 html { scroll-padding-top:100px; }
 body { -webkit-font-smoothing:antialiased; }
 button, a, input, select, textarea { -webkit-tap-highlight-color:transparent; }
