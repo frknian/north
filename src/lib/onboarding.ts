@@ -127,17 +127,22 @@ export const assessmentQuestions = fundamentalsQuestions;
 
 export function getAssessmentQuestions(primaryFocus: string | string[]): AssessmentQuestion[] {
   if (Array.isArray(primaryFocus)) {
-    return primaryFocus.flatMap((focus, focusIndex) => getAssessmentQuestions(focus).slice(0, 3).map(question => ({ ...question, id: `area-${focusIndex}-${question.id}`, prompt: `${focus} · ${question.prompt}` })));
+    return primaryFocus.flatMap((focus, focusIndex) => { const [areaName] = focus.split("::"); return getAssessmentQuestions(focus).slice(0, 3).map(question => ({ ...question, id: `area-${focusIndex}-${question.id}`, prompt: `${areaName} · ${question.prompt}` })); });
   }
+  const [areaName, goal = ""] = primaryFocus.split("::");
+  if (/siber|güvenlik|pentest|soc/i.test(areaName) && /network|ağ|networking/i.test(goal)) return assessmentQuestionSets["Ağ ve iç ağ güvenliği"].slice(0, 3).map(question => ({ ...question, skill: areaName }));
+  if (/siber|güvenlik|pentest|soc/i.test(areaName) && /web|uygulama/i.test(goal)) return assessmentQuestionSets["Web uygulama güvenliği"].slice(0, 3).map(question => ({ ...question, skill: areaName }));
+  if (/siber|güvenlik|pentest|soc/i.test(areaName)) return fundamentalsQuestions.slice(0, 3).map(question => ({ ...question, skill: areaName }));
+  primaryFocus = areaName;
   if (/matematik|istatistik|ekonomi|iktisat/i.test(primaryFocus)) return [
-    { id: "math-concept", skill: primaryFocus, prompt: "Yeni bir kavramı öğrenirken kendi örneğini kurma düzeyin nedir?", options: selfAssessmentOptions("Henüz zorlanıyorum", "Örnekle yapabiliyorum", "Kendi örneğimi kurabiliyorum"), correct: "2" },
-    { id: "math-practice", skill: primaryFocus, prompt: "Bir problem veya soruda takıldığında çözümü görmeden ne kadar süre denersin?", options: selfAssessmentOptions("Hemen çözüme bakarım", "Kısa süre denerim", "Strateji değiştirerek denerim"), correct: "2" },
-    { id: "math-review", skill: primaryFocus, prompt: "Yanlışlarını tekrar etmek için bir sistemin var mı?", options: selfAssessmentOptions("Henüz yok", "Bazen not alıyorum", "Düzenli yanlış defterim / tekrar düzenim var"), correct: "2" },
+    { id: "math-function", skill: primaryFocus, prompt: "f(x) = 2x + 3 için f(4) değeri kaçtır?", options: [{ value: "a", label: "8" }, { value: "b", label: "11" }, { value: "c", label: "14" }], correct: "b" },
+    { id: "math-equation", skill: primaryFocus, prompt: "3x − 6 = 12 denkleminin çözümü nedir?", options: [{ value: "a", label: "x = 2" }, { value: "b", label: "x = 4" }, { value: "c", label: "x = 6" }], correct: "c" },
+    { id: "math-percent", skill: primaryFocus, prompt: "Bir sayının %20'si 30 ise sayının tamamı kaçtır?", options: [{ value: "a", label: "120" }, { value: "b", label: "150" }, { value: "c", label: "180" }], correct: "b" },
   ];
   if (/uygulama|yazılım|geliştirme|kod|programlama/i.test(primaryFocus)) return [
-    { id: "dev-build", skill: primaryFocus, prompt: "Küçük bir fikri çalışan bir sürüme dönüştürme deneyimin nasıl?", options: selfAssessmentOptions("Henüz yapmadım", "Rehberle yaptım", "Kendi başıma yayınladım"), correct: "2" },
-    { id: "dev-debug", skill: primaryFocus, prompt: "Bir hata aldığında çözüm yaklaşımın nedir?", options: selfAssessmentOptions("Rastgele denerim", "Hata mesajını araştırırım", "Sorunu küçültür, test ederek ilerlerim"), correct: "2" },
-    { id: "dev-output", skill: primaryFocus, prompt: "Çalışmalarını gösterebileceğin bir depo, taslak veya yayınlanmış çıktı var mı?", options: selfAssessmentOptions("Henüz yok", "Taslak var", "Düzenli güncel bir çıktım var"), correct: "2" },
+    { id: "dev-http", skill: primaryFocus, prompt: "Bir web uygulamasında HTTP 404 yanıtı neyi ifade eder?", options: [{ value: "a", label: "Kaynak bulunamadı" }, { value: "b", label: "Sunucu başarılı çalıştı" }, { value: "c", label: "Kullanıcı doğrulandı" }], correct: "a" },
+    { id: "dev-git", skill: primaryFocus, prompt: "Git'te değişiklikleri yeni bir kayda almak için hangi komut kullanılır?", options: [{ value: "a", label: "git clone" }, { value: "b", label: "git commit" }, { value: "c", label: "git pull" }], correct: "b" },
+    { id: "dev-debug", skill: primaryFocus, prompt: "Bir hatayı ayıklarken en güvenilir ilk adım hangisidir?", options: [{ value: "a", label: "Hata mesajını ve tekrar üretim adımlarını incelemek" }, { value: "b", label: "Tüm kodu silip yazmak" }, { value: "c", label: "Rastgele paket kurmak" }], correct: "a" },
   ];
   return assessmentQuestionSets[primaryFocus] ?? [
     { id: "goal-clarity", skill: "Hedef Netliği", prompt: "Başarıya ulaştığını gösterecek somut sonucu ne kadar net tanımladın?", options: selfAssessmentOptions("Henüz net değil", "Kabaca biliyorum", "Ölçülebilir sonucum net"), correct: "2" },
