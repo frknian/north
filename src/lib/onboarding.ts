@@ -125,7 +125,20 @@ const assessmentQuestionSets: Record<string, AssessmentQuestion[]> = {
 
 export const assessmentQuestions = fundamentalsQuestions;
 
-export function getAssessmentQuestions(primaryFocus: string) {
+export function getAssessmentQuestions(primaryFocus: string | string[]): AssessmentQuestion[] {
+  if (Array.isArray(primaryFocus)) {
+    return primaryFocus.flatMap((focus, focusIndex) => getAssessmentQuestions(focus).slice(0, 3).map(question => ({ ...question, id: `area-${focusIndex}-${question.id}`, prompt: `${focus} · ${question.prompt}` })));
+  }
+  if (/matematik|istatistik|ekonomi|iktisat/i.test(primaryFocus)) return [
+    { id: "math-concept", skill: primaryFocus, prompt: "Yeni bir kavramı öğrenirken kendi örneğini kurma düzeyin nedir?", options: selfAssessmentOptions("Henüz zorlanıyorum", "Örnekle yapabiliyorum", "Kendi örneğimi kurabiliyorum"), correct: "2" },
+    { id: "math-practice", skill: primaryFocus, prompt: "Bir problem veya soruda takıldığında çözümü görmeden ne kadar süre denersin?", options: selfAssessmentOptions("Hemen çözüme bakarım", "Kısa süre denerim", "Strateji değiştirerek denerim"), correct: "2" },
+    { id: "math-review", skill: primaryFocus, prompt: "Yanlışlarını tekrar etmek için bir sistemin var mı?", options: selfAssessmentOptions("Henüz yok", "Bazen not alıyorum", "Düzenli yanlış defterim / tekrar düzenim var"), correct: "2" },
+  ];
+  if (/uygulama|yazılım|geliştirme|kod|programlama/i.test(primaryFocus)) return [
+    { id: "dev-build", skill: primaryFocus, prompt: "Küçük bir fikri çalışan bir sürüme dönüştürme deneyimin nasıl?", options: selfAssessmentOptions("Henüz yapmadım", "Rehberle yaptım", "Kendi başıma yayınladım"), correct: "2" },
+    { id: "dev-debug", skill: primaryFocus, prompt: "Bir hata aldığında çözüm yaklaşımın nedir?", options: selfAssessmentOptions("Rastgele denerim", "Hata mesajını araştırırım", "Sorunu küçültür, test ederek ilerlerim"), correct: "2" },
+    { id: "dev-output", skill: primaryFocus, prompt: "Çalışmalarını gösterebileceğin bir depo, taslak veya yayınlanmış çıktı var mı?", options: selfAssessmentOptions("Henüz yok", "Taslak var", "Düzenli güncel bir çıktım var"), correct: "2" },
+  ];
   return assessmentQuestionSets[primaryFocus] ?? [
     { id: "goal-clarity", skill: "Hedef Netliği", prompt: "Başarıya ulaştığını gösterecek somut sonucu ne kadar net tanımladın?", options: selfAssessmentOptions("Henüz net değil", "Kabaca biliyorum", "Ölçülebilir sonucum net"), correct: "2" },
     { id: "goal-foundation", skill: "Temel Bilgi", prompt: "Hedefin için gerekli temel kavramları kendi cümlelerinle açıklama düzeyin nedir?", options: selfAssessmentOptions("Henüz açıklayamıyorum", "Bazılarını açıklayabilirim", "Temelleri rahatça açıklayabilirim"), correct: "2" },
@@ -248,7 +261,7 @@ function starterTasks(input: InitialSetupInput): Task[] {
 
 export function createPersonalizedWorkspace(input: InitialSetupInput): WorkspaceState {
   const state = createEmptyWorkspaceState();
-  const questions = getAssessmentQuestions(input.primaryFocus);
+  const questions = getAssessmentQuestions(input.interests);
   const result = calculateAssessment(input.assessmentAnswers, questions);
   const ratio = result.total ? result.score / result.total : 0;
   const level = ratio <= .34 ? "beginner" : ratio <= .67 ? "foundation" : "intermediate";
@@ -267,6 +280,8 @@ export function createPersonalizedWorkspace(input: InitialSetupInput): Workspace
     goal: input.goal.trim(),
     track: input.track,
     primaryFocus: input.primaryFocus,
+    interests: input.interests,
+    university: { isStudent: input.isUniversityStudent, school: input.universitySchool.trim(), department: input.universityDepartment.trim(), courses: input.universityCourses },
     weeklyCapacityHours: input.weeklyCapacityHours,
     preferredSessionMinutes: input.preferredSessionMinutes,
   };
@@ -294,5 +309,9 @@ export function createPersonalizedWorkspace(input: InitialSetupInput): Workspace
     { id: "milestone-90", title: "Hedefe dönük portföy", horizonDays: 90, description: input.goal, successCriteria: ["3 kaliteli kanıt", "1 yayınlanabilir çalışma", "Sonraki 90 gün planı"], status: "upcoming" },
   ];
   state.north = initializeNorth(state);
+  if (state.north && input.isUniversityStudent) {
+    const areaId = state.north.areas[0]?.id ?? "primary-goal";
+    state.north.events = input.universityCourses.map(course => ({ id: course.id, areaId, title: `${course.name} dersi`, date: "", time: `${course.day} ${course.start}`, kind: "block", minutes: course.minutes }));
+  }
   return state;
 }

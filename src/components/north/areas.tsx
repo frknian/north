@@ -133,5 +133,14 @@ function AreaWorkspace({ area, tab, setTab, onEdit, draft, setDraft, saveArea }:
 function AreaText({ area, field, onSave }: { area: Area; field: "notes" | "resources"; onSave: (text: string) => void }) {
   const [text, setText] = useState(area[field]);
   const [saved, setSaved] = useState(false);
-  return <section className="surface space-y-4 p-5"><Field label={field === "notes" ? "Alan notları" : "Kaynak adları ve bağlantılar"}><textarea className={`${fieldClass} min-h-60`} value={text} onChange={(event) => { setText(event.target.value); setSaved(false); }} /></Field><Button onClick={() => { onSave(text); setSaved(true); }}>{saved ? "Kaydedildi" : "Kaydet"}</Button></section>;
+  const recommendations = field === "resources" ? resourceRecommendations(area) : [];
+  return <section className="surface space-y-4 p-5">{recommendations.length ? <div className="rounded-xl border bg-muted/20 p-4"><p className="text-sm font-medium">Başlangıç kaynakları</p><p className="mt-1 text-xs text-muted-foreground">Alanına göre seçilmiş güvenilir başlangıç kaynakları. İstersen birini notlarına ekleyebilir veya kendi kaynağını yazabilirsin.</p><div className="mt-3 flex flex-wrap gap-2">{recommendations.map(item => <button type="button" key={item.url} onClick={() => { setText(current => `${current}${current ? "\n" : ""}${item.title} — ${item.url}`); setSaved(false); }} className="rounded-full border px-3 py-1 text-xs text-primary hover:bg-primary/5">+ {item.title}</button>)}</div></div> : null}<Field label={field === "notes" ? "Alan notları" : "Kaynak adları ve bağlantılar"}><textarea className={`${fieldClass} min-h-60`} value={text} onChange={(event) => { setText(event.target.value); setSaved(false); }} placeholder={field === "resources" ? "Kendi kaynaklarını veya bağlantılarını ekle…" : undefined} /></Field><Button onClick={() => { onSave(text); setSaved(true); }}>{saved ? "Kaydedildi" : "Kaydet"}</Button></section>;
+}
+
+function resourceRecommendations(area: Area) {
+  if (area.kind === "math") return [{ title: "Khan Academy Matematik", url: "https://www.khanacademy.org/math" }, { title: "MIT OpenCourseWare", url: "https://ocw.mit.edu/" }];
+  if (area.kind === "cyber") return [{ title: "OWASP Web Security Testing Guide", url: "https://owasp.org/www-project-web-security-testing-guide/" }, { title: "PortSwigger Web Security Academy", url: "https://portswigger.net/web-security" }];
+  if (area.kind === "projects") return [{ title: "MDN Web Docs", url: "https://developer.mozilla.org/" }, { title: "The Odin Project", url: "https://www.theodinproject.com/" }];
+  if (area.kind === "reading") return [{ title: "Goodreads", url: "https://www.goodreads.com/" }];
+  return [{ title: "Kendi güvenilir kaynağını ekle", url: "" }].filter(item => item.url);
 }

@@ -78,14 +78,18 @@ export function createArea(kind: AreaKind, id: string): Area {
   return { id, kind, name: kindLabels[kind], icon: ({math:"∑",cyber:"⌘",reading:"▤",chess:"♞",projects:"◇",custom:"◎"})[kind], goal: "", priority: 2, weeklyMinutes: 0, minimumMinutes: 10, archived: false, metric: metricDefaults[kind], target: 0, notes: "", resources: "", description: "", preferredSessionMinutes: 50, accent: areaAccents[0], status: "active" };
 }
 export function initializeNorth(workspace: WorkspaceState): NorthState {
-  const defaultAreas = (["math","cyber","reading","chess","projects"] as AreaKind[]).map(k => createArea(k,k));
-  const primaryFocus = workspace.profile.primaryFocus.trim();
-  const cyberGoal = /siber|güvenlik|pentest|soc|grc|cloud security/i.test(`${workspace.profile.track} ${primaryFocus}`);
-  const primary = cyberGoal ? defaultAreas.find(a => a.id === "cyber")! : createArea("custom", "primary-goal");
-  if (primaryFocus) primary.name = primaryFocus;
-  primary.goal = workspace.profile.goal;
-  primary.weeklyMinutes = workspace.profile.weeklyCapacityHours * 60;
-  const areas = cyberGoal || !primaryFocus ? defaultAreas : [primary, ...defaultAreas.filter(area => area.id !== "cyber")];
+  const interests = (workspace.profile.interests?.length ? workspace.profile.interests : [workspace.profile.primaryFocus]).map(item => item.trim()).filter(Boolean);
+  const inferKind = (name: string): AreaKind => /matematik|calculus|istatistik|ekonomi|iktisat/i.test(name) ? "math" : /siber|güvenlik|pentest|soc|grc/i.test(name) ? "cyber" : /okuma|kitap|edebiyat/i.test(name) ? "reading" : /satranç|chess/i.test(name) ? "chess" : /proje|uygulama|yazılım|geliştirme|kod/i.test(name) ? "projects" : "custom";
+  const areas = interests.map((name, index) => {
+    const kind = inferKind(name);
+    const area = createArea(kind, `area-${index + 1}`);
+    area.name = name;
+    area.goal = index === 0 ? workspace.profile.goal : "";
+    area.weeklyMinutes = index === 0 ? workspace.profile.weeklyCapacityHours * 60 : 0;
+    area.priority = index === 0 ? 3 : 2;
+    return area;
+  });
+  const primary = areas[0] ?? createArea("custom", "primary-goal");
   return { version: 1, areas, weeklyHours: workspace.profile.weeklyCapacityHours, mode: "normal", customMode: "", energy: { date: "", level: "normal" }, events: [], protection: [],
     tasks: workspace.tasks.map(t => ({ id:t.id, areaId:primary.id, title:t.title, goal:t.outputRequirement || t.description, minutes:t.duration, intensity:t.difficulty === "hard" ? "high" : "normal", mandatory:t.isDailyMission, status:t.status === "completed" ? "done" : t.status === "partial" ? "partial" : t.status === "failed" ? "skipped" : "pending", date:"", deadline:"", resource: workspace.resources.find(r => r.id === t.practicalResourceId)?.url ?? "", why:"Kişisel başlangıç planından aktarıldı.", week:weekKey() })),
     activities: workspace.focusSessions.map(s => ({id:s.id, taskId:s.taskId,areaId:primary.id,date:dayKey(new Date(s.completedAt)),minutes:s.durationMinutes,outcome:s.status === "completed" ? "done" : "partial",difficulty:"",reflection:s.notes,amount:0,metric:primary.metric,endedAt:s.completedAt})),

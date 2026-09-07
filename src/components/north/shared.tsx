@@ -19,7 +19,7 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
   const completed = state.activities.filter(activity => activity.outcome === "done").length;
   const milestones = state.areas.filter(area => area.goal.trim()).length;
   const level = Math.max(1, Math.min(5, 1 + Math.floor((completed + milestones * 2) / 6)));
-  const label = level === 1 ? "Filiz" : level === 2 ? "Yol arkadaşı" : level === 3 ? "Keşifçi" : level === 4 ? "Rehber" : "Kutup yıldızı";
+  const label = level === 1 ? "Pusula" : level === 2 ? "Yol arkadaşı" : level === 3 ? "Keşifçi" : level === 4 ? "Rehber" : "Kutup yıldızı";
   return <div className={compact ? "north-companion is-compact" : "north-companion"} aria-label={`North yol arkadaşın, seviye ${level}: ${label}`}>
     <span className="north-companion-orb" aria-hidden="true"><i/><i/><i/></span>
     {!compact && <span><b>{label}</b><small>Seviye {level}</small></span>}

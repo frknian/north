@@ -19,6 +19,13 @@ export interface Profile {
   universityMode: UniversityMode;
   preferredSessionMinutes: 45 | 50 | 60;
   weeklyCapacityHours: number;
+  interests?: string[];
+  university?: {
+    isStudent: boolean;
+    school?: string;
+    department?: string;
+    courses: { id: string; name: string; day: string; start: string; minutes: number }[];
+  };
 }
 
 export interface Task {
@@ -224,6 +231,11 @@ export interface InitialSetupInput {
   goal: string;
   track: string;
   primaryFocus: string;
+  interests: string[];
+  isUniversityStudent: boolean;
+  universitySchool: string;
+  universityDepartment: string;
+  universityCourses: { id: string; name: string; day: string; start: string; minutes: number }[];
   weeklyCapacityHours: number;
   preferredSessionMinutes: 45 | 50 | 60;
   englishLevel: CoachingOnboarding["englishLevel"];
