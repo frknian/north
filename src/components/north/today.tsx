@@ -5,6 +5,7 @@ import { ArrowRight, Play, Sparkles } from "lucide-react";
 import { dailySelection, dayKey } from "@/lib/north";
 import { useNorth, Companion } from "./shared";
 import { Button } from "@/components/ui/button";
+import { RestCelebrationCard } from "./progress-charts";
 
 export function NorthToday() {
   const { state, update, ready } = useNorth();
@@ -39,11 +40,21 @@ export function NorthToday() {
 
     <section className="north-ai-nudge" aria-label="North önerisi"><Sparkles size={17}/><div><p>North&apos;un bugünkü önerisi</p><span>{current ? `${current.title} ile başla; ardından planını gerçek enerjine göre güncelleyelim.` : "Takviminde net bir başlangıç yok. Bir sonraki küçük adımı birlikte seçelim."}</span></div><Button asChild size="sm" variant="outline"><Link href="/north-ai">North&apos;a sor</Link></Button></section>
 
-    {current ? <section className="north-now-card">
-      <div className="north-now-label"><span>ŞİMDİ</span><span>{currentArea?.icon} {currentArea?.name}</span></div>
-      <div className="north-now-content"><div><h2>{current.title}</h2><p className="north-now-goal">{current.goal}</p><p className="north-now-reason">{current.why || "Bu görev, haftalık yönündeki en etkili sonraki adım."}</p></div><div className="north-now-time"><strong>{current.minutes}</strong><span>dakika</span></div></div>
-      <div className="north-now-actions"><Button asChild size="lg"><Link href={`/focus/${current.id}`}><Play size={17}/>Odaklanmaya başla</Link></Button><details><summary>Neden bu görev?</summary><p>{current.why || "Hedefin, bu haftaki planın ve tamamlanmamış işlerin dikkate alınarak seçildi."}</p></details></div>
-    </section> : <section className="north-empty-state"><p>ŞİMDİ</p><h2>Bugün için net bir sonraki adım yok.</h2><span>Bir hedef ekle veya North’tan haftanı planlamasını iste.</span><div><Button asChild><Link href="/week">Planı aç</Link></Button><Button asChild variant="ghost"><Link href="/north-ai">North AI ile konuş</Link></Button></div></section>}
+    {current ? (
+      <section className="north-now-card">
+        <div className="north-now-label"><span>ŞİMDİ</span><span>{currentArea?.icon} {currentArea?.name}</span></div>
+        <div className="north-now-content"><div><h2>{current.title}</h2><p className="north-now-goal">{current.goal}</p><p className="north-now-reason">{current.why || "Bu görev, haftalık yönündeki en etkili sonraki adım."}</p></div><div className="north-now-time"><strong>{current.minutes}</strong><span>dakika</span></div></div>
+        <div className="north-now-actions"><Button asChild size="lg"><Link href={`/focus/${current.id}`}><Play size={17}/>Odaklanmaya başla</Link></Button><details><summary>Neden bu görev?</summary><p>{current.why || "Hedefin, bu haftaki planın ve tamamlanmamış işlerin dikkate alınarak seçildi."}</p></details></div>
+      </section>
+    ) : completed > 0 ? (
+      <RestCelebrationCard
+        completedCount={completed}
+        totalMinutes={state.activities.filter(a => a.date === today && a.outcome === "done").reduce((acc, a) => acc + a.minutes, 0)}
+        areaCount={new Set(state.activities.filter(a => a.date === today && a.outcome === "done").map(a => a.areaId)).size || 1}
+      />
+    ) : (
+      <section className="north-empty-state"><p>ŞİMDİ</p><h2>Bugün için net bir sonraki adım yok.</h2><span>Bir hedef ekle veya North’tan haftanı planlamasını iste.</span><div><Button asChild><Link href="/week">Planı aç</Link></Button><Button asChild variant="ghost"><Link href="/north-ai">North AI ile konuş</Link></Button></div></section>
+    )}
 
     {next.length > 0 && <section className="north-next-section"><div className="north-next-heading"><div><p>SONRAKİ</p><h2>Sıra sende değil, planında.</h2></div><Link href="/week">Planı düzenle <ArrowRight size={15}/></Link></div><div className="north-next-list">{next.map((task, index) => { const area = state.areas.find(item => item.id === task.areaId); return <article key={task.id}><span>{String(index + 2).padStart(2, "0")}</span><div><p>{area?.name}</p><h3>{task.title}</h3></div><time>{task.minutes} dk</time></article>; })}</div></section>}
 

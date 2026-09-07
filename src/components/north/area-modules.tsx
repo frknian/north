@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { examTemplates, calculateNet, calculateEstimatedScore, generateReviewSchedule, getWeeklyTrendPoints } from "@/lib/exam-system";
+import { NetTrendChart } from "./progress-charts";
 import type { DomainProof, DomainProofKind, ExamSubjectScore, ExamType, TrialExam, WrongAnswerAnalysis } from "@/lib/types";
 
 export function AreaModules({ area }: { area: Area }) {
@@ -524,29 +525,41 @@ export function AreaModules({ area }: { area: Area }) {
 
           {/* HAFTALIK NET GELİŞİM GRAFİĞİ (Gereksinim 2) */}
           {trendPoints.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <TrendingUp className="size-4 text-primary" />
-                  Haftalık Net Gelişim Trendi
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 pt-2">
-                  {trendPoints.map((pt) => (
-                    <div key={pt.week} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>Hafta: {pt.week} ({pt.trialCount} Deneme)</span>
-                        <span className="font-semibold text-primary">Ortalama: {pt.averageNet} Net (En Yüksek: {pt.maxNet})</span>
+            <div className="space-y-4">
+              <NetTrendChart
+                data={trendPoints.map((pt) => ({
+                  label: pt.week.length > 10 ? pt.week.slice(5) : pt.week,
+                  value: pt.averageNet,
+                }))}
+                targetValue={currentExamProfile?.targetNet}
+                unit="Net"
+                title="Haftalık Net Gelişim Trendi"
+              />
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <TrendingUp className="size-4 text-primary" />
+                    Haftalık İstatistik Dökümü
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 pt-2">
+                    {trendPoints.map((pt) => (
+                      <div key={pt.week} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span>Hafta: {pt.week} ({pt.trialCount} Deneme)</span>
+                          <span className="font-semibold text-primary">Ortalama: {pt.averageNet} Net (En Yüksek: {pt.maxNet})</span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(100, (pt.averageNet / (currentExamProfile.targetNet ?? 100)) * 100)}%` }} />
+                        </div>
                       </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(100, (pt.averageNet / (currentExamProfile.targetNet ?? 100)) * 100)}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* TEKRAR TAKVİMİ (Gereksinim 2) */}
