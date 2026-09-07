@@ -49,6 +49,14 @@ import { ambientSound } from "@/lib/ambient-sound";
 import { PipTimerController } from "@/lib/pip-timer";
 import { BreathworkModal } from "./breathwork-modal";
 import { NorthAI } from "./ai";
+import {
+  setFocusLock,
+  clearFocusLock,
+  markFocusLockInterrupted,
+  generateExitQuestion,
+  getTabId,
+  type ActiveFocusLock,
+} from "@/lib/focus-lock";
 import { toast } from "sonner";
 
 type Timer = {
@@ -104,7 +112,7 @@ export function NorthFocus({ id }: { id: string }) {
 
   // Proof of Work / Early Exit Gate States
   const [proofGateOpen, setProofGateOpen] = useState(false);
-  const [proofMethod, setProofMethod] = useState<"text" | "photo" | "step" | "ai" | "abandon">("text");
+  const [proofMethod, setProofMethod] = useState<"question" | "photo" | "step" | "ai" | "abandon">("question");
   const [proofText, setProofText] = useState("");
   const [proofStepId, setProofStepId] = useState<string>("");
   const [verifiedProof, setVerifiedProof] = useState<{
@@ -126,6 +134,8 @@ export function NorthFocus({ id }: { id: string }) {
   const [breathworkOpen, setBreathworkOpen] = useState(false);
   const [activeSound, setActiveSound] = useState<"none" | "rain" | "noise" | "cafe" | "drone">("none");
   const [photoProof, setPhotoProof] = useState<string | null>(null);
+
+  const exitQuestion = task ? generateExitQuestion(task.title, task.goal, area?.name || "", area?.kind) : "";
 
   const toggleDifficulty = (value: string) => setDifficulty((current) => (current === value ? "" : value));
 
@@ -210,10 +220,33 @@ export function NorthFocus({ id }: { id: string }) {
     }
   }, [id, scratchpadText]);
 
-  // Prevent accidental close
+  // =========================================================================
+  // 1. GERİ TUŞU KİLİDİ (POPSTATE INTERCEPTOR - BROWSER BACK BUTTON LOCK)
+  // =========================================================================
+  useEffect(() => {
+    if (!timer?.running) return;
+
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href);
+      handleTriggerFinish();
+      toast.warning("Odak oturumu kilitli! Çıkmak için konudan soruyu cevaplamanız gerekir.");
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [timer?.running]);
+
+  // =========================================================================
+  // 2. PERSISTENT REOPEN LOCK: UYGULAMA KAPATILIRSA INTERRUPTED OLARAK İŞARETLE
+  // =========================================================================
   useEffect(() => {
     if (!timer?.running) return;
     const warn = (e: BeforeUnloadEvent) => {
+      markFocusLockInterrupted();
       e.preventDefault();
     };
     window.addEventListener("beforeunload", warn);
@@ -257,7 +290,24 @@ export function NorthFocus({ id }: { id: string }) {
       running: true,
       pauses: 0,
     });
-    if (area) void browserCompanion.start(area.id);
+
+    // SET GLOBAL MULTI-TAB & REOPEN LOCK
+    if (area && task) {
+      const exitQ = generateExitQuestion(task.title, task.goal, area.name, area.kind);
+      setFocusLock({
+        taskId: id,
+        taskTitle: task.title,
+        areaId: area.id,
+        areaName: area.name,
+        areaKind: area.kind,
+        taskGoal: task.goal,
+        startedAt: started,
+        tabId: getTabId(),
+        status: "running",
+        exitQuestion: exitQ,
+      });
+      void browserCompanion.start(area.id);
+    }
   }
 
   function handleResume() {
@@ -284,14 +334,16 @@ export function NorthFocus({ id }: { id: string }) {
     type: "output_text" | "photo" | "step" | "ai_verified" | "scratchpad",
     content: string
   ) {
+    clearFocusLock();
     setVerifiedProof({ type, content });
     setProofGateOpen(false);
     setFinishing(true);
     setOutcome("done");
-    toast.success("Çalışma kanıtı başarıyla doğrulandı!");
+    toast.success("Çalışma kanıtı ve çıkış sorusu doğrulandı!");
   }
 
   function handleForfeitAbandon() {
+    clearFocusLock();
     setProofGateOpen(false);
     sessionStorage.removeItem(`north:focus:${id}`);
     sessionStorage.removeItem(`north:focus:notes:${id}`);
@@ -462,15 +514,23 @@ export function NorthFocus({ id }: { id: string }) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:py-7 space-y-6">
-      {/* TOP NAVIGATION & AREA META */}
+      {/* TOP NAVIGATION & AREA META (GERİ GİTME TUŞU İŞLEVSİZLEŞTİRME KORUMASI) */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-        <Link
-          href="/"
+        <button
+          type="button"
+          onClick={() => {
+            if (timer?.running) {
+              handleTriggerFinish();
+              toast.warning("Odak oturumu devam ediyor. Çıkmak için konudan soruyu cevaplaman gerekir.");
+            } else {
+              router.push("/");
+            }
+          }}
           className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" />
           Bugüne dön
-        </Link>
+        </button>
 
         <div className="flex items-center gap-2.5">
           <button
@@ -518,7 +578,7 @@ export function NorthFocus({ id }: { id: string }) {
                       {tabSwitches} kez sekme değişti
                     </span>
                   )}
-                  {timer?.running && tabSwitches === 0 && ironWill && (
+                  {timer?.running && tabSwitches === 0 && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                       <ShieldCheck className="size-3" />
                       Kusursuz Sekme Koruması
@@ -663,9 +723,7 @@ export function NorthFocus({ id }: { id: string }) {
           {/* 2. MAIN BENTO WORKSPACE: CARDS (LEFT) + DOCKED AI COACH (RIGHT) */}
           {/* =============================================================== */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            {/* ------------------------------------------------------------- */}
-            {/* LEFT COLUMN: MODULAR BENTO CARDS (7 OR 8 COLS ON DESKTOP)     */}
-            {/* ------------------------------------------------------------- */}
+            {/* LEFT COLUMN: MODULAR BENTO CARDS */}
             <div className="xl:col-span-7 2xl:col-span-8 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 1. BENTO CARD: NE YAPACAKSIN? (CHECKLIST & STEPS) */}
@@ -986,9 +1044,7 @@ export function NorthFocus({ id }: { id: string }) {
               </div>
             </div>
 
-            {/* ------------------------------------------------------------- */}
-            {/* RIGHT COLUMN: ALWAYS DOCKED NORTH AI COACH (5 COLS ON DESKTOP) */}
-            {/* ------------------------------------------------------------- */}
+            {/* RIGHT COLUMN: ALWAYS DOCKED NORTH AI COACH */}
             <div className="xl:col-span-5 2xl:col-span-4">
               <div className="sticky top-5 rounded-3xl border bg-card shadow-md overflow-hidden flex flex-col h-[740px] max-h-[calc(100dvh-5rem)]">
                 {/* DOCKED COACH HEADER */}
@@ -1020,9 +1076,7 @@ export function NorthFocus({ id }: { id: string }) {
           </div>
         </>
       ) : (
-        /* ================================================================= */
-        /* POST-SESSION FEEDBACK SCREEN                                      */
-        /* ================================================================= */
+        /* POST-SESSION FEEDBACK SCREEN */
         <section className="celebrate-pop mt-4 space-y-6 max-w-3xl mx-auto">
           <div className="rounded-3xl border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1033,7 +1087,7 @@ export function NorthFocus({ id }: { id: string }) {
               {verifiedProof.type !== "none" && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="size-3.5" />
-                  {verifiedProof.type === "output_text" && "Somut Çıktı Doğrulandı"}
+                  {verifiedProof.type === "output_text" && "Konu Doğrulama Sorusu Çözüldü"}
                   {verifiedProof.type === "photo" && "Fotoğraf Kanıtı Eklendi"}
                   {verifiedProof.type === "step" && "Görev Adımı Onaylandı"}
                   {verifiedProof.type === "ai_verified" && "North AI Tarafından Teyit Edildi"}
@@ -1205,6 +1259,7 @@ export function NorthFocus({ id }: { id: string }) {
                   onClick={() => {
                     if (!timer) return;
                     setSaved(true);
+                    clearFocusLock();
                     const actualMinutes = Math.max(1, Math.floor(elapsed / 60000));
                     const activity: NorthActivity = {
                       id: timer.id,
@@ -1286,7 +1341,7 @@ export function NorthFocus({ id }: { id: string }) {
       )}
 
       {/* ================================================================= */}
-      {/* PROOF OF WORK / PROOF OF FOCUS EARLY EXIT GATE MODAL               */}
+      {/* PROOF OF WORK / KONU ÇIKIŞ SORUSU KİLİT MODALI                    */}
       {/* ================================================================= */}
       <Dialog open={proofGateOpen} onOpenChange={setProofGateOpen}>
         <DialogContent className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-3xl p-6 sm:p-7">
@@ -1296,12 +1351,12 @@ export function NorthFocus({ id }: { id: string }) {
                 <Lock className="size-4" />
               </span>
               <DialogTitle className="text-base font-bold text-foreground">
-                Erken Çıkış &amp; Çalışma Kanıtı Kapısı
+                Erken Çıkış &amp; Konu Doğrulama Kilidi
               </DialogTitle>
             </div>
             <DialogDescription className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
               Hedeflenen sürenin tamamlanmasına <strong className="text-foreground">{minutesStr}:{secondsStr}</strong> kaldı. 
-              North&apos;ta sahte süreler kaydedilmez; erken bitirmek için gerçekten çalıştığını kanıtla.
+              North&apos;ta sahte süre kaydedilmez ve kilit çözülmeden çıkılamaz. Çalıştığın konudan soruyu cevapla.
             </DialogDescription>
           </DialogHeader>
 
@@ -1309,22 +1364,22 @@ export function NorthFocus({ id }: { id: string }) {
           <div className="mt-4 grid grid-cols-4 gap-1.5 rounded-2xl border bg-muted/50 p-1 text-xs">
             <button
               type="button"
-              onClick={() => setProofMethod("text")}
+              onClick={() => setProofMethod("question")}
               className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 font-medium transition-colors ${
-                proofMethod === "text"
-                  ? "bg-background text-foreground shadow-xs"
+                proofMethod === "question"
+                  ? "bg-background text-foreground shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <FileText className="size-3.5 text-amber-500" />
-              <span className="truncate">Somut Çıktı</span>
+              <Sparkles className="size-3.5 text-amber-500" />
+              <span className="truncate">Konu Sorusu</span>
             </button>
             <button
               type="button"
               onClick={() => setProofMethod("photo")}
               className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 font-medium transition-colors ${
                 proofMethod === "photo"
-                  ? "bg-background text-foreground shadow-xs"
+                  ? "bg-background text-foreground shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -1336,7 +1391,7 @@ export function NorthFocus({ id }: { id: string }) {
               onClick={() => setProofMethod("step")}
               className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 font-medium transition-colors ${
                 proofMethod === "step"
-                  ? "bg-background text-foreground shadow-xs"
+                  ? "bg-background text-foreground shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -1348,52 +1403,60 @@ export function NorthFocus({ id }: { id: string }) {
               onClick={() => setProofMethod("ai")}
               className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 font-medium transition-colors ${
                 proofMethod === "ai"
-                  ? "bg-background text-foreground shadow-xs"
+                  ? "bg-background text-foreground shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Sparkles className="size-3.5 text-purple-500" />
+              <Bot className="size-3.5 text-purple-500" />
               <span className="truncate">AI Teyit</span>
             </button>
           </div>
 
-          {/* METHOD 1: SOMUT ÇIKTI (TEXT) */}
-          {proofMethod === "text" && (
+          {/* METHOD 1: KONU ÇIKIŞ DOĞRULAMA SORUSU (VARSAYILAN & ZORUNLU) */}
+          {proofMethod === "question" && (
             <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-foreground">
-                  Bu sürede ne ürettin veya neyi çözdün?
-                </label>
-                {scratchpadText.trim().length >= 15 && (
-                  <button
-                    type="button"
-                    onClick={() => setProofText(scratchpadText.trim())}
-                    className="text-[11px] font-medium text-primary hover:underline"
-                  >
-                    Canlı notlarımdan aktar ⤶
-                  </button>
-                )}
+              <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4 space-y-1.5 text-left">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    {area.name} Çıkış Sorusu
+                  </span>
+                  {scratchpadText.trim().length >= 15 && (
+                    <button
+                      type="button"
+                      onClick={() => setProofText(scratchpadText.trim())}
+                      className="text-[10px] font-medium text-primary hover:underline"
+                    >
+                      Canlı notlarımdan aktar ⤶
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs sm:text-sm font-medium text-foreground leading-relaxed">
+                  {exitQuestion}
+                </p>
               </div>
+
               <textarea
                 value={proofText}
                 onChange={(e) => setProofText(e.target.value)}
-                placeholder="Örnek: Fonksiyonlar testinden 10 soru çözdüm, ters fonksiyon kuralını pekiştirdim veya SQLi labında UNION payload'unu başarıyla enjekte ettim..."
+                placeholder="Cevabını, çözdüğün formülü, kuralı veya vardığın sonucu buraya yaz..."
                 className="h-28 w-full rounded-2xl border border-border bg-background p-3 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
               />
               <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>En az 20 karakter gereklidir</span>
-                <span className={proofText.trim().length >= 20 ? "text-emerald-500 font-semibold" : ""}>
-                  {proofText.trim().length} / 20 karakter
+                <span>En az 15 karakter gereklidir</span>
+                <span className={proofText.trim().length >= 15 ? "text-emerald-500 font-semibold" : ""}>
+                  {proofText.trim().length} / 15 karakter
                 </span>
               </div>
               <Button
                 type="button"
                 className="w-full rounded-2xl"
-                disabled={proofText.trim().length < 20}
-                onClick={() => handleVerifyAndFinish("output_text", proofText.trim())}
+                disabled={proofText.trim().length < 15}
+                onClick={() =>
+                  handleVerifyAndFinish("output_text", `Konu Çıkış Sorusu Cevabı: ${proofText.trim()}`)
+                }
               >
                 <Check className="mr-1.5 size-4" />
-                Çıktıyı Kanıtla ve Oturumu Bitir
+                Soruyu Cevapla ve Kilidi Kaldır
               </Button>
             </div>
           )}

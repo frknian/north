@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { NorthLogo } from "@/components/layout/north-logo";
+import { isCurrentTabLocked, FOCUS_LOCK_KEY, BROADCAST_CHANNEL_NAME, type ActiveFocusLock } from "@/lib/focus-lock";
+import { FocusLockBarrier } from "@/components/features/focus-lock-barrier";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
@@ -64,6 +66,55 @@ export function AppFrame({children}:{children:React.ReactNode}) {
     if(workspace.authStatus==="signed_in"&&!workspace.coaching.onboarding&&pathname!=="/onboarding"){router.replace("/onboarding");return;}
     if(workspace.authStatus==="signed_in"&&workspace.coaching.onboarding&&pathname==="/onboarding")router.replace("/");
   },[pathname,router,workspace.authStatus,workspace.coaching.onboarding,workspace.ready]);
+  const [lockState, setLockState] = useState<{
+    isLocked: boolean;
+    reason?: "other_tab" | "reopened_unanswered";
+    lock?: ActiveFocusLock;
+  }>({ isLocked: false });
+
+  useEffect(() => {
+    const checkLock = () => {
+      const current = isCurrentTabLocked();
+      if (current.isLocked && current.lock && pathname === `/focus/${current.lock.taskId}`) {
+        if (current.lock.status === "running") {
+          setLockState({ isLocked: false });
+          return;
+        }
+      }
+      setLockState(current);
+    };
+
+    checkLock();
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === FOCUS_LOCK_KEY) checkLock();
+    };
+    window.addEventListener("storage", handleStorage);
+
+    let channel: BroadcastChannel | null = null;
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      try {
+        channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        channel.onmessage = () => checkLock();
+      } catch {}
+    }
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      channel?.close();
+    };
+  }, [pathname]);
+
+  if (lockState.isLocked && lockState.lock && lockState.reason) {
+    return (
+      <FocusLockBarrier
+        lock={lockState.lock}
+        reason={lockState.reason}
+        onUnlocked={() => setLockState({ isLocked: false })}
+      />
+    );
+  }
+
   if(pathname.startsWith("/login")||pathname.startsWith("/auth")||pathname.startsWith("/account-reset")||pathname.startsWith("/kvkk")||pathname==="/onboarding"||pathname.startsWith("/focus/"))return <div className="north-route">{children}</div>;
   if(isFirebaseConfigured()&&(!workspace.ready||workspace.authStatus!=="signed_in"||!workspace.coaching.onboarding))return <main className="grid min-h-dvh place-items-center px-6 text-center"><div><NorthLogo size={48} className="mx-auto mb-4"/><p className="text-sm text-muted-foreground">North hazırlanıyor…</p></div></main>;
   return <div className="north-shell min-h-dvh">
