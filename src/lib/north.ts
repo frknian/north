@@ -29,6 +29,10 @@ export interface NorthActivity {
   energy?: "low" | "normal" | "high"; pauseCount?: number; earlyExit?: boolean;
   completionPercent?: number; taskType?: NorthTask["taskType"];
   supportSources?: SupportSource[];
+  proofType?: "output_text" | "photo" | "step" | "ai_verified" | "scratchpad" | "none" | "abandoned";
+  proofContent?: string;
+  tabSwitches?: number;
+  ironWill?: boolean;
 }
 export interface NorthDailyAdaptation {
   date: string; taskId?: string; originalMinutes?: number; recommendedMinutes?: number;
