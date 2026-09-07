@@ -3,27 +3,35 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, Bot, CalendarDays, ClipboardList, Home, Layers3, ShieldCheck, UserRound } from "lucide-react";
+import { BarChart3, Bot, CalendarDays, ChevronDown, ClipboardList, Home, Layers3, MoreHorizontal, ShieldCheck, UserRound } from "lucide-react";
 import { WorkspaceSearch } from "@/components/features/workspace-search";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { isFirebaseConfigured } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
   { href: "/week", label: "Plan", icon: ClipboardList },
-  { href: "/calendar", label: "Takvim", icon: CalendarDays },
-  { href: "/areas", label: "Alanlar", icon: Layers3 },
   { href: "/progress", label: "İlerleme", icon: BarChart3 },
   { href: "/north-ai", label: "North AI", icon: Bot },
 ];
 const areaRoutes = ["/labs", "/skills", "/resources", "/career", "/evidence", "/knowledge", "/certifications", "/plan"];
+const moreNavigation = [
+  { href: "/areas", label: "Alanlar", icon: Layers3 },
+  { href: "/calendar", label: "Takvim", icon: CalendarDays },
+  { href: "/reviews", label: "Haftalık değerlendirme", icon: ClipboardList },
+  { href: "/labs", label: "Lablar", icon: Layers3 },
+  { href: "/evidence", label: "Kanıtlar", icon: ShieldCheck },
+  { href: "/profile", label: "Profil ve ayarlar", icon: UserRound },
+];
 const titles: Record<string,string> = {"/":"Bugün","/calendar":"Takvim","/areas":"Alanlar","/progress":"İlerleme","/north-ai":"North AI","/week":"Plan","/coach":"North AI","/profile":"Profil ve ayarlar","/data":"Verilerim ve güvenlik","/labs":"Lablar","/skills":"Beceriler","/resources":"Kaynaklar","/career":"Kariyer","/evidence":"Kanıtlar","/knowledge":"Bilgi bankası","/certifications":"Sertifikalar","/plan":"Siber güvenlik planı","/reviews":"Değerlendirmeler","/insights":"İçgörüler","/login":"Giriş","/kvkk":"KVKK Aydınlatma Metni","/onboarding":"Başlangıç kurulumu"};
 function activeTab(path: string) {
   if(path === "/week")return "/week";
-  if(areaRoutes.some(route=>path===route||path.startsWith(route+"/")))return "/areas";
+  if(areaRoutes.some(route=>path===route||path.startsWith(route+"/")))return "more";
   if(path==="/reviews"||path==="/insights")return "/progress";
   if(path==="/coach")return "/north-ai";
+  if(moreNavigation.some(route=>path===route.href||path.startsWith(route.href+"/")))return "more";
   return navigation.find(n=>n.href!=="/"&&path.startsWith(n.href))?.href ?? (path==="/" ? "/" : "");
 }
 export function AppFrame({children}:{children:React.ReactNode}) {
@@ -59,8 +67,8 @@ export function AppFrame({children}:{children:React.ReactNode}) {
   </div>;
 }
 function TopNavigation({pathname}:{pathname:string}) {
- return <nav className="north-desktop-tabs" aria-label="Ana navigasyon">{navigation.map(n=><Link key={n.href} href={n.href} className={cn("north-top-tab",activeTab(pathname)===n.href&&"is-active")} aria-current={activeTab(pathname)===n.href?"page":undefined}>{n.label}</Link>)}</nav>;
+ return <nav className="north-desktop-tabs" aria-label="Ana navigasyon">{navigation.map(n=><Link key={n.href} href={n.href} className={cn("north-top-tab",activeTab(pathname)===n.href&&"is-active")} aria-current={activeTab(pathname)===n.href?"page":undefined}>{n.label}</Link>)}<DropdownMenu><DropdownMenuTrigger className={cn("north-top-tab north-more-trigger",activeTab(pathname)==="more"&&"is-active")} aria-label="Diğer sayfalar">Diğer <ChevronDown size={14}/></DropdownMenuTrigger><DropdownMenuContent align="start">{moreNavigation.map(item=><DropdownMenuItem key={item.href} asChild><Link href={item.href}><item.icon size={15}/>{item.label}</Link></DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu></nav>;
 }
 function MobileNavigation({pathname}:{pathname:string}) {
- return <nav className="north-mobile-tabs safe-bottom" aria-label="Mobil navigasyon">{navigation.map(n=><Link key={n.href} href={n.href} className={cn(activeTab(pathname)===n.href&&"is-active")} aria-current={activeTab(pathname)===n.href?"page":undefined}><n.icon size={19}/><span>{n.href==="/north-ai"?"AI":n.label}</span></Link>)}</nav>;
+ return <nav className="north-mobile-tabs safe-bottom" aria-label="Mobil navigasyon">{navigation.map(n=><Link key={n.href} href={n.href} className={cn(activeTab(pathname)===n.href&&"is-active")} aria-current={activeTab(pathname)===n.href?"page":undefined}><n.icon size={19}/><span>{n.href==="/north-ai"?"AI":n.label}</span></Link>)}<Link href="/profile" className={cn(activeTab(pathname)==="more"&&"is-active")} aria-label="Diğer ve ayarlar"><MoreHorizontal size={19}/><span>Diğer</span></Link></nav>;
 }

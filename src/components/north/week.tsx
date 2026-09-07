@@ -16,8 +16,11 @@ export function NorthWeek() {
   const pending = state.tasks.filter(task => task.week === week && !["done", "cancelled"].includes(task.status));
   const planned = pending.reduce((total, task) => total + task.minutes, 0);
   const primaryArea = activeAreas.toSorted((a, b) => b.priority - a.priority)[0];
-  const monthlyGoal = workspace.coaching.milestones.find(milestone => milestone.status === "active")?.title ?? workspace.profile.goal ?? "Aylık yönünü belirle";
+  const yearGoal = workspace.profile.goal || "Yıl sonu yönünü belirle";
+  const quarterGoal = workspace.coaching.milestones.find(milestone => milestone.horizonDays === 90 && milestone.status !== "completed")?.title ?? "90 günlük ara hedef belirle";
+  const monthlyGoal = workspace.coaching.milestones.find(milestone => milestone.horizonDays === 30 && milestone.status !== "completed")?.title ?? "Aylık yönünü belirle";
   const weeklyGoal = primaryArea?.goal || "Bu haftanın sonucunu belirle";
+  const isSunday = new Date(`${dayKey()}T12:00:00`).getDay() === 0;
   const deadlines = [
     ...state.tasks.filter(task => task.deadline && task.deadline >= week && task.deadline <= shiftDay(week, 6) && !["done", "cancelled"].includes(task.status)).map(task => ({ id: `task-${task.id}`, date: task.deadline, title: task.title, areaId: task.areaId })),
     ...state.events.filter(event => event.kind === "deadline" && event.date >= week && event.date <= shiftDay(week, 6)).map(event => ({ id: `event-${event.id}`, date: event.date, title: event.title, areaId: event.areaId })),
@@ -30,15 +33,17 @@ export function NorthWeek() {
   };
 
   return <div className="page-content space-y-8">
-    <Heading title="Plan" description="Bu hafta neyi başarmaya çalışıyorum?"><Button disabled={!activeAreas.length} onClick={addTask}>Görev ekle</Button></Heading>
+    <Heading title="Plan" description="Nereye gittiğini ve bu hafta atacağın adımı tek bir çizgide gör."><Button disabled={!activeAreas.length} onClick={addTask}>Görev ekle</Button></Heading>
+
+    {isSunday && <section className="north-sunday-ritual"><div><p>PAZAR RİTÜELİ</p><h2>Önce haftayı kapat, sonra yenisini aç.</h2><span>North tamamlananları, zorlanan noktaları ve yardım kaynaklarını değerlendirmeye hazır.</span></div><Button asChild><Link href="/reviews">Haftayı değerlendir</Link></Button></section>}
 
     <section className="surface p-5 sm:p-6">
-      <div className="grid gap-5 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
-        <PlanStep label="Aylık yön" value={monthlyGoal} href="/areas" />
-        <span className="hidden text-muted-foreground md:block">→</span>
-        <PlanStep label="Bu haftanın sonucu" value={weeklyGoal} href={primaryArea ? `/areas/${primaryArea.id}` : "/areas"} />
-        <span className="hidden text-muted-foreground md:block">→</span>
-        <PlanStep label="Uygulama" value={pending[0]?.title ?? "İlk görevi ekle"} href={pending[0] ? `/focus/${pending[0].id}` : undefined} />
+      <div className="north-plan-hierarchy">
+        <PlanStep label="Yıl" value={yearGoal} href="/profile" />
+        <PlanStep label="90 gün" value={quarterGoal} href="/profile" />
+        <PlanStep label="Ay" value={monthlyGoal} href="/profile" />
+        <PlanStep label="Bu hafta" value={weeklyGoal} href={primaryArea ? `/areas/${primaryArea.id}` : "/areas"} />
+        <PlanStep label="Şimdi" value={pending[0]?.title ?? "İlk görevi ekle"} href={pending[0] ? `/focus/${pending[0].id}` : undefined} />
       </div>
     </section>
 

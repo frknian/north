@@ -2,6 +2,7 @@ import type { WorkspaceState } from "./types";
 
 export type AreaKind = "math" | "cyber" | "reading" | "chess" | "projects" | "custom";
 export type NorthTaskStatus = "pending" | "done" | "partial" | "skipped" | "cancelled";
+export type SupportSource = "ai" | "documentation" | "video" | "course" | "friend" | "forum" | "walkthrough" | "none" | "other";
 export interface Area {
   id: string; name: string; kind: AreaKind; icon: string; goal: string; priority: number;
   weeklyMinutes: number; minimumMinutes: number; archived: boolean; metric: string;
@@ -26,6 +27,11 @@ export interface NorthActivity {
   plannedMinutes?: number; actualStart?: string; plannedStart?: string;
   energy?: "low" | "normal" | "high"; pauseCount?: number; earlyExit?: boolean;
   completionPercent?: number; taskType?: NorthTask["taskType"];
+  supportSources?: SupportSource[];
+}
+export interface NorthDailyAdaptation {
+  date: string; taskId?: string; originalMinutes?: number; recommendedMinutes?: number;
+  message: string;
 }
 export interface NorthEvent { id: string; areaId: string; title: string; date: string; time: string; kind: "exam" | "deadline" | "block"; minutes: number }
 export interface NorthState {
@@ -35,6 +41,7 @@ export interface NorthState {
   weeklyHours: number; mode: string; customMode: string;
   protection: { areaId: string; date: string; kind: "rest" | "freeze" }[];
   intelligence?: NorthIntelligenceState;
+  dailyAdaptation?: NorthDailyAdaptation;
 }
 export type PatternStatus = "insufficient" | "emerging" | "reliable" | "strong";
 export type PatternConfidence = "low" | "medium" | "high";
@@ -115,6 +122,21 @@ export function dailySelection(state: NorthState, today=dayKey()) {
     if(state.protection.some(p=>p.areaId===t.areaId&&p.date===today)||t.minutes>remaining)return false;
     remaining-=t.minutes;return true;
   });
+}
+export function suggestDailyAdaptation(state: NorthState, activity: NorthActivity): NorthDailyAdaptation | undefined {
+  if (activity.outcome === "done" && activity.difficulty !== "Zor") return undefined;
+  const next = dailySelection({ ...state, activities: [...state.activities, activity], tasks: state.tasks.map(task => task.id === activity.taskId ? { ...task, status: activity.outcome } : task) }, activity.date)[0];
+  if (!next) return { date: activity.date, message: "Bugünün kalanında yeni zorunlu görev eklemedim. İstersen planını burada bırakabilirsin." };
+  const shouldReduce = activity.outcome !== "done" || activity.difficulty === "Zor";
+  if (!shouldReduce || next.minutes <= 25) return { date: activity.date, taskId: next.id, message: "Geri bildirimin kaydedildi. Sıradaki görev aynı kaldı; başlamadan önce süresini değiştirebilirsin." };
+  const recommendedMinutes = Math.max(25, Math.min(next.minutes - 10, 35));
+  return {
+    date: activity.date,
+    taskId: next.id,
+    originalMinutes: next.minutes,
+    recommendedMinutes,
+    message: `Bu oturum zorlayıcı geçti. Sıradaki yoğun görevi ${next.minutes} dakikadan ${recommendedMinutes} dakikaya indirmeyi öneriyorum.`,
+  };
 }
 export function areaStreak(state: NorthState, area: Area, today=dayKey()) {
   let cursor=today, streak=0;

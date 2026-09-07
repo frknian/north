@@ -1,54 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { allocation, dailySelection, dayKey, isAreaActive, missedAdvice, shiftDay, weekKey } from "@/lib/north";
-import { useNorth, TaskRow, fieldClass } from "./shared";
+import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { dailySelection, dayKey } from "@/lib/north";
+import { useNorth, Companion } from "./shared";
 import { Button } from "@/components/ui/button";
-import { DailyCheckinCard } from "@/components/features/daily-checkin-card";
 
 export function NorthToday() {
-  const { state, update, ready, workspace } = useNorth();
+  const { state, update, ready } = useNorth();
   const today = dayKey();
-  const selected = dailySelection(state, today).slice(0, 4);
-  const activeAreas = state.areas.filter(isAreaActive);
-  const completed = state.activities.filter(activity => activity.date === today && activity.outcome === "done");
-  const missed = state.tasks.filter(task => ((task.date && task.date < today) || task.status === "skipped") && !["done", "cancelled"].includes(task.status));
-  const checkedIn = workspace.coaching.checkins.some(item => item.date === today);
-  const weekend = [0, 6].includes(new Date(today + "T12:00:00").getDay());
-  const primaryArea = state.areas.find(area => area.id === selected[0]?.areaId);
-  const secondaryArea = state.areas.find(area => area.id === selected[1]?.areaId);
-  const maintenance = activeAreas.filter(area => area.priority === 0).map(area => area.name).slice(0, 2);
-  const direction = selected[0]
-    ? `Bugün ana yönün ${primaryArea?.name ?? "öncelikli hedefin"}. ${secondaryArea ? `${secondaryArea.name} ikinci sırada.` : "Tek bir güçlü adım yeterli."}${maintenance.length ? ` ${maintenance.join(" ve ")} bakım seviyesinde.` : ""}`
-    : "Bugün için zorunlu bir plan yok. Bir sonraki anlamlı adımı seçebilir veya bilinçli biçimde dinlenebilirsin.";
-  const plannedMinutes = selected.reduce((total, task) => total + task.minutes, 0);
+  const sequence = dailySelection(state, today);
+  const current = sequence[0];
+  const next = sequence.slice(1, 3);
+  const currentArea = state.areas.find(area => area.id === current?.areaId);
+  const completed = new Set(state.activities.filter(activity => activity.date === today && activity.outcome === "done").map(activity => activity.taskId)).size;
+  const plannedMinutes = sequence.reduce((total, task) => total + task.minutes, 0);
+  const adaptation = state.dailyAdaptation?.date === today ? state.dailyAdaptation : undefined;
+  const dateLabel = new Date(`${today}T12:00:00`).toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+  const direction = currentArea
+    ? `Bugünün ana önceliği ${currentArea.name}. ${next[0] ? `${state.areas.find(area => area.id === next[0].areaId)?.name ?? "Sonraki görev"} ikinci sırada.` : "Tek bir anlamlı adım yeterli."}`
+    : "North, sıradaki anlamlı adımını bulmaya hazır.";
 
-  if (!ready) return <div className="page-content" aria-busy="true">Çalışma alanın hazırlanıyor…</div>;
+  if (!ready) return <div className="page-content" aria-busy="true">North hazırlanıyor…</div>;
 
-  return <div className="page-content north-today">
-    <header className="north-page-header">
-      <div><p className="north-eyebrow">{new Date(today + "T12:00:00").toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" })}</p><h1>Bugün</h1></div>
-      <select aria-label="Bugünkü enerji" className={fieldClass + " max-w-44"} value={state.energy.date === today ? state.energy.level : "normal"} onChange={event => update(current => ({ ...current, energy: { date: today, level: event.target.value as typeof current.energy.level } }))}><option value="low">Düşük enerji</option><option value="normal">Normal enerji</option><option value="high">Yüksek enerji</option></select>
+  return <div className="page-content north-today-v2">
+    <header className="north-today-header">
+      <div><p className="north-eyebrow">{dateLabel}</p><h1>Bugün ne yapacaksın?</h1><p>{direction}</p></div>
+      <Companion state={state}/>
     </header>
 
-    <section className="rounded-2xl border border-border/70 bg-card/35 px-5 py-5"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Bugünün yönü</p><p className="mt-3 max-w-3xl leading-7">{direction}</p></section>
+    {adaptation && <section className="north-adaptation" aria-live="polite">
+      <Sparkles size={17}/><div><p>North gününü yeniden okudu</p><span>{adaptation.message}</span></div>
+      <div className="north-adaptation-actions">
+        {adaptation.taskId && adaptation.recommendedMinutes && <Button size="sm" onClick={() => update(currentState => ({ ...currentState, tasks: currentState.tasks.map(task => task.id === adaptation.taskId ? { ...task, minutes: adaptation.recommendedMinutes! } : task), dailyAdaptation: undefined }))}>Öneriyi uygula</Button>}
+        <Button size="sm" variant="ghost" onClick={() => update(currentState => ({ ...currentState, dailyAdaptation: undefined }))}>Planı koru</Button>
+      </div>
+    </section>}
 
-    {selected[0] ? <section><div className="north-section-heading"><h2>Ana görev</h2><Link href="/week">Planı düzenle ↗</Link></div><TaskRow task={selected[0]} primary /></section> : <section className="north-focus-card"><h2>Yönünü sen belirle.</h2><p className="mt-3 text-sm text-muted-foreground">Hedefinden küçük bir görev seç veya bugün dinlenme alanı bırak.</p><Button asChild className="mt-6"><Link href={activeAreas.some(area => area.goal) ? "/week" : "/areas"}>Bir sonraki adımı seç</Link></Button></section>}
-    {selected[1] && <section><div className="north-section-heading"><h2>İkinci görev</h2></div><TaskRow task={selected[1]} /></section>}
-    {selected.length > 2 && <section className="north-later"><div className="north-section-heading"><h2>Hafif işler</h2><span>Vaktin kalırsa</span></div>{selected.slice(2).map(task => <TaskRow key={task.id} task={task} />)}</section>}
+    {current ? <section className="north-now-card">
+      <div className="north-now-label"><span>ŞİMDİ</span><span>{currentArea?.icon} {currentArea?.name}</span></div>
+      <div className="north-now-content"><div><h2>{current.title}</h2><p className="north-now-goal">{current.goal}</p><p className="north-now-reason">{current.why || "Bu görev, haftalık yönündeki en etkili sonraki adım."}</p></div><div className="north-now-time"><strong>{current.minutes}</strong><span>dakika</span></div></div>
+      <div className="north-now-actions"><Button asChild size="lg"><Link href={`/focus/${current.id}`}><Play size={17}/>Odaklanmaya başla</Link></Button><details><summary>Neden bu görev?</summary><p>{current.why || "Hedefin, bu haftaki planın ve tamamlanmamış işlerin dikkate alınarak seçildi."}</p></details></div>
+    </section> : <section className="north-empty-state"><p>ŞİMDİ</p><h2>Bugün için net bir sonraki adım yok.</h2><span>Bir hedef ekle veya North’tan haftanı planlamasını iste.</span><div><Button asChild><Link href="/week">Planı aç</Link></Button><Button asChild variant="ghost"><Link href="/north-ai">North AI ile konuş</Link></Button></div></section>}
 
-    <footer className="north-today-summary"><span>{selected.length} görev · {plannedMinutes} dk planlandı</span><span>{new Set(completed.map(activity => activity.taskId)).size} tamamlandı</span><Link href="/progress">İlerleme ↗</Link></footer>
+    {next.length > 0 && <section className="north-next-section"><div className="north-next-heading"><div><p>SONRAKİ</p><h2>Sıra sende değil, planında.</h2></div><Link href="/week">Planı düzenle <ArrowRight size={15}/></Link></div><div className="north-next-list">{next.map((task, index) => { const area = state.areas.find(item => item.id === task.areaId); return <article key={task.id}><span>{String(index + 2).padStart(2, "0")}</span><div><p>{area?.name}</p><h3>{task.title}</h3></div><time>{task.minutes} dk</time></article>; })}</div></section>}
 
-    {activeAreas.length > 0 && <section className="surface p-5"><div className="north-section-heading"><h2>Bu haftanın dengesi</h2><Link href="/week">Dağılımı düzenle ↗</Link></div><div className="mt-4 space-y-4">{activeAreas.slice(0, 6).map(area => {
-      const target = allocation(state, area);
-      const actual = state.activities.filter(activity => activity.areaId === area.id && activity.date >= weekKey() && activity.outcome === "done").reduce((total, activity) => total + activity.minutes, 0);
-      const percent = target ? Math.min(100, Math.round(actual / target * 100)) : 0;
-      return <div key={area.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 text-sm"><Link href={`/areas/${area.id}`} className="truncate">{area.icon} {area.name}</Link><span className="text-xs text-muted-foreground">{actual} / {target} dk</span><div className="col-span-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${percent}%`, background: area.accent ?? "var(--primary)" }} /></div></div>;
-    })}</div></section>}
-
-    {(workspace.coaching.preferences.dailyReminderEnabled || checkedIn) && <details className="north-disclosure"><summary>{checkedIn ? "Bugünkü check-in kaydedildi · düzenle" : "Günlük check-in’i tamamla"}</summary><div className="mt-4"><DailyCheckinCard /></div></details>}
-    {weekend && workspace.coaching.preferences.weeklyReviewReminderEnabled && <details className="north-disclosure"><summary>Haftayı değerlendir</summary><p className="mt-3 text-sm text-muted-foreground">Tamamlananları, ertelenenleri ve gerçek çalışma kanıtlarını birlikte incele.</p><Link href="/reviews" className="mt-3 inline-block text-sm text-primary">Değerlendirmeyi aç →</Link></details>}
-    {missed.length > 0 && <details className="north-disclosure"><summary>Yeniden değerlendirilecekler · {missed.length}</summary><div className="mt-3">{missed.map(task => { const advice = missedAdvice(task); return <div key={task.id} className="border-t py-4"><p className="text-sm">{task.title}</p><p className="my-2 text-xs text-muted-foreground">{advice.why}</p><Button size="sm" variant="outline" onClick={() => update(current => ({ ...current, tasks: current.tasks.map(item => item.id === task.id ? { ...item, status: advice.action === "cancel" ? "cancelled" : "pending", date: "", week: weekKey(), minutes: advice.action === "reduce" ? Math.ceil(item.minutes / 2) : item.minutes, why: advice.why } : item) }))}>{advice.label}</Button><Button asChild size="sm" variant="ghost"><Link href="/week">Başka seçenek</Link></Button></div>; })}</div></details>}
-    {state.events.some(event => event.date >= today && event.date <= shiftDay(today, 7)) && <details className="north-disclosure"><summary>Yaklaşan tarihler</summary>{state.events.filter(event => event.date >= today && event.date <= shiftDay(today, 7)).slice(0, 3).map(event => <Link key={event.id} className="mt-3 block text-sm text-muted-foreground" href="/calendar">{event.date === today ? "Bugün" : event.date} · {event.time} {event.title} →</Link>)}</details>}
+    <footer className="north-today-footer"><span><b>{completed}</b> / {Math.max(completed + sequence.length, 1)} tamamlandı</span><span><b>{plannedMinutes}</b> dk sırada</span><Link href="/progress">Gerçek ilerlemeyi gör <ArrowRight size={14}/></Link></footer>
   </div>;
 }
