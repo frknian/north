@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   BookOpen,
+  Bot,
   Brain,
   Camera,
   Check,
@@ -21,6 +22,7 @@ import {
   Maximize2,
   Pause,
   Play,
+  Plus,
   RotateCcw,
   Shield,
   ShieldAlert,
@@ -28,9 +30,11 @@ import {
   Sparkles,
   Square,
   Terminal,
+  Trash2,
   Volume2,
   VolumeX,
   X,
+  Zap,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
@@ -43,10 +47,9 @@ import { Companion } from "./shared";
 import { getTaskGuidance } from "@/lib/task-guidance";
 import { ambientSound } from "@/lib/ambient-sound";
 import { PipTimerController } from "@/lib/pip-timer";
-import { BrainDumpModal } from "./brain-dump";
 import { BreathworkModal } from "./breathwork-modal";
+import { NorthAI } from "./ai";
 import { toast } from "sonner";
-import { NorthChatPopover } from "./north-chat-popover";
 
 type Timer = {
   id: string;
@@ -56,6 +59,15 @@ type Timer = {
   running: boolean;
   pauses?: number;
 };
+
+interface BrainDumpItem {
+  id: string;
+  text: string;
+  createdAt: string;
+  done?: boolean;
+}
+
+const BRAIN_DUMP_KEY = "north:brain_dump_items";
 
 export function NorthFocus({ id }: { id: string }) {
   const { state, update, ready, workspace } = useNorth();
@@ -74,7 +86,6 @@ export function NorthFocus({ id }: { id: string }) {
   const [difficulty, setDifficulty] = useState("Tam kararında");
   const [reflection, setReflection] = useState("");
   const [saved, setSaved] = useState(false);
-  const [coachOpen, setCoachOpen] = useState(false);
   const [supportSources, setSupportSources] = useState<SupportSource[]>(["none"]);
 
   // Iron Will Mode & Tab Switch Tracking
@@ -85,8 +96,11 @@ export function NorthFocus({ id }: { id: string }) {
   const [tabSwitches, setTabSwitches] = useState<number>(0);
 
   // Live Scratchpad (Canlı Çalışma Notları / Karalama Defteri)
-  const [scratchpadOpen, setScratchpadOpen] = useState(false);
   const [scratchpadText, setScratchpadText] = useState("");
+
+  // Inline Brain Dump
+  const [brainDumpItems, setBrainDumpItems] = useState<BrainDumpItem[]>([]);
+  const [brainDumpInput, setBrainDumpInput] = useState("");
 
   // Proof of Work / Early Exit Gate States
   const [proofGateOpen, setProofGateOpen] = useState(false);
@@ -106,10 +120,9 @@ export function NorthFocus({ id }: { id: string }) {
   const [abandonCountdown, setAbandonCountdown] = useState<number>(8);
   const [abandonTimerActive, setAbandonTimerActive] = useState(false);
 
-  // Phase 1 Tools: Ambient Sound, PiP Floating Timer, Brain Dump, Breathwork & Photo Proof
+  // Ambient Sound, PiP Floating Timer, Breathwork & Photo Proof
   const pipControllerRef = useRef<PipTimerController | null>(null);
   const [pipActive, setPipActive] = useState(false);
-  const [brainDumpOpen, setBrainDumpOpen] = useState(false);
   const [breathworkOpen, setBreathworkOpen] = useState(false);
   const [activeSound, setActiveSound] = useState<"none" | "rain" | "noise" | "cafe" | "drone">("none");
   const [photoProof, setPhotoProof] = useState<string | null>(null);
@@ -134,7 +147,7 @@ export function NorthFocus({ id }: { id: string }) {
     }
   }
 
-  // Hydration & timer recovery
+  // Hydration & recovery
   useEffect(() => {
     const hydration = setTimeout(() => {
       const key = `north:focus:${id}`;
@@ -159,6 +172,12 @@ export function NorthFocus({ id }: { id: string }) {
           setScratchpadText(storedNotes);
         }
       } catch {}
+      try {
+        const storedDumps = localStorage.getItem(BRAIN_DUMP_KEY);
+        if (storedDumps) {
+          setBrainDumpItems(JSON.parse(storedDumps));
+        }
+      } catch {}
     }, 0);
     const tick = setInterval(() => setNow(Date.now()), 250);
     return () => {
@@ -167,7 +186,7 @@ export function NorthFocus({ id }: { id: string }) {
     };
   }, [id]);
 
-  // Tab switches detection (Sekme değiştirme takibi)
+  // Tab switches detection (Sekme takibi)
   useEffect(() => {
     if (!timer?.running) return;
     const handleVisibility = () => {
@@ -248,17 +267,16 @@ export function NorthFocus({ id }: { id: string }) {
 
   function handleTriggerFinish() {
     handlePause();
-    // If timer completed the full duration, proceed directly to feedback!
+    // If timer reached 0, finish directly
     if (remainingSeconds === 0) {
       setOutcome("done");
       setFinishing(true);
       return;
     }
-    // If scratchpad has substantial content (>= 30 chars), pre-fill text proof!
-    if (scratchpadText.trim().length >= 30 && !proofText) {
+    // If scratchpad has text, pre-fill proof
+    if (scratchpadText.trim().length >= 25 && !proofText) {
       setProofText(scratchpadText.trim());
     }
-    // Early exit triggered -> Open Proof of Work Gate!
     setProofGateOpen(true);
   }
 
@@ -269,12 +287,11 @@ export function NorthFocus({ id }: { id: string }) {
     setVerifiedProof({ type, content });
     setProofGateOpen(false);
     setFinishing(true);
-    setOutcome("done"); // Validated through proof!
+    setOutcome("done");
     toast.success("Çalışma kanıtı başarıyla doğrulandı!");
   }
 
   function handleForfeitAbandon() {
-    // Abandon session without fake minutes
     setProofGateOpen(false);
     sessionStorage.removeItem(`north:focus:${id}`);
     sessionStorage.removeItem(`north:focus:notes:${id}`);
@@ -282,14 +299,13 @@ export function NorthFocus({ id }: { id: string }) {
     sessionStorage.removeItem(`north:focus:iron:${id}`);
     void browserCompanion.stop();
 
-    // Log zeroed / abandoned activity so stats remain 100% honest
     if (timer && area) {
       const activity: NorthActivity = {
         id: timer.id,
         taskId: id,
         areaId: area.id,
         date: dayKey(),
-        minutes: 0, // No fake minutes recorded!
+        minutes: 0,
         outcome: "skipped",
         difficulty: "Zorlayıcı",
         reflection: "Oturum erken terk edildi (kanıtsız vazgeçiş). Sahte süre eklenmedi.",
@@ -310,7 +326,7 @@ export function NorthFocus({ id }: { id: string }) {
       }));
     }
 
-    toast.info("Oturum iptal edildi. Sahte odak süresi yazılmadı; zihnini toparla ve hazır olduğunda tekrar dene.");
+    toast.info("Oturum iptal edildi. Sahte odak süresi yazılmadı.");
     router.push("/");
   }
 
@@ -331,15 +347,49 @@ export function NorthFocus({ id }: { id: string }) {
     setIronWill(next);
     sessionStorage.setItem(`north:focus:iron:${id}`, String(next));
     if (next) {
-      toast.success("Demir İrade Modu Devrede: Sekme değişimleri izlenir ve erken çıkışta somut kanıt zorunludur!");
+      toast.success("Demir İrade Modu Devrede: Sekme değişimleri izlenir ve erken çıkışta somut kanıt şarttır!");
     } else {
       toast.info("Standart Odak Moduna geçildi.");
     }
   };
 
+  // Inline Brain Dump Actions
+  const handleAddBrainDump = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!brainDumpInput.trim()) return;
+    const item: BrainDumpItem = {
+      id: crypto.randomUUID(),
+      text: brainDumpInput.trim(),
+      createdAt: new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }),
+    };
+    const next = [item, ...brainDumpItems];
+    setBrainDumpItems(next);
+    try {
+      localStorage.setItem(BRAIN_DUMP_KEY, JSON.stringify(next));
+    } catch {}
+    setBrainDumpInput("");
+    toast.success("Düşünce zihinden döküldü.");
+  };
+
+  const handleDeleteBrainDump = (dumpId: string) => {
+    const next = brainDumpItems.filter((i) => i.id !== dumpId);
+    setBrainDumpItems(next);
+    try {
+      localStorage.setItem(BRAIN_DUMP_KEY, JSON.stringify(next));
+    } catch {}
+  };
+
+  const handleToggleBrainDumpDone = (dumpId: string) => {
+    const next = brainDumpItems.map((i) => (i.id === dumpId ? { ...i, done: !i.done } : i));
+    setBrainDumpItems(next);
+    try {
+      localStorage.setItem(BRAIN_DUMP_KEY, JSON.stringify(next));
+    } catch {}
+  };
+
   // Circular timer constants
-  const size = 260;
-  const strokeWidth = 8;
+  const size = 190;
+  const strokeWidth = 7;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
@@ -411,9 +461,9 @@ export function NorthFocus({ id }: { id: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:py-12">
-      {/* TOPBAR NAVIGATION & AREA BADGE & MODE INDICATOR */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-5">
+    <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:py-7 space-y-6">
+      {/* TOP NAVIGATION & AREA META */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -423,7 +473,6 @@ export function NorthFocus({ id }: { id: string }) {
         </Link>
 
         <div className="flex items-center gap-2.5">
-          {/* Iron Will Toggle Badge */}
           <button
             type="button"
             onClick={toggleIronWill}
@@ -433,14 +482,10 @@ export function NorthFocus({ id }: { id: string }) {
                 ? "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400 shadow-xs"
                 : "border-border/60 bg-muted/40 text-muted-foreground hover:text-foreground"
             }`}
-            title={
-              ironWill
-                ? "Demir İrade Modu Aktif: Sekme değişimleri izlenir ve erken çıkışta kanıt şarttır."
-                : "Demir İrade Modunu açmak için tıkla"
-            }
+            title="Demir İrade Modu"
           >
             {ironWill ? <ShieldAlert className="size-3.5 text-red-500" /> : <Shield className="size-3.5" />}
-            <span>{ironWill ? "Demir İrade Modu" : "Standart Mod"}</span>
+            <span>{ironWill ? "Demir İrade Devrede" : "Standart Mod"}</span>
           </button>
 
           <span className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-3 py-1 text-xs font-semibold text-foreground">
@@ -452,432 +497,539 @@ export function NorthFocus({ id }: { id: string }) {
       </div>
 
       {!finishing ? (
-        <div className="mt-8 flex flex-col items-center text-center">
-          {/* TASK TITLE & GOAL */}
-          <div className="max-w-xl space-y-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              {task.title}
-            </h1>
-            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs leading-relaxed text-foreground sm:text-sm">
-              <span className="font-semibold text-primary">Somut Çıktı: </span>
-              {task.goal}
-            </div>
-            {task.resource && task.resource.startsWith("https://") && (
-              <a
-                href={task.resource}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-              >
-                Kaynak dökümanı aç
-                <ExternalLink className="size-3" />
-              </a>
-            )}
-          </div>
-
-          {/* FOCUS COMPANION TOOLS: AMBIENT SOUNDS, PiP, SCRATCHPAD & BRAIN DUMP */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            <div className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-card p-1 text-xs shadow-xs">
-              <span className="px-2 text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                {activeSound === "none" ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5 text-primary" />}
-                Ses:
-              </span>
-              {([
-                ["none", "Kapalı"],
-                ["rain", "🌧️ Yağmur"],
-                ["cafe", "☕ Kafe"],
-                ["noise", "📻 Beyaz"],
-                ["drone", "🧘 432Hz"],
-              ] as const).map(([val, label]) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => handleSoundChange(val)}
-                  className={`rounded-lg px-2 py-1 text-[11px] font-medium transition-colors ${
-                    activeSound === val ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Live Scratchpad Button */}
-            <Button
-              variant={scratchpadOpen ? "secondary" : "outline"}
-              size="sm"
-              className="rounded-xl text-xs h-8"
-              onClick={() => setScratchpadOpen((prev) => !prev)}
-              title="Çalışırken formül, komut, link veya not kaydet"
-            >
-              <FileText className="mr-1.5 size-3.5 text-amber-500" />
-              Canlı Notlar {scratchpadText.trim() ? `(${scratchpadText.trim().split(/\s+/).length} kelime)` : ""}
-            </Button>
-
-            <Button
-              variant={pipActive ? "secondary" : "outline"}
-              size="sm"
-              className="rounded-xl text-xs h-8"
-              onClick={handleTogglePip}
-              title="Diğer uygulamalarda da ekranın üstünde kalan yüzen mini sayaç"
-            >
-              <Maximize2 className="mr-1.5 size-3.5" />
-              {pipActive ? "PiP Kapat" : "Yüzen Sayaç"}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl text-xs h-8"
-              onClick={() => setBrainDumpOpen(true)}
-              title="Çalışırken aklına gelen alakasız düşünceleri kaydet"
-            >
-              <Brain className="mr-1.5 size-3.5 text-sky-500" />
-              Aklındakini Dök
-            </Button>
-          </div>
-
-          {/* EXPANDABLE LIVE SCRATCHPAD DRAWER */}
-          {scratchpadOpen && (
-            <div className="mt-4 w-full max-w-xl rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-left transition-all">
-              <div className="flex items-center justify-between gap-2 border-b border-amber-500/20 pb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="size-4 text-amber-500" />
-                  <span className="text-xs font-semibold text-foreground">Canlı Çalışma Notları &amp; Karalama</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {scratchpadText.trim().length >= 20 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      <Check className="size-3" />
-                      Çıktı Kanıtı Hazır
+        <>
+          {/* =============================================================== */}
+          {/* 1. TOP HERO: ZEN TIMER & TASK COMMAND CENTER (FULL WIDTH)       */}
+          {/* =============================================================== */}
+          <section className="rounded-3xl border bg-card/85 backdrop-blur-md p-6 sm:p-7 shadow-sm">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
+              {/* LEFT: TASK META & SOMUT ÇIKTI */}
+              <div className="flex-1 space-y-3.5 text-center lg:text-left">
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    Odak Görevi
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Planlanan: <strong>{task.minutes} dk</strong>
+                  </span>
+                  {timer?.running && tabSwitches > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                      <AlertTriangle className="size-3" />
+                      {tabSwitches} kez sekme değişti
                     </span>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setScratchpadOpen(false)}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="size-3.5" />
-                  </button>
+                  {timer?.running && tabSwitches === 0 && ironWill && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <ShieldCheck className="size-3" />
+                      Kusursuz Sekme Koruması
+                    </span>
+                  )}
                 </div>
-              </div>
-              <textarea
-                value={scratchpadText}
-                onChange={(e) => setScratchpadText(e.target.value)}
-                placeholder="Çalışırken çözdüğün adımları, aldığın formül veya kod notlarını buraya yazabilirsin. Burada yazdıkların erken çıkışta doğrudan kanıt sayılır..."
-                className="mt-2.5 h-28 w-full resize-none rounded-xl border border-border/80 bg-background/80 p-3 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-amber-500 focus:outline-hidden font-sans"
-              />
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                Notlarınız otomatik olarak tarayıcı oturumunuza kaydedilir.
-              </p>
-            </div>
-          )}
 
-          {/* TAB SWITCH WARNING BADGE (when running) */}
-          {timer?.running && tabSwitches > 0 && (
-            <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs text-amber-600 dark:text-amber-400">
-              <AlertTriangle className="size-3.5" />
-              <span>{tabSwitches} kez başka sekmeye / uygulamaya geçildi</span>
-            </div>
-          )}
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                  {task.title}
+                </h1>
 
-          {/* CIRCULAR ZEN TIMER */}
-          <div className="relative my-8 flex items-center justify-center">
-            <div className={`relative ${timer?.running ? "pulse-zen" : ""}`}>
-              <svg width={size} height={size} className="-rotate-90">
-                <circle
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={radius}
-                  stroke="color-mix(in srgb, var(--border) 70%, transparent)"
-                  strokeWidth={strokeWidth}
-                  fill="none"
-                />
-                <circle
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={radius}
-                  stroke={ironWill ? "rgb(239, 68, 68)" : "var(--primary)"}
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  strokeLinecap="round"
-                  fill="none"
-                  className="transition-all duration-300 ease-out"
-                />
-              </svg>
+                <div className="inline-block rounded-2xl border border-primary/20 bg-primary/5 px-4 py-2 text-xs leading-relaxed text-foreground sm:text-sm">
+                  <span className="font-semibold text-primary">Somut Çıktı: </span>
+                  {task.goal}
+                </div>
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-mono text-5xl font-light tracking-tighter text-foreground sm:text-6xl">
-                  {minutesStr}:{secondsStr}
-                </span>
-                <span className="mt-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                  {ironWill && <ShieldAlert className="size-3 text-red-500" />}
-                  {!timer ? "Başlamaya Hazır" : timer.running ? (ironWill ? "Demir İrade Odak" : "Derin Odak") : "Duraklatıldı"}
-                </span>
-                {timer && (
-                  <span className="mt-1 font-mono text-xs text-muted-foreground/70">
-                    Geçen: {Math.floor(elapsedSeconds / 60)} dk
-                  </span>
+                {task.resource && task.resource.startsWith("https://") && (
+                  <div>
+                    <a
+                      href={task.resource}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                      Kaynak dökümanı yeni sekmede aç
+                      <ExternalLink className="size-3" />
+                    </a>
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* CONTROLS */}
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {!timer ? (
-              <Button size="lg" className="rounded-full px-8 shadow-sm" onClick={handleStart}>
-                <Play className="mr-2 size-4" />
-                Odaklanmayı Başlat
-              </Button>
-            ) : (
-              <>
-                <Button
-                  size="lg"
-                  variant={timer.running ? "outline" : "default"}
-                  className="rounded-full px-6"
-                  onClick={() => (timer.running ? handlePause() : handleResume())}
-                >
-                  {timer.running ? <Pause className="mr-2 size-4" /> : <Play className="mr-2 size-4" />}
-                  {timer.running ? "Duraklat" : "Devam Et"}
-                </Button>
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="rounded-full px-6"
-                  onClick={handleTriggerFinish}
-                >
-                  <Square className="mr-2 size-4" />
-                  Oturumu Bitir
-                </Button>
-              </>
-            )}
+              {/* RIGHT: CIRCULAR ZEN TIMER & CONTROLS */}
+              <div className="flex flex-col sm:flex-row items-center gap-6 shrink-0">
+                {/* CIRCULAR SVG RING */}
+                <div className="relative flex items-center justify-center">
+                  <div className={`relative ${timer?.running ? "pulse-zen" : ""}`}>
+                    <svg width={size} height={size} className="-rotate-90">
+                      <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        stroke="color-mix(in srgb, var(--border) 70%, transparent)"
+                        strokeWidth={strokeWidth}
+                        fill="none"
+                      />
+                      <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        stroke={ironWill ? "rgb(239, 68, 68)" : "var(--primary)"}
+                        strokeWidth={strokeWidth}
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                        fill="none"
+                        className="transition-all duration-300 ease-out"
+                      />
+                    </svg>
 
-            <Button
-              variant="ghost"
-              size="lg"
-              className="rounded-full text-xs font-medium text-muted-foreground hover:text-foreground"
-              onClick={() => setCoachOpen(true)}
-            >
-              <HelpCircle className="mr-1.5 size-4 text-primary" />
-              North Koç&apos;a Danış
-            </Button>
-          </div>
-
-          {/* STEP-BY-STEP GUIDANCE, RESOURCES & COMMANDS */}
-          {guidance && (
-            <div className="mt-10 w-full max-w-xl space-y-6 text-left">
-              {/* SECTION 1: ADIM ADIM YOL HARİTASI */}
-              <div className="rounded-2xl border bg-card p-5 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3.5">
-                  <div className="flex items-center gap-2">
-                    <span className="grid size-6 place-items-center rounded-md bg-primary/10 text-primary">
-                      <ListChecks className="size-4" />
-                    </span>
-                    <h2 className="text-sm font-semibold text-foreground">Bu Oturumda Ne Yapacaksın?</h2>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="font-mono text-4xl font-light tracking-tighter text-foreground sm:text-5xl">
+                        {minutesStr}:{secondsStr}
+                      </span>
+                      <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                        {ironWill && <ShieldAlert className="size-2.5 text-red-500" />}
+                        {!timer
+                          ? "Hazır"
+                          : timer.running
+                          ? ironWill
+                            ? "Demir İrade"
+                            : "Derin Odak"
+                          : "Duraklatıldı"}
+                      </span>
+                      {timer && (
+                        <span className="font-mono text-[11px] text-muted-foreground/70">
+                          Geçen: {Math.floor(elapsedSeconds / 60)} dk
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {guidance.steps.length > 0 && (
-                    <span className="rounded-full bg-muted/60 border border-border/50 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                      {guidance.steps.filter((s) => completedSteps[s.id]).length} / {guidance.steps.length} tamamlandı
-                    </span>
+                </div>
+
+                {/* PRIMARY ACTIONS & TOOLS */}
+                <div className="flex flex-col gap-2.5 w-full sm:w-auto">
+                  {!timer ? (
+                    <Button size="lg" className="rounded-2xl px-7 shadow-sm" onClick={handleStart}>
+                      <Play className="mr-2 size-4" />
+                      Odaklanmayı Başlat
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        size="default"
+                        variant={timer.running ? "outline" : "default"}
+                        className="rounded-2xl px-5"
+                        onClick={() => (timer.running ? handlePause() : handleResume())}
+                      >
+                        {timer.running ? <Pause className="mr-1.5 size-4" /> : <Play className="mr-1.5 size-4" />}
+                        {timer.running ? "Duraklat" : "Devam Et"}
+                      </Button>
+                      <Button
+                        size="default"
+                        variant="secondary"
+                        className="rounded-2xl px-5"
+                        onClick={handleTriggerFinish}
+                      >
+                        <Square className="mr-1.5 size-4" />
+                        Oturumu Bitir
+                      </Button>
+                    </>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant={pipActive ? "secondary" : "outline"}
+                      size="sm"
+                      className="rounded-xl text-xs flex-1"
+                      onClick={handleTogglePip}
+                      title="Yüzen Mini Sayaç"
+                    >
+                      <Maximize2 className="mr-1 size-3" />
+                      {pipActive ? "PiP Kapat" : "Yüzen Sayaç"}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs flex-1"
+                      onClick={() => setBreathworkOpen(true)}
+                      title="2 Dakikalık Nefes ve Göz Molası"
+                    >
+                      <Heart className="mr-1 size-3 text-teal-500" />
+                      Nefes Molası
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* =============================================================== */}
+          {/* 2. MAIN BENTO WORKSPACE: CARDS (LEFT) + DOCKED AI COACH (RIGHT) */}
+          {/* =============================================================== */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            {/* ------------------------------------------------------------- */}
+            {/* LEFT COLUMN: MODULAR BENTO CARDS (7 OR 8 COLS ON DESKTOP)     */}
+            {/* ------------------------------------------------------------- */}
+            <div className="xl:col-span-7 2xl:col-span-8 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. BENTO CARD: NE YAPACAKSIN? (CHECKLIST & STEPS) */}
+                <div className="md:col-span-2 rounded-3xl border bg-card p-5 shadow-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-7 place-items-center rounded-lg bg-primary/10 text-primary">
+                        <ListChecks className="size-4" />
+                      </span>
+                      <div>
+                        <h2 className="text-sm font-semibold text-foreground">Ne Yapacaksın?</h2>
+                        <p className="text-[11px] text-muted-foreground">Bu oturum için somut adımlar</p>
+                      </div>
+                    </div>
+                    {guidance && guidance.steps.length > 0 && (
+                      <span className="rounded-full bg-muted/60 border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        {guidance.steps.filter((s) => completedSteps[s.id]).length} / {guidance.steps.length} tamamlandı
+                      </span>
+                    )}
+                  </div>
+
+                  {guidance ? (
+                    <>
+                      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{guidance.summary}</p>
+
+                      {guidance.steps.length > 0 && (
+                        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted/50">
+                          <div
+                            className="h-full bg-primary transition-all duration-300 rounded-full"
+                            style={{
+                              width: `${
+                                (guidance.steps.filter((s) => completedSteps[s.id]).length / guidance.steps.length) * 100
+                              }%`,
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      <div className="mt-3.5 space-y-2">
+                        {guidance.steps.map((step) => {
+                          const isDone = !!completedSteps[step.id];
+                          return (
+                            <div
+                              key={step.id}
+                              onClick={() => toggleStep(step.id)}
+                              className={`group flex cursor-pointer items-start gap-2.5 rounded-2xl border p-2.5 transition-all ${
+                                isDone
+                                  ? "border-primary/20 bg-primary/5 text-muted-foreground"
+                                  : "border-border/60 bg-background/60 hover:border-primary/40 hover:bg-muted/30"
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                aria-label="Adımı tamamla"
+                                className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded border transition-colors ${
+                                  isDone
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-muted-foreground/40 bg-background"
+                                }`}
+                              >
+                                {isDone && <Check className="size-3 stroke-[3]" />}
+                              </button>
+                              <div className="flex-1 min-w-0 space-y-0.5">
+                                <p
+                                  className={`text-xs font-medium transition-colors ${
+                                    isDone ? "line-through opacity-75 text-foreground" : "text-foreground"
+                                  }`}
+                                >
+                                  {step.title}
+                                </p>
+                                <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
+                                  {step.detail}
+                                </p>
+                                {step.command && (
+                                  <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopy(step.command!);
+                                    }}
+                                    className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-zinc-900 px-2.5 py-0.5 font-mono text-[10px] text-zinc-100 dark:bg-black/60"
+                                  >
+                                    <code>{step.command}</code>
+                                    <span className="text-primary font-sans font-medium">
+                                      {copiedCmd === step.command ? "Kopyalandı ✓" : "Kopyala"}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="mt-4 text-xs text-muted-foreground italic">Bu görev için rehber adımı bulunmuyor.</p>
                   )}
                 </div>
 
-                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{guidance.summary}</p>
-
-                {/* Progress bar */}
-                {guidance.steps.length > 0 && (
-                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted/40 border border-border/40">
-                    <div
-                      className="h-full bg-primary transition-all duration-300 rounded-full"
-                      style={{
-                        width: `${
-                          (guidance.steps.filter((s) => completedSteps[s.id]).length / guidance.steps.length) * 100
-                        }%`,
-                      }}
+                {/* 2. BENTO CARD: CANLI ÇALIŞMA NOTLARI & KANIT ÇIKTISI */}
+                <div className="rounded-3xl border bg-card p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="grid size-7 place-items-center rounded-lg bg-amber-500/10 text-amber-500">
+                          <FileText className="size-4" />
+                        </span>
+                        <div>
+                          <h2 className="text-sm font-semibold text-foreground">Canlı Notlar &amp; Çıktı</h2>
+                          <p className="text-[11px] text-muted-foreground">Formül, kod veya çıkarımlar</p>
+                        </div>
+                      </div>
+                      {scratchpadText.trim().length >= 20 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          <Check className="size-3" />
+                          Kanıt Hazır
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      value={scratchpadText}
+                      onChange={(e) => setScratchpadText(e.target.value)}
+                      placeholder="Çalışırken çözdüğün adımları veya notları buraya yaz. Burada aldığın notlar erken çıkışta doğrudan kanıt sayılır..."
+                      className="mt-3 h-32 w-full resize-none rounded-2xl border border-border bg-background/70 p-3 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-amber-500 focus:outline-hidden"
                     />
                   </div>
-                )}
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>Otomatik kaydedilir</span>
+                    <span>{scratchpadText.trim().length} karakter</span>
+                  </div>
+                </div>
 
-                {/* Steps checklist */}
-                <div className="mt-4 space-y-2.5">
-                  {guidance.steps.map((step) => {
-                    const isDone = !!completedSteps[step.id];
-                    return (
-                      <div
-                        key={step.id}
-                        onClick={() => toggleStep(step.id)}
-                        className={`group flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all ${
-                          isDone
-                            ? "border-primary/30 bg-primary/5 text-muted-foreground"
-                            : "border-border/60 bg-background/60 hover:border-primary/40 hover:bg-muted/30"
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          aria-label={isDone ? "Adımı tamamlanmadı olarak işaretle" : "Adımı tamamla"}
-                          className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded border transition-colors ${
-                            isDone
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-muted-foreground/40 bg-background"
-                          }`}
-                        >
-                          {isDone && <Check className="size-3 stroke-[3]" />}
-                        </button>
-                        <div className="flex-1 space-y-1">
-                          <p
-                            className={`text-xs font-medium transition-colors ${
-                              isDone ? "line-through opacity-75 text-foreground" : "text-foreground"
+                {/* 3. BENTO CARD: AKLINDAKİNİ DÖK (BRAIN DUMP LIST) */}
+                <div className="rounded-3xl border bg-card p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="grid size-7 place-items-center rounded-lg bg-sky-500/10 text-sky-500">
+                          <Brain className="size-4" />
+                        </span>
+                        <div>
+                          <h2 className="text-sm font-semibold text-foreground">Aklındakini Dök</h2>
+                          <p className="text-[11px] text-muted-foreground">Aklına takılanları yaz, zihnini boşalt</p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground font-mono">
+                        {brainDumpItems.length} madde
+                      </span>
+                    </div>
+
+                    {/* DUMP INPUT FORM */}
+                    <form onSubmit={handleAddBrainDump} className="mt-3 flex gap-2">
+                      <input
+                        type="text"
+                        value={brainDumpInput}
+                        onChange={(e) => setBrainDumpInput(e.target.value)}
+                        placeholder="Aklını dağıtan düşünceyi yaz..."
+                        className="flex-1 rounded-xl border border-border bg-background/80 px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-sky-500 focus:outline-hidden"
+                      />
+                      <Button type="submit" size="sm" variant="secondary" className="rounded-xl px-3 text-xs shrink-0">
+                        <Plus className="size-3.5" />
+                        Ekle
+                      </Button>
+                    </form>
+
+                    {/* DUMP ITEMS LIST */}
+                    <div className="mt-2.5 max-h-24 overflow-y-auto space-y-1.5 pr-1">
+                      {brainDumpItems.length === 0 ? (
+                        <p className="py-3 text-center text-[11px] text-muted-foreground italic">
+                          Zihnin berrak. Dağıtıcı bir fikir gelirse buraya yazabilirsin.
+                        </p>
+                      ) : (
+                        brainDumpItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className={`flex items-center justify-between gap-2 rounded-xl border px-2.5 py-1 text-xs transition-colors ${
+                              item.done
+                                ? "bg-muted/30 border-border/40 text-muted-foreground line-through"
+                                : "bg-background/80 border-border"
                             }`}
                           >
-                            {step.title}
-                          </p>
-                          <p className="text-[11px] leading-relaxed text-muted-foreground">{step.detail}</p>
-                          {step.command && (
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopy(step.command!);
-                              }}
-                              className="mt-2.5 inline-flex items-center gap-2 rounded-lg border border-border/70 bg-zinc-900 px-3 py-1 font-mono text-[11px] text-zinc-100 transition-colors hover:border-primary/60 hover:bg-zinc-800 dark:bg-black/60"
-                              title="Tıkla ve kopyala"
+                            <span
+                              onClick={() => handleToggleBrainDumpDone(item.id)}
+                              className="cursor-pointer truncate flex-1 text-[11px]"
                             >
-                              <code className="text-zinc-200">{step.command}</code>
-                              <span className="text-[10px] font-sans font-medium text-primary">
-                                {copiedCmd === step.command ? "Kopyalandı ✓" : "Kopyala"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                              {item.text}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBrainDump(item.id)}
+                              className="text-muted-foreground hover:text-red-500"
+                              title="Sil"
+                            >
+                              <Trash2 className="size-3" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-2 text-right">
+                    {brainDumpItems.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBrainDumpItems([]);
+                          try {
+                            localStorage.setItem(BRAIN_DUMP_KEY, JSON.stringify([]));
+                          } catch {}
+                        }}
+                        className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                      >
+                        Hepsini Temizle
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* SECTION 2: HIZLI KOMUTLAR & İPUÇLARI */}
-              {guidance.commands.length > 0 && (
-                <div className="rounded-2xl border bg-card p-5 shadow-sm">
-                  <div className="flex items-center gap-2 border-b pb-3.5">
-                    <span className="grid size-6 place-items-center rounded-md bg-primary/10 text-primary">
-                      <Terminal className="size-4" />
-                    </span>
-                    <h2 className="text-sm font-semibold text-foreground">Hızlı Komutlar &amp; Nasıl Yapılır?</h2>
+                {/* 4. BENTO CARD: SES MİKSERİ (AMBIENT SOUNDS) */}
+                <div className="rounded-3xl border bg-card p-5 shadow-xs">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-7 place-items-center rounded-lg bg-teal-500/10 text-teal-500">
+                        {activeSound === "none" ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                      </span>
+                      <div>
+                        <h2 className="text-sm font-semibold text-foreground">Ses Mikseri</h2>
+                        <p className="text-[11px] text-muted-foreground">Ortam sesiyle akışa gir</p>
+                      </div>
+                    </div>
+                    {activeSound !== "none" && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 dark:text-teal-400">
+                        <span className="size-1.5 rounded-full bg-teal-500 animate-pulse" />
+                        Çalıyor
+                      </span>
+                    )}
                   </div>
 
-                  <div className="mt-3.5 space-y-2.5">
-                    {guidance.commands.map((cmdTip, idx) => (
-                      <div key={idx} className="rounded-xl border bg-background/80 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold text-foreground">{cmdTip.title}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="xs"
-                            onClick={() => handleCopy(cmdTip.command)}
-                            className="h-6 gap-1 px-2 text-[10px] text-muted-foreground hover:text-foreground"
-                          >
-                            {copiedCmd === cmdTip.command ? (
-                              <>
-                                <Check className="size-3 text-emerald-500" />
-                                <span className="text-emerald-500">Kopyalandı</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="size-3" />
-                                <span>Kopyala</span>
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        <pre className="mt-1.5 overflow-x-auto rounded-lg bg-zinc-900 px-3 py-2 font-mono text-xs text-zinc-100 dark:bg-black/60">
-                          <code>{cmdTip.command}</code>
-                        </pre>
-                        <p className="mt-1.5 text-[11px] text-muted-foreground">{cmdTip.explanation}</p>
-                      </div>
+                  <div className="mt-3.5 grid grid-cols-2 gap-2">
+                    {([
+                      ["none", "Kapalı", "Sessiz ortam"],
+                      ["rain", "🌧️ Yağmur", "Hafif yağmur sesi"],
+                      ["cafe", "☕ Kafe", "Arka plan kafe uğultusu"],
+                      ["noise", "📻 Beyaz", "Pink / White noise"],
+                      ["drone", "🧘 432Hz Zen", "Derin odak meditatif frekans"],
+                    ] as const).map(([val, label, sub]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => handleSoundChange(val)}
+                        className={`flex flex-col items-start rounded-2xl border p-2.5 text-left transition-all ${
+                          activeSound === val
+                            ? "border-teal-500/50 bg-teal-500/10 text-foreground shadow-xs"
+                            : "border-border/60 bg-background/80 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                        }`}
+                      >
+                        <span className="text-xs font-semibold">{label}</span>
+                        <span className="text-[10px] opacity-75 mt-0.5 line-clamp-1">{sub}</span>
+                      </button>
                     ))}
                   </div>
                 </div>
-              )}
 
-              {/* SECTION 3: ÖNERİLEN KAYNAKLAR & LABLAR */}
-              {guidance.resources.length > 0 && (
-                <div className="rounded-2xl border bg-card p-5 shadow-sm">
-                  <div className="flex items-center gap-2 border-b pb-3.5">
-                    <span className="grid size-6 place-items-center rounded-md bg-primary/10 text-primary">
-                      <BookOpen className="size-4" />
-                    </span>
-                    <h2 className="text-sm font-semibold text-foreground">Önerilen Kaynaklar &amp; Lab Bağlantıları</h2>
+                {/* 5. BENTO CARD: KAYNAKLAR & LAB BAĞLANTILARI */}
+                <div className="rounded-3xl border bg-card p-5 shadow-xs">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-7 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                        <BookOpen className="size-4" />
+                      </span>
+                      <div>
+                        <h2 className="text-sm font-semibold text-foreground">Kaynaklar &amp; Lablar</h2>
+                        <p className="text-[11px] text-muted-foreground">Önerilen linkler ve dökümanlar</p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
-                    {guidance.resources.map((res, idx) => (
-                      <a
-                        key={idx}
-                        href={res.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group flex flex-col justify-between rounded-xl border bg-background/80 p-3 transition-all hover:border-primary/50 hover:bg-muted/30"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-1.5">
-                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                  <div className="mt-3.5 space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {guidance && guidance.resources.length > 0 ? (
+                      guidance.resources.map((res, idx) => (
+                        <a
+                          key={idx}
+                          href={res.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group flex items-center justify-between rounded-2xl border bg-background/80 p-2.5 transition-all hover:border-primary/50 hover:bg-muted/30"
+                        >
+                          <div className="min-w-0 pr-2">
+                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
                               {res.badge}
                             </span>
-                            <ExternalLink className="size-3 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
+                            <p className="mt-1 text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                              {res.title}
+                            </p>
                           </div>
-                          <h3 className="mt-2 text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
-                            {res.title}
-                          </h3>
-                          <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground leading-relaxed">
-                            {res.description}
-                          </p>
+                          <ExternalLink className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                        </a>
+                      ))
+                    ) : task.resource ? (
+                      <a
+                        href={task.resource}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex items-center justify-between rounded-2xl border bg-background/80 p-3 hover:border-primary/50"
+                      >
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-medium text-primary">Resmî Görev Kaynağı</span>
+                          <p className="text-xs font-semibold truncate text-foreground">{task.resource}</p>
                         </div>
-                        <span className="mt-3 text-[10px] font-medium text-primary underline underline-offset-2">
-                          Kaynağa Git →
-                        </span>
+                        <ExternalLink className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary" />
                       </a>
-                    ))}
+                    ) : (
+                      <p className="py-4 text-center text-[11px] text-muted-foreground italic">
+                        Bu görev için özel harici kaynak eklenmemiş.
+                      </p>
+                    )}
                   </div>
                 </div>
-              )}
-
-              {/* SECTION 4: STUCK? ASK NORTH AI */}
-              <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-center sm:flex-row sm:text-left">
-                <div className="space-y-0.5">
-                  <p className="text-xs font-semibold text-foreground">Hâlâ nereden başlayacağını bilmiyor musun?</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    North Koç sana bu görev için adım adım pratik rehberlik yapmaya hazır.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => setCoachOpen(true)}
-                  className="shrink-0 gap-1.5 rounded-full"
-                >
-                  <Sparkles className="size-3.5" />
-                  North Koç&apos;a Danış
-                </Button>
               </div>
             </div>
-          )}
 
-          <p className="mt-12 text-xs text-muted-foreground/60">
-            North yalnızca oturum sürenizi ve girdiğiniz çıktıları kaydeder; arka planda cihaz etkinliği veya ekran izlemesi yapmaz.
-          </p>
-        </div>
+            {/* ------------------------------------------------------------- */}
+            {/* RIGHT COLUMN: ALWAYS DOCKED NORTH AI COACH (5 COLS ON DESKTOP) */}
+            {/* ------------------------------------------------------------- */}
+            <div className="xl:col-span-5 2xl:col-span-4">
+              <div className="sticky top-5 rounded-3xl border bg-card shadow-md overflow-hidden flex flex-col h-[740px] max-h-[calc(100dvh-5rem)]">
+                {/* DOCKED COACH HEADER */}
+                <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/30 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground shadow-xs">
+                      <Bot className="size-4" />
+                    </span>
+                    <div>
+                      <h3 className="text-xs font-bold text-foreground">North Koç</h3>
+                      <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Canlı Odak Arkadaşın (Hep Açık)
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="rounded-full border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground truncate max-w-[140px]">
+                    {task.title}
+                  </span>
+                </div>
+
+                {/* DOCKED COACH BODY */}
+                <div className="flex-1 overflow-y-auto p-3">
+                  <NorthAI embedded taskId={id} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       ) : (
-        /* POST-SESSION FEEDBACK SCREEN */
-        <section className="celebrate-pop mt-6 space-y-6">
-          <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
+        /* ================================================================= */
+        /* POST-SESSION FEEDBACK SCREEN                                      */
+        /* ================================================================= */
+        <section className="celebrate-pop mt-4 space-y-6 max-w-3xl mx-auto">
+          <div className="rounded-3xl border bg-card p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
                 <Sparkles className="size-4" />
                 Odak Oturumu Tamamlandı
               </div>
-              {/* Verified Proof Badge */}
               {verifiedProof.type !== "none" && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="size-3.5" />
@@ -897,7 +1049,6 @@ export function NorthFocus({ id }: { id: string }) {
               Değerlendirmen, sonraki günlerdeki oturum sürelerini ve görev yoğunluğunu otomatik olarak optimize eder.
             </p>
 
-            {/* STATS STRIP: TAB SWITCHES & IRON WILL STATUS */}
             <div className="mt-4 flex flex-wrap gap-2 text-xs">
               <span className="inline-flex items-center gap-1 rounded-lg border bg-muted/40 px-2.5 py-1 text-muted-foreground font-mono">
                 Sekme Geçişi:{" "}
@@ -926,7 +1077,7 @@ export function NorthFocus({ id }: { id: string }) {
                     type="button"
                     key={val}
                     onClick={() => setOutcome(val)}
-                    className={`flex flex-col items-center justify-center rounded-xl border p-3 text-center transition-all ${
+                    className={`flex flex-col items-center justify-center rounded-2xl border p-3 text-center transition-all ${
                       outcome === val
                         ? "border-primary bg-primary/10 text-primary shadow-sm"
                         : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -948,7 +1099,7 @@ export function NorthFocus({ id }: { id: string }) {
                     type="button"
                     key={val}
                     onClick={() => toggleDifficulty(val)}
-                    className={`rounded-lg border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                    className={`rounded-xl border px-3.5 py-1.5 text-xs font-medium transition-colors ${
                       difficulty === val
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -985,7 +1136,7 @@ export function NorthFocus({ id }: { id: string }) {
                           : [...cur.filter((s) => s !== "none"), val]
                       )
                     }
-                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    className={`rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors ${
                       supportSources.includes(val)
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border bg-background text-muted-foreground hover:bg-muted/50"
@@ -1003,20 +1154,20 @@ export function NorthFocus({ id }: { id: string }) {
                 Kısa bir not eklemek ister misin? <span className="text-muted-foreground font-normal">(İsteğe bağlı)</span>
               </label>
               <input
-                className={fieldClass + " mt-2"}
+                className={fieldClass + " mt-2 rounded-xl"}
                 value={reflection}
                 onChange={(e) => setReflection(e.target.value)}
                 placeholder="Nerede tıkandın veya ne iyi gitti?"
               />
             </div>
 
-            {/* PHOTO PROOF UPLOAD (if not already uploaded in proof gate) */}
+            {/* PHOTO PROOF UPLOAD */}
             <div className="mt-5">
               <label className="block text-xs font-semibold text-foreground">
                 Fotoğraflı Çalışma Kanıtı <span className="text-muted-foreground font-normal">(Defter, masa, test veya ekran fotoğrafı)</span>
               </label>
               <div className="mt-2 flex items-center gap-3">
-                <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-primary hover:text-foreground">
+                <label className="flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-border px-3.5 py-2 text-xs text-muted-foreground hover:border-primary hover:text-foreground">
                   <Camera className="size-4" />
                   <span>{photoProof ? "Fotoğrafı Değiştir" : "Fotoğraf Seç"}</span>
                   <input
@@ -1045,12 +1196,12 @@ export function NorthFocus({ id }: { id: string }) {
               </div>
             </div>
 
-            {/* SUBMIT OR NEXT STEPS */}
+            {/* SUBMIT BUTTON */}
             <div className="mt-6 border-t pt-5">
               {!saved ? (
                 <Button
                   size="lg"
-                  className="w-full rounded-xl sm:w-auto"
+                  className="w-full rounded-2xl sm:w-auto"
                   onClick={() => {
                     if (!timer) return;
                     setSaved(true);
@@ -1116,18 +1267,15 @@ export function NorthFocus({ id }: { id: string }) {
                   Kaydet ve Sonucu İşle
                 </Button>
               ) : (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
                   <p className="text-xs font-medium text-foreground">Oturum başarıyla kaydedildi. Şimdi ne yapmak istersin?</p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => router.push("/")}>
+                    <Button size="sm" className="rounded-xl" onClick={() => router.push("/")}>
                       Günün Sıradaki Adımına Geç →
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setBreathworkOpen(true)}>
+                    <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setBreathworkOpen(true)}>
                       <Heart className="mr-1.5 size-3.5 text-teal-500" />
-                      2 Dk Nefes ve Göz Dinlendirme
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => router.push("/north-ai")}>
-                      North ile Planı Gözden Geçir
+                      2 Dk Nefes Molası
                     </Button>
                   </div>
                 </div>
@@ -1158,11 +1306,11 @@ export function NorthFocus({ id }: { id: string }) {
           </DialogHeader>
 
           {/* METHOD SELECTION TABS */}
-          <div className="mt-4 grid grid-cols-4 gap-1.5 rounded-xl border bg-muted/50 p-1 text-xs">
+          <div className="mt-4 grid grid-cols-4 gap-1.5 rounded-2xl border bg-muted/50 p-1 text-xs">
             <button
               type="button"
               onClick={() => setProofMethod("text")}
-              className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 font-medium transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 font-medium transition-colors ${
                 proofMethod === "text"
                   ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
@@ -1174,7 +1322,7 @@ export function NorthFocus({ id }: { id: string }) {
             <button
               type="button"
               onClick={() => setProofMethod("photo")}
-              className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 font-medium transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 font-medium transition-colors ${
                 proofMethod === "photo"
                   ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
@@ -1186,7 +1334,7 @@ export function NorthFocus({ id }: { id: string }) {
             <button
               type="button"
               onClick={() => setProofMethod("step")}
-              className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 font-medium transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 font-medium transition-colors ${
                 proofMethod === "step"
                   ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
@@ -1198,7 +1346,7 @@ export function NorthFocus({ id }: { id: string }) {
             <button
               type="button"
               onClick={() => setProofMethod("ai")}
-              className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 font-medium transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 font-medium transition-colors ${
                 proofMethod === "ai"
                   ? "bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
@@ -1229,8 +1377,8 @@ export function NorthFocus({ id }: { id: string }) {
               <textarea
                 value={proofText}
                 onChange={(e) => setProofText(e.target.value)}
-                placeholder="Örnek: Fonksiyonlar testinden 10 soru çözdüm, ters fonksiyon kuralını pekiştirdim veya OWASP SQLi labında payload çalıştırdım..."
-                className="h-28 w-full rounded-xl border border-border bg-background p-3 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
+                placeholder="Örnek: Fonksiyonlar testinden 10 soru çözdüm, ters fonksiyon kuralını pekiştirdim veya SQLi labında UNION payload'unu başarıyla enjekte ettim..."
+                className="h-28 w-full rounded-2xl border border-border bg-background p-3 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
               />
               <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                 <span>En az 20 karakter gereklidir</span>
@@ -1240,7 +1388,7 @@ export function NorthFocus({ id }: { id: string }) {
               </div>
               <Button
                 type="button"
-                className="w-full rounded-xl"
+                className="w-full rounded-2xl"
                 disabled={proofText.trim().length < 20}
                 onClick={() => handleVerifyAndFinish("output_text", proofText.trim())}
               >
@@ -1256,7 +1404,7 @@ export function NorthFocus({ id }: { id: string }) {
               <p className="text-xs text-muted-foreground">
                 Çözdüğün soru kağıdı, defter notu, terminal çıktısı veya kod ekranının anlık fotoğrafını yükle:
               </p>
-              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/80 p-6 text-center hover:border-primary/50 transition-colors">
+              <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-border/80 p-6 text-center hover:border-primary/50 transition-colors">
                 {photoProof ? (
                   <div className="space-y-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1270,7 +1418,7 @@ export function NorthFocus({ id }: { id: string }) {
                       variant="outline"
                       size="sm"
                       onClick={() => setPhotoProof(null)}
-                      className="text-xs"
+                      className="text-xs rounded-xl"
                     >
                       Fotoğrafı Değiştir
                     </Button>
@@ -1303,7 +1451,7 @@ export function NorthFocus({ id }: { id: string }) {
               </div>
               <Button
                 type="button"
-                className="w-full rounded-xl"
+                className="w-full rounded-2xl"
                 disabled={!photoProof}
                 onClick={() => handleVerifyAndFinish("photo", photoProof!)}
               >
@@ -1324,7 +1472,7 @@ export function NorthFocus({ id }: { id: string }) {
                   {guidance.steps.map((step) => (
                     <label
                       key={step.id}
-                      className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-2.5 text-left text-xs transition-colors ${
+                      className={`flex cursor-pointer items-start gap-2.5 rounded-2xl border p-2.5 text-left text-xs transition-colors ${
                         proofStepId === step.id
                           ? "border-emerald-500/50 bg-emerald-500/10 text-foreground"
                           : "border-border bg-background hover:bg-muted/40"
@@ -1349,7 +1497,7 @@ export function NorthFocus({ id }: { id: string }) {
               )}
               <Button
                 type="button"
-                className="w-full rounded-xl"
+                className="w-full rounded-2xl"
                 disabled={!proofStepId}
                 onClick={() => {
                   const step = guidance?.steps.find((s) => s.id === proofStepId);
@@ -1365,7 +1513,7 @@ export function NorthFocus({ id }: { id: string }) {
           {/* METHOD 4: NORTH AI POP TEYİT */}
           {proofMethod === "ai" && (
             <div className="mt-4 space-y-3">
-              <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3 text-xs leading-relaxed text-foreground">
+              <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-3 text-xs leading-relaxed text-foreground">
                 <span className="font-semibold text-purple-600 dark:text-purple-400">North AI Hızlı Soru: </span>
                 <p className="mt-1">
                   &ldquo;{task.title}&rdquo; çalışırken aklında kalan en kritik 1 kural, formül veya edindiğin çıkarım ne oldu?
@@ -1375,17 +1523,17 @@ export function NorthFocus({ id }: { id: string }) {
                 value={aiQuestionAnswer}
                 onChange={(e) => setAiQuestionAnswer(e.target.value)}
                 placeholder="Örnek: Bu kavramın özü şudur..., formül şöyle uygulanır..., şu adımı başardım..."
-                className="h-24 w-full rounded-xl border border-border bg-background p-3 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-purple-500 focus:outline-hidden"
+                className="h-24 w-full rounded-2xl border border-border bg-background p-3 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-purple-500 focus:outline-hidden"
               />
               {aiVerificationStatus === "verified" ? (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
                   <CheckCircle2 className="size-4 shrink-0" />
                   <span>North AI cevabını onayladı! Öğrenim çıktın geçerli kabul edildi.</span>
                 </div>
               ) : (
                 <Button
                   type="button"
-                  className="w-full rounded-xl"
+                  className="w-full rounded-2xl"
                   disabled={aiQuestionAnswer.trim().length < 10 || aiVerificationStatus === "checking"}
                   onClick={handleAiVerifyCheck}
                 >
@@ -1397,7 +1545,7 @@ export function NorthFocus({ id }: { id: string }) {
               {aiVerificationStatus === "verified" && (
                 <Button
                   type="button"
-                  className="w-full rounded-xl"
+                  className="w-full rounded-2xl"
                   onClick={() => handleVerifyAndFinish("ai_verified", `AI Teyit: ${aiQuestionAnswer.trim()}`)}
                 >
                   <Check className="mr-1.5 size-4" />
@@ -1426,7 +1574,7 @@ export function NorthFocus({ id }: { id: string }) {
                 </Button>
               </div>
             ) : (
-              <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 space-y-3 text-left">
+              <div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-4 space-y-3 text-left">
                 <div className="flex items-center gap-2 text-xs font-semibold text-red-600 dark:text-red-400">
                   <ShieldAlert className="size-4" />
                   <span>Dürüst Vazgeçiş Freni</span>
@@ -1448,6 +1596,7 @@ export function NorthFocus({ id }: { id: string }) {
                       type="button"
                       variant="destructive"
                       size="sm"
+                      className="rounded-xl"
                       disabled={abandonCountdown > 0}
                       onClick={handleForfeitAbandon}
                     >
@@ -1457,6 +1606,7 @@ export function NorthFocus({ id }: { id: string }) {
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="rounded-xl"
                       onClick={() => setAbandonTimerActive(false)}
                     >
                       Vazgeçme, Odakta Kal
@@ -1469,12 +1619,8 @@ export function NorthFocus({ id }: { id: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* BRAIN DUMP & BREATHWORK MODALS */}
-      <BrainDumpModal open={brainDumpOpen} onOpenChange={setBrainDumpOpen} />
+      {/* BREATHWORK MODAL */}
       <BreathworkModal open={breathworkOpen} onOpenChange={setBreathworkOpen} />
-
-      {/* NORTH CHAT POPOVER (EXACT SAME AS ON HOME SCREEN) */}
-      <NorthChatPopover open={coachOpen} onOpenChange={setCoachOpen} taskId={id} />
     </main>
   );
 }
