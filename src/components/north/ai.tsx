@@ -30,7 +30,7 @@ import { capacity, dayKey, isAreaActive, weekKey } from "@/lib/north";
 import { useNorth, Heading, fieldClass, Field } from "./shared";
 import { Button } from "@/components/ui/button";
 
-export function NorthAI({ taskId, embedded = false }: { taskId?: string; embedded?: boolean } = {}) {
+export function NorthAI({ taskId, embedded = false, focusDocked = false }: { taskId?: string; embedded?: boolean; focusDocked?: boolean } = {}) {
   const { state, update, workspace } = useNorth();
   const role = taskId ? "coach" : "planner";
   const [question, setQuestion] = useState("");
@@ -203,7 +203,8 @@ export function NorthAI({ taskId, embedded = false }: { taskId?: string; embedde
         />
       )}
 
-      {/* ACTIVE CONTEXT CHIPS BAR */}
+      {/* ACTIVE CONTEXT CHIPS BAR — hidden in focus docked mode */}
+      {!focusDocked && (
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card/60 p-3 text-xs backdrop-blur-sm">
         <span className="flex items-center gap-1.5 font-semibold text-foreground">
           <Sparkles className="size-3.5 text-primary" />
@@ -229,6 +230,7 @@ export function NorthAI({ taskId, embedded = false }: { taskId?: string; embedde
           {workspace.coaching.preferences.dailyAiLimit}
         </span>
       </div>
+      )}
 
       {currentTask && (
         <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4">
@@ -253,7 +255,8 @@ export function NorthAI({ taskId, embedded = false }: { taskId?: string; embedde
         </div>
       )}
 
-      {/* QUICK SUGGESTIONS PILLS */}
+      {/* QUICK SUGGESTIONS PILLS — hidden in focus docked mode */}
+      {!focusDocked && (
       <div className="flex flex-wrap gap-2">
         {quickPrompts.map((item, idx) => (
           <button
@@ -268,6 +271,7 @@ export function NorthAI({ taskId, embedded = false }: { taskId?: string; embedde
           </button>
         ))}
       </div>
+      )}
 
       {/* CONVERSATION CONTAINER */}
       <div className="rounded-2xl border bg-card shadow-sm">
@@ -285,6 +289,12 @@ export function NorthAI({ taskId, embedded = false }: { taskId?: string; embedde
           </div>
 
           <div className="flex items-center gap-2">
+            {focusDocked && (
+              <span className="inline-flex items-center gap-1 rounded-full border bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                <Sparkles className="size-2.5 text-primary" />
+                {workspace.coaching.preferences.aiUsage.date === today ? workspace.coaching.preferences.aiUsage.count : 0}/{workspace.coaching.preferences.dailyAiLimit}
+              </span>
+            )}
             <Button
               type="button"
               variant="outline"

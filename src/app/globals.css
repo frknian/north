@@ -245,6 +245,8 @@ input, select, textarea { min-width:0; }
 .north-focus-timer { margin:48px 0; font-variant-numeric:tabular-nums; font-size:clamp(64px,10vw,100px); font-weight:350; letter-spacing:-.06em; line-height:1; }
 .north-coach-drawer { max-height:90dvh; overflow-y:auto; width:min(540px,calc(100vw - 24px)); }
 .north-ai-embedded .north-ai-composer { padding:8px 0 10px; }
+.focus-coach-scroll { scrollbar-width:none; -ms-overflow-style:none; }
+.focus-coach-scroll::-webkit-scrollbar { display:none; }
 .north-optional-pool { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; border:1px solid var(--border); border-radius:16px; padding:16px; background:color-mix(in srgb, var(--primary) 3%, var(--card)); }.north-calendar-kicker { color:var(--primary); font-size:10px; font-weight:700; letter-spacing:.12em; }.north-optional-list { display:flex; flex-wrap:wrap; gap:8px; }.north-optional-list button { display:flex; align-items:center; gap:6px; border:1px solid var(--border); border-radius:999px; padding:7px 10px; background:var(--card); font-size:12px; }.north-optional-list button:hover { border-color:var(--primary); }.north-optional-list span { color:var(--primary); }.north-optional-list small { color:var(--muted-foreground); }
 .north-progress-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:28px; padding:16px 0 30px; }
 .north-progress-summary>div+div { border-left:1px solid var(--border); padding-left:28px; }
