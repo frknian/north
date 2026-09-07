@@ -30,6 +30,10 @@ const empty = skillEvidence({labs:[], tasks:[], notes:[], portfolio:[], reports:
 assert.equal(empty.count, 0);
 assert.equal(empty.lastPracticed, undefined);
 const onboardingSource = fs.readFileSync('src/lib/onboarding.ts', 'utf8');
-assert.match(onboardingSource, /Başarıya ulaştığını gösterecek somut sonucu ne kadar net tanımladın\?/);
+assert.match(onboardingSource, /genericDomainQuestions/);
 assert.doesNotMatch(onboardingSource, /hedefinde başarıyı hangi somut sonuçla/);
-console.log('North module checks passed: repetition boundaries, linked evidence, pending exclusion, natural Turkish assessment prompts, empty state.');
+const catalogSource = fs.readFileSync('src/lib/domain-catalog.ts', 'utf8');
+assert.match(catalogSource, /Finans ve Borsa/);
+assert.match(catalogSource, /İnşaat Mühendisliği/);
+assert.match(catalogSource, /Robotik Kodlama/);
+console.log('North module checks passed: repetition boundaries, linked evidence, pending exclusion, domain-aware assessment prompts, empty state.');

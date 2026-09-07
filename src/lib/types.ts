@@ -49,6 +49,7 @@ export interface Task {
   isDailyMission: boolean;
   completedAt?: string;
   reflection?: Reflection;
+  taskType?: "deep_work" | "practice" | "problem_solving" | "lab" | "review" | "reading" | "creative" | "administrative" | "light";
 }
 
 export interface Reflection {

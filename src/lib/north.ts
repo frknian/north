@@ -7,7 +7,7 @@ export interface Area {
   id: string; name: string; kind: AreaKind; icon: string; goal: string; priority: number;
   weeklyMinutes: number; minimumMinutes: number; archived: boolean; metric: string;
   target: number; notes: string; resources: string;
-  description?: string; preferredSessionMinutes?: number; accent?: string;
+  description?: string; preferredSessionMinutes?: number; accent?: string; domainId?: string;
   status?: "active" | "paused" | "archived";
 }
 export interface NorthTask {
@@ -79,25 +79,29 @@ export function createArea(kind: AreaKind, id: string): Area {
 }
 export function initializeNorth(workspace: WorkspaceState): NorthState {
   const interests = (workspace.profile.interests?.length ? workspace.profile.interests : [workspace.profile.primaryFocus]).map(item => item.trim()).filter(Boolean);
-  const inferKind = (name: string): AreaKind => /matematik|calculus|istatistik|ekonomi|iktisat/i.test(name) ? "math" : /siber|güvenlik|pentest|soc|grc/i.test(name) ? "cyber" : /okuma|kitap|edebiyat/i.test(name) ? "reading" : /satranç|chess/i.test(name) ? "chess" : /proje|uygulama|yazılım|geliştirme|kod/i.test(name) ? "projects" : "custom";
   const areas = interests.map((name, index) => {
-    const kind = inferKind(name);
+    const domain = basicDomainProfile(name);
+    const kind: AreaKind = domain?.kind ?? (/siber|güvenlik|pentest|soc|grc/i.test(name) ? "cyber" : /okuma|kitap|edebiyat/i.test(name) ? "reading" : "custom");
     const area = createArea(kind, `area-${index + 1}`);
     area.name = name;
+    area.domainId = domain?.id;
+    area.icon = domain?.icon ?? area.icon;
+    area.metric = domain?.metric ?? area.metric;
     const configuredGoal = workspace.profile.areaGoals?.[name];
     area.goal = configuredGoal?.goal || (index === 0 ? workspace.profile.goal : "");
     area.description = configuredGoal?.targetWeeks ? `${configuredGoal.targetWeeks} haftalık hedef` : "";
-    area.resources = starterResourcesFor(kind);
+    area.resources = domain?.resources.join("\n") ?? starterResourcesFor(kind);
     area.weeklyMinutes = index === 0 ? workspace.profile.weeklyCapacityHours * 60 : 0;
     area.priority = index === 0 ? 3 : 2;
     return area;
   });
   const primary = areas[0] ?? createArea("custom", "primary-goal");
   return { version: 1, areas, weeklyHours: workspace.profile.weeklyCapacityHours, mode: "normal", customMode: "", energy: { date: "", level: "normal" }, events: [], protection: [],
-    tasks: workspace.tasks.map(t => ({ id:t.id, areaId:primary.id, title:t.title, goal:t.outputRequirement || t.description, minutes:t.duration, intensity:t.difficulty === "hard" ? "high" : "normal", mandatory:t.isDailyMission, status:t.status === "completed" ? "done" : t.status === "partial" ? "partial" : t.status === "failed" ? "skipped" : "pending", date:"", deadline:"", resource: workspace.resources.find(r => r.id === t.practicalResourceId)?.url ?? "", why:"Kişisel başlangıç planından aktarıldı.", week:weekKey() })),
+    tasks: workspace.tasks.map(t => { const taskArea=areas.find(area=>area.name===t.category)??primary; return { id:t.id, areaId:taskArea.id, title:t.title, goal:t.outputRequirement || t.description, minutes:t.duration, intensity:t.difficulty === "hard" ? "high" : "normal", mandatory:t.isDailyMission, status:t.status === "completed" ? "done" : t.status === "partial" ? "partial" : t.status === "failed" ? "skipped" : "pending", date:"", deadline:"", resource: workspace.resources.find(r => r.id === t.practicalResourceId)?.url ?? "", why:"Kişisel başlangıç planından aktarıldı.", week:weekKey(), taskType:t.taskType }; }),
     activities: workspace.focusSessions.map(s => ({id:s.id, taskId:s.taskId,areaId:primary.id,date:dayKey(new Date(s.completedAt)),minutes:s.durationMinutes,outcome:s.status === "completed" ? "done" : "partial",difficulty:"",reflection:s.notes,amount:0,metric:primary.metric,endedAt:s.completedAt})),
   };
 }
+function basicDomainProfile(name:string){const value=name.toLocaleLowerCase("tr-TR");if(/robotik|arduino|raspberry|embedded|gömülü|mikrodenetleyici|elektronik/.test(value))return {id:"robotics",kind:"projects" as const,icon:"⚙",metric:"Çalışan prototip",resources:["Arduino Documentation — https://docs.arduino.cc/","Raspberry Pi Documentation — https://www.raspberrypi.com/documentation/"]};if(/borsa|yatırım|finans|hisse|trading|kripto|portföy/.test(value))return {id:"finance",kind:"custom" as const,icon:"↗",metric:"Analiz edilen şirket",resources:["Borsa İstanbul Akademi — https://www.borsaistanbul.com/","SPK Yatırımcı Bilgilendirme — https://spk.gov.tr/"]};if(/inşaat|betonarme|şantiye|statik|zemin|metraj/.test(value))return {id:"civil-engineering",kind:"custom" as const,icon:"▰",metric:"Tamamlanan teknik çalışma",resources:["Türkiye Bina Deprem Yönetmeliği — https://www.afad.gov.tr/","MIT OpenCourseWare Civil Engineering — https://ocw.mit.edu/"]};if(/matematik|calculus|istatistik|lineer cebir|geometri/.test(value))return {id:"mathematics",kind:"math" as const,icon:"∑",metric:"Çözülen problem",resources:["Khan Academy — https://www.khanacademy.org/math","MIT OpenCourseWare — https://ocw.mit.edu/"]};if(/satranç|satranc|chess/.test(value))return {id:"chess",kind:"chess" as const,icon:"♞",metric:"Çözülen taktik",resources:["Lichess Studies — https://lichess.org/study","Chess.com Lessons — https://www.chess.com/lessons"]};if(/yazılım|uygulama|programlama|kodlama|web geliştirme|mobil geliştirme|frontend|backend/.test(value))return {id:"software",kind:"projects" as const,icon:"◇",metric:"Tamamlanan çıktı",resources:["MDN Web Docs — https://developer.mozilla.org/","The Odin Project — https://www.theodinproject.com/"]};return undefined;}
 function starterResourcesFor(kind: AreaKind) {
   if (kind === "cyber") return "OWASP Web Security Testing Guide — https://owasp.org/www-project-web-security-testing-guide/\nPortSwigger Web Security Academy — https://portswigger.net/web-security";
   if (kind === "math") return "Khan Academy Matematik — https://www.khanacademy.org/math\nMIT OpenCourseWare — https://ocw.mit.edu/";
@@ -130,7 +134,9 @@ export function dailySelection(state: NorthState, today=dayKey()) {
   const deep=ranked.filter(t=>t.minutes>20&&!touched.has(t.id)).slice(0,Math.max(0,2-usedDeep));
   const light=ranked.filter(t=>t.minutes<=20&&!touched.has(t.id)).slice(0,Math.max(0,2-usedLight));
   const spent=state.activities.filter(a=>a.date>=week&&a.date<=today).reduce((n,a)=>n+a.minutes,0);
-  let remaining=Math.max(0,capacity(state)-spent);
+  const blockedMinutes=state.events.filter(event=>event.date===today&&event.kind==="block").reduce((total,event)=>total+event.minutes,0);
+  const dailyCapacity=blockedMinutes ? Math.max(0,Math.round(capacity(state)/7)-blockedMinutes) : capacity(state);
+  let remaining=Math.min(Math.max(0,capacity(state)-spent),dailyCapacity);
   return [...deep,...light].slice(0,4).filter(t=>{
     if(state.protection.some(p=>p.areaId===t.areaId&&p.date===today)||t.minutes>remaining)return false;
     remaining-=t.minutes;return true;

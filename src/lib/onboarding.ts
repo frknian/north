@@ -1,5 +1,6 @@
 import { initialResources, initialSourceLocks } from "@/lib/resource-data";
 import { dayKey, initializeNorth, shiftDay, weekKey } from "@/lib/north";
+import { findDomain, genericDomainQuestions } from "@/lib/domain-catalog";
 import type { InitialSetupInput, Skill, Task, WorkspaceState } from "@/lib/types";
 
 export interface AssessmentQuestion {
@@ -130,6 +131,8 @@ export function getAssessmentQuestions(primaryFocus: string | string[]): Assessm
     return primaryFocus.flatMap((focus, focusIndex) => { const [areaName] = focus.split("::"); return getAssessmentQuestions(focus).slice(0, 3).map(question => ({ ...question, id: `area-${focusIndex}-${question.id}`, prompt: `${areaName} · ${question.prompt}` })); });
   }
   const [areaName, goal = ""] = primaryFocus.split("::");
+  const domain = findDomain(areaName);
+  if (domain) return domain.questions.map(question => ({ ...question, skill: areaName }));
   if (/siber|güvenlik|pentest|soc/i.test(areaName) && /network|ağ|networking/i.test(goal)) return assessmentQuestionSets["Ağ ve iç ağ güvenliği"].slice(0, 3).map(question => ({ ...question, skill: areaName }));
   if (/siber|güvenlik|pentest|soc/i.test(areaName) && /web|uygulama/i.test(goal)) return assessmentQuestionSets["Web uygulama güvenliği"].slice(0, 3).map(question => ({ ...question, skill: areaName }));
   if (/siber|güvenlik|pentest|soc/i.test(areaName)) return fundamentalsQuestions.slice(0, 3).map(question => ({ ...question, skill: areaName }));
@@ -149,18 +152,7 @@ export function getAssessmentQuestions(primaryFocus: string | string[]): Assessm
     { id: "dev-git", skill: primaryFocus, prompt: "Git'te değişiklikleri yeni bir kayda almak için hangi komut kullanılır?", options: [{ value: "a", label: "git clone" }, { value: "b", label: "git commit" }, { value: "c", label: "git pull" }], correct: "b" },
     { id: "dev-debug", skill: primaryFocus, prompt: "Bir hatayı ayıklarken en güvenilir ilk adım hangisidir?", options: [{ value: "a", label: "Hata mesajını ve tekrar üretim adımlarını incelemek" }, { value: "b", label: "Tüm kodu silip yazmak" }, { value: "c", label: "Rastgele paket kurmak" }], correct: "a" },
   ];
-  return assessmentQuestionSets[primaryFocus] ?? [
-    { id: "goal-clarity", skill: "Hedef Netliği", prompt: "Başarıya ulaştığını gösterecek somut sonucu ne kadar net tanımladın?", options: selfAssessmentOptions("Henüz net değil", "Kabaca biliyorum", "Ölçülebilir sonucum net"), correct: "2" },
-    { id: "goal-foundation", skill: "Temel Bilgi", prompt: "Hedefin için gerekli temel kavramları kendi cümlelerinle açıklama düzeyin nedir?", options: selfAssessmentOptions("Henüz açıklayamıyorum", "Bazılarını açıklayabilirim", "Temelleri rahatça açıklayabilirim"), correct: "2" },
-    { id: "goal-practice", skill: "Uygulama", prompt: "Hedefinle ilgili tek başına uygulama veya pratik yapma düzeyin nedir?", options: selfAssessmentOptions("Henüz başlamadım", "Yönlendirmeyle yapabiliyorum", "Bağımsız uygulayabiliyorum"), correct: "2" },
-    { id: "goal-output", skill: "Kanıt Üretme", prompt: "Şimdiye kadar gösterebileceğin bir çıktı, kayıt veya kanıt ürettin mi?", options: selfAssessmentOptions("Henüz yok", "Taslak veya yarım çıktı var", "Tamamlanmış kanıtım var"), correct: "2" },
-    { id: "goal-consistency", skill: "Süreklilik", prompt: "Son dört haftadaki çalışma düzenin nasıldı?", options: selfAssessmentOptions("Düzenli çalışmadım", "Ara sıra çalıştım", "Haftalık düzenim oluştu"), correct: "2" },
-    { id: "goal-obstacles", skill: "Engel Yönetimi", prompt: "Tıkandığında bir sonraki küçük adımı belirleyebilme düzeyin nedir?", options: selfAssessmentOptions("Genellikle tamamen duruyorum", "Bazen yol bulabiliyorum", "Sorunu küçültüp devam edebiliyorum"), correct: "2" },
-  ];
-}
-
-function selfAssessmentOptions(low: string, middle: string, high: string) {
-  return [{ value: "0", label: low }, { value: "1", label: middle }, { value: "2", label: high }];
+  return assessmentQuestionSets[primaryFocus] ?? genericDomainQuestions(areaName).map(question => ({ ...question, skill: areaName }));
 }
 
 const skillNames = ["Networking", "Pentest Workflow", "Linux", "Web Security", "Python/Bash", "Reporting", "Active Directory", "English", "Portfolio", "Cloud Security"];
@@ -241,7 +233,11 @@ function courseDates(day: string, weeks: number) {
 function starterTasks(input: InitialSetupInput): Task[] {
   const planId = "current-week";
   const focus = input.primaryFocus;
-  const templates = [
+  const domain = findDomain(focus);
+  const templates = domain ? [
+    ...domain.starterTasks.map(item => ({ title: item.title, description: item.goal, category: focus, duration: item.minutes, outputRequirement: item.goal, taskType: item.taskType })),
+    { title: `${focus} için ilk kanıtını ekle`, description: "Tamamladığın çalışmayı tekrar edilebilir bir not, çizim, analiz veya depo çıktısına dönüştür.", category: "Kanıt ve portföy", duration: 35, outputRequirement: "Bağlantısı veya içeriği doğrulanabilir ilk öğrenme kanıtı.", taskType: "review" as const },
+  ] : [
     {
       title: `${focus} temel haritasını çıkar`,
       description: `${focus} için temel kavramları, gerekli kaynakları ve başarı ölçütlerini tek sayfalık bir haritada topla.`,
@@ -276,9 +272,28 @@ function starterTasks(input: InitialSetupInput): Task[] {
     status: "pending" as const,
     isDailyMission: index === 0,
   }));
-  const otherAreas = input.interests.slice(1).map((area, index) => ({
-    id: `starter-area-${index + 1}`, weeklyPlanId: planId, title: `${area} için başlangıç haritasını çıkar`, description: `${area} hedefini, mevcut seviyeni ve ilk güvenilir kaynağını netleştir.`, category: area, duration: input.preferredSessionMinutes, difficulty: "easy" as const, objectives: ["Hedefi somutlaştır", "İlk kaynağı seç"], successCriteria: ["Hedef ve ilk küçük çıktı yazıldı"], recommendedResources: ["Alan kaynakları"], aiHelpLimit: 2 as const, status: "pending" as const, isDailyMission: false, outputRequirement: "Öğrenme hedefi ve ilk küçük çalışma adımı." 
-  }));
+  const otherAreas = input.interests.slice(1).flatMap((area, areaIndex) => {
+    const areaDomain = findDomain(area);
+    if (!areaDomain) return [{
+      id: `starter-area-${areaIndex + 1}`, weeklyPlanId: planId, title: `${area} için başlangıç haritasını çıkar`, description: `${area} hedefini, mevcut seviyeni ve ilk güvenilir kaynağını netleştir.`, category: area, duration: input.preferredSessionMinutes, difficulty: "easy" as const, objectives: ["Hedefi somutlaştır", "İlk kaynağı seç"], successCriteria: ["Hedef ve ilk küçük çıktı yazıldı"], recommendedResources: ["Alan kaynakları"], aiHelpLimit: 2 as const, status: "pending" as const, isDailyMission: false, outputRequirement: "Öğrenme hedefi ve ilk küçük çalışma adımı."
+    }];
+    return areaDomain.starterTasks.slice(0, 2).map((item, itemIndex) => ({
+      id: `starter-area-${areaIndex + 1}-${itemIndex + 1}`,
+      weeklyPlanId: planId,
+      title: item.title,
+      description: item.goal,
+      category: area,
+      duration: item.minutes,
+      difficulty: "easy" as const,
+      objectives: ["Hedefin sınırları içinde çalış", "Somut çıktı üret"],
+      successCriteria: [item.goal, "Çalışmanın sonunda kısa bir öz değerlendirme yaz"],
+      recommendedResources: areaDomain.resources,
+      aiHelpLimit: 2 as const,
+      status: "pending" as const,
+      isDailyMission: false,
+      outputRequirement: item.goal,
+    }));
+  });
   return [...primaryTasks, ...otherAreas];
 }
 
