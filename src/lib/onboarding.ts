@@ -245,18 +245,22 @@ function starterTasks(input: InitialSetupInput): Task[] {
       outputRequirement: "Bağlantısı veya içeriği doğrulanabilir ilk öğrenme kanıtı.",
     },
   ];
-  return templates.map((template, index) => ({
+  const primaryTasks: Task[] = templates.map((template, index) => ({
     id: `starter-task-${index + 1}`,
     weeklyPlanId: planId,
     ...template,
-    difficulty: "easy",
+    difficulty: "easy" as const,
     objectives: ["Hedefin sınırları içinde çalış", "Kendi kararlarını not et", "Somut çıktı üret"],
     successCriteria: [template.outputRequirement, "Çalışmanın sonunda kısa bir öz değerlendirme yaz"],
     recommendedResources: ["North kaynak kütüphanesi", "Resmî dokümantasyon"],
-    aiHelpLimit: 2,
-    status: "pending",
+    aiHelpLimit: 2 as const,
+    status: "pending" as const,
     isDailyMission: index === 0,
   }));
+  const otherAreas = input.interests.slice(1).map((area, index) => ({
+    id: `starter-area-${index + 1}`, weeklyPlanId: planId, title: `${area} için başlangıç haritasını çıkar`, description: `${area} hedefini, mevcut seviyeni ve ilk güvenilir kaynağını netleştir.`, category: area, duration: input.preferredSessionMinutes, difficulty: "easy" as const, objectives: ["Hedefi somutlaştır", "İlk kaynağı seç"], successCriteria: ["Hedef ve ilk küçük çıktı yazıldı"], recommendedResources: ["Alan kaynakları"], aiHelpLimit: 2 as const, status: "pending" as const, isDailyMission: false, outputRequirement: "Öğrenme hedefi ve ilk küçük çalışma adımı." 
+  }));
+  return [...primaryTasks, ...otherAreas];
 }
 
 export function createPersonalizedWorkspace(input: InitialSetupInput): WorkspaceState {
@@ -281,6 +285,7 @@ export function createPersonalizedWorkspace(input: InitialSetupInput): Workspace
     track: input.track,
     primaryFocus: input.primaryFocus,
     interests: input.interests,
+    areaGoals: input.areaGoals,
     university: { isStudent: input.isUniversityStudent, school: input.universitySchool.trim(), department: input.universityDepartment.trim(), courses: input.universityCourses },
     weeklyCapacityHours: input.weeklyCapacityHours,
     preferredSessionMinutes: input.preferredSessionMinutes,

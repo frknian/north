@@ -84,7 +84,10 @@ export function initializeNorth(workspace: WorkspaceState): NorthState {
     const kind = inferKind(name);
     const area = createArea(kind, `area-${index + 1}`);
     area.name = name;
-    area.goal = index === 0 ? workspace.profile.goal : "";
+    const configuredGoal = workspace.profile.areaGoals?.[name];
+    area.goal = configuredGoal?.goal || (index === 0 ? workspace.profile.goal : "");
+    area.description = configuredGoal?.targetWeeks ? `${configuredGoal.targetWeeks} haftalık hedef` : "";
+    area.resources = starterResourcesFor(kind);
     area.weeklyMinutes = index === 0 ? workspace.profile.weeklyCapacityHours * 60 : 0;
     area.priority = index === 0 ? 3 : 2;
     return area;
@@ -94,6 +97,12 @@ export function initializeNorth(workspace: WorkspaceState): NorthState {
     tasks: workspace.tasks.map(t => ({ id:t.id, areaId:primary.id, title:t.title, goal:t.outputRequirement || t.description, minutes:t.duration, intensity:t.difficulty === "hard" ? "high" : "normal", mandatory:t.isDailyMission, status:t.status === "completed" ? "done" : t.status === "partial" ? "partial" : t.status === "failed" ? "skipped" : "pending", date:"", deadline:"", resource: workspace.resources.find(r => r.id === t.practicalResourceId)?.url ?? "", why:"Kişisel başlangıç planından aktarıldı.", week:weekKey() })),
     activities: workspace.focusSessions.map(s => ({id:s.id, taskId:s.taskId,areaId:primary.id,date:dayKey(new Date(s.completedAt)),minutes:s.durationMinutes,outcome:s.status === "completed" ? "done" : "partial",difficulty:"",reflection:s.notes,amount:0,metric:primary.metric,endedAt:s.completedAt})),
   };
+}
+function starterResourcesFor(kind: AreaKind) {
+  if (kind === "cyber") return "OWASP Web Security Testing Guide — https://owasp.org/www-project-web-security-testing-guide/\nPortSwigger Web Security Academy — https://portswigger.net/web-security";
+  if (kind === "math") return "Khan Academy Matematik — https://www.khanacademy.org/math\nMIT OpenCourseWare — https://ocw.mit.edu/";
+  if (kind === "projects") return "MDN Web Docs — https://developer.mozilla.org/\nThe Odin Project — https://www.theodinproject.com/";
+  return "Bu alan için kendi güvenilir kaynaklarını ekle.";
 }
 export function capacity(state: NorthState) { return Math.round(state.weeklyHours*60*(state.mode === "exam" ? .7 : 1)); }
 export function allocation(state: NorthState, area: Area) {

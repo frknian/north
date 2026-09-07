@@ -20,6 +20,7 @@ export interface Profile {
   preferredSessionMinutes: 45 | 50 | 60;
   weeklyCapacityHours: number;
   interests?: string[];
+  areaGoals?: Record<string, { goal: string; targetWeeks: number }>;
   university?: {
     isStudent: boolean;
     school?: string;
@@ -232,6 +233,7 @@ export interface InitialSetupInput {
   track: string;
   primaryFocus: string;
   interests: string[];
+  areaGoals: Record<string, { goal: string; targetWeeks: number }>;
   isUniversityStudent: boolean;
   universitySchool: string;
   universityDepartment: string;
