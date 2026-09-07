@@ -105,6 +105,7 @@ export const demoState: WorkspaceState = {
     { id: "00000000-0000-4000-8000-000000000702", term: "exposure", meaning: "Bir varlığın erişilebilir veya risk altında olması", example: "The service exposure increased the attack surface." },
   ],
   coachMessages: [],
+  coachSessionArchives: [],
   resources: initialResources,
   resourceHistory: [],
   sourceLocks: initialSourceLocks,
@@ -118,7 +119,7 @@ export const demoState: WorkspaceState = {
     pendingActions: [],
     actionHistory: [],
     archives: [],
-    preferences: { dailyReminderEnabled: true, weeklyReviewReminderEnabled: true, dailyAiLimit: 20, aiUsage: { date: "", count: 0 } },
+    preferences: { dailyReminderEnabled: true, weeklyReviewReminderEnabled: true, dailyAiLimit: 20, aiUsage: { date: "", count: 0 }, clearChatOnClose: true },
   },
   portfolio: [], jobs: [], applications: [], interviews: [],
 };

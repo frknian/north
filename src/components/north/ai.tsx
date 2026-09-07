@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   Bot,
@@ -8,14 +9,17 @@ import {
   Check,
   Clock,
   HelpCircle,
+  History,
   Lightbulb,
   LoaderCircle,
   Minimize2,
   Plus,
+  RotateCcw,
   Send,
   Sparkles,
   Target,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import { MessageResponse } from "@/components/ai-elements/message";
@@ -36,6 +40,43 @@ export function NorthAI({ taskId, embedded = false }: { taskId?: string; embedde
   const [applied, setApplied] = useState<number[]>([]);
   const [help, setHelp] = useState("2");
   const currentTask = state.tasks.find((t) => t.id === taskId);
+
+  // Archive and reset chat on close/open if enabled in settings
+  const messagesRef = useRef(workspace.coachMessages);
+  const preferencesRef = useRef(workspace.coaching.preferences);
+  const archiveSessionRef = useRef(workspace.archiveCurrentCoachSession);
+
+  useEffect(() => {
+    messagesRef.current = workspace.coachMessages;
+    preferencesRef.current = workspace.coaching.preferences;
+    archiveSessionRef.current = workspace.archiveCurrentCoachSession;
+  }, [workspace.coachMessages, workspace.coaching.preferences, workspace.archiveCurrentCoachSession]);
+
+  useEffect(() => {
+    // When North AI opens: if clearChatOnClose is enabled, archive previous session so the screen starts clean
+    const shouldClear = preferencesRef.current.clearChatOnClose !== false;
+    if (shouldClear && messagesRef.current.length > 0) {
+      archiveSessionRef.current();
+    }
+
+    return () => {
+      // When leaving North AI (closing screen): archive current messages so they are preserved in Settings!
+      const shouldClearOnExit = preferencesRef.current.clearChatOnClose !== false;
+      if (shouldClearOnExit && messagesRef.current.length > 0) {
+        archiveSessionRef.current();
+      }
+    };
+  }, []);
+
+  function handleStartNewChat() {
+    if (workspace.coachMessages.length > 0) {
+      workspace.archiveCurrentCoachSession();
+      toast.success("Önceki konuşma Ayarlar'a kaydedildi. Yeni sohbet başlatıldı.");
+    }
+    setAnswer(null);
+    setError("");
+    setApplied([]);
+  }
 
   async function ask(customPrompt?: string) {
     const promptToSend = (customPrompt || question).trim();
@@ -220,15 +261,44 @@ export function NorthAI({ taskId, embedded = false }: { taskId?: string; embedde
 
       {/* CONVERSATION CONTAINER */}
       <div className="rounded-2xl border bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b px-5 py-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <span className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
               <Bot className="size-4" />
             </span>
             <div>
               <h3 className="text-xs font-semibold text-foreground">North Sohbet Akışı</h3>
-              <p className="text-[11px] text-muted-foreground">Sade, kişiye özel ve eyleme dönüştürülebilir koçluk.</p>
+              <p className="text-[11px] text-muted-foreground">
+                Sade, kişiye özel ve eyleme dönüştürülebilir koçluk.
+              </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={handleStartNewChat}
+              disabled={workspace.coachMessages.length === 0}
+              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              title="Mevcut konuşmayı Ayarlar'a kaydeder ve yeni temiz bir sohbet başlatır"
+            >
+              <RotateCcw className="size-3" />
+              <span>Yeni Sohbet</span>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              asChild
+              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Link href="/profile?tab=memory" title="Geçmiş sohbetleri ve AI ayarlarını incele">
+                <History className="size-3" />
+                <span>Geçmiş (Ayarlar)</span>
+              </Link>
+            </Button>
           </div>
         </div>
 

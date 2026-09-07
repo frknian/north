@@ -5,7 +5,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { BookOpenText, Bot, Brain, CircleHelp, Languages, LogOut, Plus, ShieldCheck, Sparkles, Target, Trash2, UserRound } from "lucide-react";
+import {
+  BookOpenText,
+  Bot,
+  Brain,
+  ChevronDown,
+  ChevronUp,
+  CircleHelp,
+  History,
+  Languages,
+  LogOut,
+  MessageSquare,
+  Plus,
+  RotateCcw,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserGuide } from "@/components/features/user-guide";
@@ -24,6 +42,16 @@ import type { AgeRange, FeedbackMemoryItem, LearningPreferences, LifeSituation, 
 export default function ProfilePage() {
   const router = useRouter();
   const workspace = useWorkspace();
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined") {
+      const tabParam = new URLSearchParams(window.location.search).get("tab");
+      if (tabParam && ["profile", "memory", "notes", "terms", "guide"].includes(tabParam)) {
+        return tabParam;
+      }
+    }
+    return "profile";
+  });
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [note, setNote] = useState({ title: "", category: "Genel", content: "" });
   const [vocab, setVocab] = useState({ term: "", meaning: "", example: "" });
   const [memoryDraft, setMemoryDraft] = useState<Partial<FeedbackMemoryItem>>({
@@ -79,10 +107,10 @@ export default function ProfilePage() {
   return <>
     <PageHeader eyebrow="Sistem ayarları" title="Profil ve koçluk tercihleri" description="Yaşam durumunu, öğrenme tercihlerini ve North AI hafızasını yönet." />
     <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
-      <Tabs defaultValue="profile">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-5 grid h-auto w-full grid-cols-2 sm:grid-cols-5">
           <TabsTrigger value="profile"><UserRound />Profil</TabsTrigger>
-          <TabsTrigger value="memory"><Brain />AI Hafızası</TabsTrigger>
+          <TabsTrigger value="memory"><Brain />AI Hafızası & Sohbet</TabsTrigger>
           <TabsTrigger value="notes"><BookOpenText />Notlar</TabsTrigger>
           <TabsTrigger value="terms"><Languages />Terimler</TabsTrigger>
           <TabsTrigger value="guide"><CircleHelp />Kılavuz</TabsTrigger>
@@ -204,103 +232,289 @@ export default function ProfilePage() {
           </div>
         </TabsContent>
 
-        {/* FEEDBACK MEMORY TAB */}
+        {/* FEEDBACK MEMORY & CHAT ARCHIVE TAB */}
         <TabsContent value="memory">
-          <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
+          <div className="space-y-6">
+            {/* CHAT SESSION PREFERENCES */}
             <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Brain className="size-5 text-primary" />
-                  <CardTitle>North AI Geri Bildirim Hafızası</CardTitle>
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <RotateCcw className="size-5 text-primary" />
+                    <CardTitle className="text-base">North AI Sohbet ve Oturum Ayarı</CardTitle>
+                  </div>
+                  <Badge variant={workspace.coaching.preferences.clearChatOnClose !== false ? "default" : "secondary"}>
+                    {workspace.coaching.preferences.clearChatOnClose !== false
+                      ? "Kapatıldığında Temizle & Kaydet: Aktif"
+                      : "Sohbeti Ekranda Tut: Aktif"}
+                  </Badge>
                 </div>
                 <CardDescription>
-                  Çalışmalarında &quot;bu kaynak zor&quot;, &quot;akşam çalışamıyorum&quot;, &quot;video istemiyorum&quot; gibi belirttiğin sinyaller burada kurallara dönüşür. İstediklerini açabilir, düzenleyebilir veya silebilirsin.
+                  North AI ekranını kapattığında veya başka sayfaya geçtiğinde eski konuşmanın nasıl yönetileceğini belirle.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  {(workspace.feedbackMemory ?? []).map((item) => (
-                    <div key={item.id} className="flex items-start justify-between gap-3 rounded-xl border p-3.5 text-xs">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={item.enabled ? "default" : "outline"} className="text-[10px]">
-                            {item.category === "schedule_time" ? "Zamanlama" : item.category === "difficulty" ? "Zorluk" : item.category === "format" ? "Format" : item.category === "resource" ? "Kaynak" : "Genel"}
-                          </Badge>
-                          <span className="font-medium text-foreground">{item.rule}</span>
-                        </div>
-                        <p className="text-muted-foreground">Sinyal: &ldquo;{item.signal}&rdquo;</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          size="xs"
-                          variant={item.enabled ? "outline" : "secondary"}
-                          onClick={() => workspace.updateFeedbackMemory(item.id, { enabled: !item.enabled })}
-                        >
-                          {item.enabled ? "Devre Dışı Bırak" : "Etkinleştir"}
-                        </Button>
-                        <Button
-                          size="icon-xs"
-                          variant="ghost"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => {
-                            workspace.deleteFeedbackMemory(item.id);
-                            toast.success("Kural hafızadan silindi.");
-                          }}
-                        >
-                          <Trash2 className="size-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {(!workspace.feedbackMemory || workspace.feedbackMemory.length === 0) && (
-                    <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
-                      <Sparkles className="mx-auto mb-2 size-5 text-muted-foreground" />
-                      Henüz kayıtlı bir AI geri bildirim kuralı yok. North ile konuştukça veya aşağıdan kendin ekledikçe burada listelenir.
-                    </div>
-                  )}
+              <CardContent>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border bg-muted/20 p-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-foreground">
+                      Kapatıp açtığımda eski konuşma silinsin, ayarlarda kaydedilsin
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {workspace.coaching.preferences.clearChatOnClose !== false
+                        ? "Aktif: North AI her açılışta temiz başlar. Önceki tüm konuşmaların kaybolmaması için aşağıdaki 'Geçmiş Sohbetler' arşivine otomatik kaydedilir."
+                        : "Pasif: North AI ekranı kapatılsa bile eski konuşmalar ekranda kalır."}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={workspace.coaching.preferences.clearChatOnClose !== false ? "outline" : "default"}
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => {
+                      const next = !(workspace.coaching.preferences.clearChatOnClose !== false);
+                      workspace.updateCoachingPreferences({ clearChatOnClose: next });
+                      toast.success(
+                        next
+                          ? "North AI kapatıldığında ekranın temizlenmesi ve Ayarlar'a kaydedilmesi aktif edildi."
+                          : "Eski konuşmaların ekranda tutulması seçildi."
+                      );
+                    }}
+                  >
+                    {workspace.coaching.preferences.clearChatOnClose !== false
+                      ? "Devre Dışı Bırak"
+                      : "Etkinleştir (Önerilen)"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* ADD MANUAL FEEDBACK RULE */}
+            {/* ARCHIVED CHAT SESSIONS */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Kendi Kuralını Ekle</CardTitle>
-                <CardDescription>North AI plan yaparken bu kuralları daima dikkate alır.</CardDescription>
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <History className="size-5 text-primary" />
+                    <div>
+                      <CardTitle className="text-base">Kaydedilen Geçmiş Sohbetler</CardTitle>
+                      <CardDescription>
+                        North AI ile yaptığın tüm önceki görüşmeler burada güvenle saklanır.
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      {(workspace.coachSessionArchives ?? []).length} Oturum
+                    </Badge>
+                    {(workspace.coachSessionArchives ?? []).length > 0 && (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className="text-xs text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          workspace.clearAllCoachArchives();
+                          toast.success("Tüm geçmiş sohbet arşivi temizlendi.");
+                        }}
+                      >
+                        <Trash2 className="size-3 mr-1" />
+                        Tümünü Temizle
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Field label="Kategori">
-                  <Select value={memoryDraft.category} onValueChange={(val: FeedbackMemoryItem["category"]) => setMemoryDraft({ ...memoryDraft, category: val })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="schedule_time">Zamanlama / Saat</SelectItem>
-                      <SelectItem value="format">Format / İçerik türü</SelectItem>
-                      <SelectItem value="difficulty">Zorluk derecesi</SelectItem>
-                      <SelectItem value="resource">Kaynak tercihi</SelectItem>
-                      <SelectItem value="energy">Enerji seviyesi</SelectItem>
-                      <SelectItem value="other">Diğer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Kullanıcı Sinyali">
-                  <Input
-                    value={memoryDraft.signal}
-                    onChange={(e) => setMemoryDraft({ ...memoryDraft, signal: e.target.value })}
-                    placeholder="Örn: Akşam saat 21:00 sonrası odaklanamıyorum"
-                  />
-                </Field>
-                <Field label="North AI Kuralı">
-                  <Input
-                    value={memoryDraft.rule}
-                    onChange={(e) => setMemoryDraft({ ...memoryDraft, rule: e.target.value })}
-                    placeholder="Örn: Akşam 21:00 sonrasına derin çalışma koyma, hafif tekrar ver"
-                  />
-                </Field>
-                <Button className="w-full" onClick={saveMemory} disabled={!memoryDraft.signal?.trim() || !memoryDraft.rule?.trim()}>
-                  <Plus className="size-3.5" /> Kuralı Hafızaya Ekle
-                </Button>
+              <CardContent className="space-y-3">
+                {(workspace.coachSessionArchives ?? []).length ? (
+                  (workspace.coachSessionArchives ?? []).map((session) => {
+                    const isExpanded = expandedSessionId === session.id;
+                    const dateFormatted = new Date(session.startedAt).toLocaleDateString("tr-TR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+                    return (
+                      <div key={session.id} className="rounded-xl border bg-card transition-all">
+                        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 text-xs">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="size-3.5 text-primary" />
+                              <span className="font-semibold text-foreground">{session.topic}</span>
+                              <Badge variant="secondary" className="text-[10px]">
+                                {session.messages.length} mesaj
+                              </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">{dateFormatted}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="size-3 mr-1" /> Gizle
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="size-3 mr-1" /> Konuşmayı Gör
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="icon-xs"
+                              variant="ghost"
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                workspace.deleteCoachSessionArchive(session.id);
+                                toast.success("Sohbet kaydı silindi.");
+                              }}
+                              title="Bu sohbeti sil"
+                            >
+                              <Trash2 className="size-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="border-t bg-muted/10 p-4 space-y-3 max-h-96 overflow-y-auto rounded-b-xl">
+                            {session.messages.map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`flex flex-col text-xs rounded-xl p-3 ${
+                                  msg.role === "user"
+                                    ? "bg-primary/10 border border-primary/20 ml-4 sm:ml-8"
+                                    : "bg-background border mr-4 sm:mr-8"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                                  <span className="font-semibold text-foreground">
+                                    {msg.role === "user" ? "Sen" : "North AI"}
+                                  </span>
+                                  <span>
+                                    {new Date(msg.createdAt).toLocaleTimeString("tr-TR", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+                                <p className="whitespace-pre-wrap leading-relaxed text-foreground">
+                                  {msg.content}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
+                    <History className="mx-auto mb-2 size-5 text-muted-foreground" />
+                    Henüz kaydedilmiş bir geçmiş sohbet yok. North AI ekranını kapattığında konuşmaların otomatik olarak buraya arşivlenir.
+                  </div>
+                )}
               </CardContent>
             </Card>
+
+            {/* FEEDBACK RULES SECTION */}
+            <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Brain className="size-5 text-primary" />
+                    <CardTitle>North AI Geri Bildirim Hafızası</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Çalışmalarında &quot;bu kaynak zor&quot;, &quot;akşam çalışamıyorum&quot;, &quot;video istemiyorum&quot; gibi belirttiğin sinyaller burada kurallara dönüşür. İstediklerini açabilir, düzenleyebilir veya silebilirsin.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {(workspace.feedbackMemory ?? []).map((item) => (
+                      <div key={item.id} className="flex items-start justify-between gap-3 rounded-xl border p-3.5 text-xs">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={item.enabled ? "default" : "outline"} className="text-[10px]">
+                              {item.category === "schedule_time" ? "Zamanlama" : item.category === "difficulty" ? "Zorluk" : item.category === "format" ? "Format" : item.category === "resource" ? "Kaynak" : "Genel"}
+                            </Badge>
+                            <span className="font-medium text-foreground">{item.rule}</span>
+                          </div>
+                          <p className="text-muted-foreground">Sinyal: &ldquo;{item.signal}&rdquo;</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            size="xs"
+                            variant={item.enabled ? "outline" : "secondary"}
+                            onClick={() => workspace.updateFeedbackMemory(item.id, { enabled: !item.enabled })}
+                          >
+                            {item.enabled ? "Devre Dışı Bırak" : "Etkinleştir"}
+                          </Button>
+                          <Button
+                            size="icon-xs"
+                            variant="ghost"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => {
+                              workspace.deleteFeedbackMemory(item.id);
+                              toast.success("Kural hafızadan silindi.");
+                            }}
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {(!workspace.feedbackMemory || workspace.feedbackMemory.length === 0) && (
+                      <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
+                        <Sparkles className="mx-auto mb-2 size-5 text-muted-foreground" />
+                        Henüz kayıtlı bir AI geri bildirim kuralı yok. North ile konuştukça veya aşağıdan kendin ekledikçe burada listelenir.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* ADD MANUAL FEEDBACK RULE */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Kendi Kuralını Ekle</CardTitle>
+                  <CardDescription>North AI plan yaparken bu kuralları daima dikkate alır.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Field label="Kategori">
+                    <Select value={memoryDraft.category} onValueChange={(val: FeedbackMemoryItem["category"]) => setMemoryDraft({ ...memoryDraft, category: val })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="schedule_time">Zamanlama / Saat</SelectItem>
+                        <SelectItem value="format">Format / İçerik türü</SelectItem>
+                        <SelectItem value="difficulty">Zorluk derecesi</SelectItem>
+                        <SelectItem value="resource">Kaynak tercihi</SelectItem>
+                        <SelectItem value="energy">Enerji seviyesi</SelectItem>
+                        <SelectItem value="other">Diğer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Kullanıcı Sinyali">
+                    <Input
+                      value={memoryDraft.signal}
+                      onChange={(e) => setMemoryDraft({ ...memoryDraft, signal: e.target.value })}
+                      placeholder="Örn: Akşam saat 21:00 sonrası odaklanamıyorum"
+                    />
+                  </Field>
+                  <Field label="North AI Kuralı">
+                    <Input
+                      value={memoryDraft.rule}
+                      onChange={(e) => setMemoryDraft({ ...memoryDraft, rule: e.target.value })}
+                      placeholder="Örn: Akşam 21:00 sonrasına derin çalışma koyma, hafif tekrar ver"
+                    />
+                  </Field>
+                  <Button className="w-full" onClick={saveMemory} disabled={!memoryDraft.signal?.trim() || !memoryDraft.rule?.trim()}>
+                    <Plus className="size-3.5" /> Kuralı Hafızaya Ekle
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 

@@ -404,11 +404,20 @@ export interface ProgressArchive {
   coachMessages: number;
 }
 
+export interface CoachSessionArchive {
+  id: string;
+  startedAt: string;
+  endedAt?: string;
+  topic: string;
+  messages: CoachMessage[];
+}
+
 export interface CoachingPreferences {
   dailyReminderEnabled: boolean;
   weeklyReviewReminderEnabled: boolean;
   dailyAiLimit: number;
   aiUsage: { date: string; count: number };
+  clearChatOnClose?: boolean;
 }
 
 export interface CoachingState {
@@ -442,6 +451,7 @@ export interface WorkspaceState {
   reports: Report[];
   vocabulary: VocabularyItem[];
   coachMessages: CoachMessage[];
+  coachSessionArchives?: CoachSessionArchive[];
   resources: Resource[];
   resourceHistory: ResourceUsage[];
   sourceLocks: Record<string, string>;

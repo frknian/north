@@ -63,6 +63,10 @@ interface WorkspaceContextValue extends WorkspaceState {
   addTrialExam: (examProfileId: string, trial: import("@/lib/types").TrialExam) => void;
   deleteTrialExam: (examProfileId: string, trialId: string) => void;
   addCustomMetricEntry: (entry: import("@/lib/types").CustomMetricEntry) => void;
+  archiveCurrentCoachSession: (topic?: string) => void;
+  clearCoachMessages: () => void;
+  deleteCoachSessionArchive: (id: string) => void;
+  clearAllCoachArchives: () => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -73,6 +77,7 @@ function normalizeState(saved: Partial<WorkspaceState>): WorkspaceState {
     ...saved,
     certifications: saved.certifications ?? [],
     coachMessages: saved.coachMessages ?? [],
+    coachSessionArchives: saved.coachSessionArchives ?? [],
     resources: saved.resources ?? demoState.resources,
     resourceHistory: saved.resourceHistory ?? [],
     sourceLocks: saved.sourceLocks ?? demoState.sourceLocks,
@@ -84,7 +89,7 @@ function normalizeState(saved: Partial<WorkspaceState>): WorkspaceState {
       pendingActions: saved.coaching?.pendingActions ?? [],
       actionHistory: saved.coaching?.actionHistory ?? [],
       archives: saved.coaching?.archives ?? [],
-      preferences: { ...demoState.coaching.preferences, ...saved.coaching?.preferences },
+      preferences: { clearChatOnClose: true, ...demoState.coaching.preferences, ...saved.coaching?.preferences },
     },
     portfolio: saved.portfolio ?? [], jobs: saved.jobs ?? [], applications: saved.applications ?? [], interviews: saved.interviews ?? [],
     feedbackMemory: saved.feedbackMemory ?? [],
@@ -328,6 +333,48 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       examProfiles: (current.examProfiles ?? []).map((p) => (p.id === examProfileId ? { ...p, trials: p.trials.filter((t) => t.id !== trialId) } : p)),
     })),
     addCustomMetricEntry: (entry) => mutate((current) => ({ ...current, customMetricEntries: [entry, ...(current.customMetricEntries ?? [])] })),
+    archiveCurrentCoachSession: (topic?: string) => mutate((current) => {
+      if (!current.coachMessages || current.coachMessages.length === 0) return current;
+      const firstUserMsg = current.coachMessages.find((m) => m.role === "user");
+      const autoTopic = topic || (firstUserMsg ? (firstUserMsg.content.length > 60 ? firstUserMsg.content.slice(0, 60) + "..." : firstUserMsg.content) : "North AI Oturumu");
+      const archive: import("@/lib/types").CoachSessionArchive = {
+        id: crypto.randomUUID(),
+        startedAt: current.coachMessages[0].createdAt || new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        topic: autoTopic,
+        messages: [...current.coachMessages],
+      };
+      return {
+        ...current,
+        coachMessages: [],
+        coachSessionArchives: [archive, ...(current.coachSessionArchives ?? [])],
+      };
+    }),
+    clearCoachMessages: () => mutate((current) => {
+      if (!current.coachMessages || current.coachMessages.length === 0) return current;
+      const firstUserMsg = current.coachMessages.find((m) => m.role === "user");
+      const autoTopic = firstUserMsg ? (firstUserMsg.content.length > 60 ? firstUserMsg.content.slice(0, 60) + "..." : firstUserMsg.content) : "North AI Oturumu";
+      const archive: import("@/lib/types").CoachSessionArchive = {
+        id: crypto.randomUUID(),
+        startedAt: current.coachMessages[0].createdAt || new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        topic: autoTopic,
+        messages: [...current.coachMessages],
+      };
+      return {
+        ...current,
+        coachMessages: [],
+        coachSessionArchives: [archive, ...(current.coachSessionArchives ?? [])],
+      };
+    }),
+    deleteCoachSessionArchive: (id) => mutate((current) => ({
+      ...current,
+      coachSessionArchives: (current.coachSessionArchives ?? []).filter((a) => a.id !== id),
+    })),
+    clearAllCoachArchives: () => mutate((current) => ({
+      ...current,
+      coachSessionArchives: [],
+    })),
   }), [authStatus, mutate, ready, state, syncMode, userEmail]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
