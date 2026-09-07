@@ -1,12 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
+import { NorthLogo } from "@/components/layout/north-logo";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function KvkkPage() {
   return <main className="mx-auto min-h-dvh w-full max-w-3xl px-4 py-10 sm:py-14">
     <Link href="/login" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Kayıt ekranına dön</Link>
-    <div className="mb-6 flex items-center gap-3"><Image src="/north-mark.png" alt="North" width={44} height={44} className="rounded-xl bg-white p-1" priority /><div><p className="font-semibold">North</p><p className="text-xs text-muted-foreground">KVKK bilgilendirmesi</p></div></div>
+    <div className="mb-6 flex items-center gap-3"><NorthLogo size={44} priority /><div><p className="font-semibold">North</p><p className="text-xs text-muted-foreground">KVKK bilgilendirmesi</p></div></div>
     <Card><CardHeader><CardTitle>KVKK Aydınlatma Metni</CardTitle><CardDescription>Sürüm: 6 Eylül 2026</CardDescription></CardHeader><CardContent className="space-y-7 text-sm leading-6 text-muted-foreground">
       <section><h2 className="mb-2 text-base font-semibold text-foreground">1. İşlenen veriler</h2><p>North; hesap oluştururken kullanıcı adı, e-posta adresi, Firebase kullanıcı kimliği ve oturum sağlayıcısını işler. Uygulamayı kullandığında hedeflerin, değerlendirme yanıtların ve sonuçların, çalışma planların, görevlerin, odak kayıtların, beceri ve kanıtların, notların ve koç görüşmelerin hesabına bağlı olarak saklanabilir.</p></section>
       <section><h2 className="mb-2 text-base font-semibold text-foreground">2. İşleme amaçları ve hukuki sebep</h2><p>Bu veriler hesabı oluşturmak ve güvenli oturum açmayı sağlamak, ilerlemeyi cihazlar arasında eşitlemek, kişiselleştirilmiş plan ve analiz üretmek, AI koç özelliklerini sunmak ve hizmet güvenliğini korumak amacıyla işlenir. Hesap ve temel çalışma alanı verileri hizmetin kurulması ve ifası kapsamında işlenir.</p></section>

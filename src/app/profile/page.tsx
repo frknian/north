@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { NorthLogo } from "@/components/layout/north-logo";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import {
@@ -212,7 +213,7 @@ export default function ProfilePage() {
 
             <div className="space-y-5">
               <Card>
-                <CardHeader><div className="flex items-center gap-3"><Image src="/north-mark.png" alt="" width={36} height={36} className="rounded-lg bg-white p-1" /><div><CardTitle>Yön özeti</CardTitle><CardDescription>North’un planlama sırasında kullandığı bağlam.</CardDescription></div></div></CardHeader>
+                <CardHeader><div className="flex items-center gap-3"><NorthLogo size={36} /><div><CardTitle>Yön özeti</CardTitle><CardDescription>North’un planlama sırasında kullandığı bağlam.</CardDescription></div></div></CardHeader>
                 <CardContent className="space-y-4">
                   <Direction label="Yaş &amp; Durum" value={`${workspace.profile.ageRange ?? "Belirtilmedi"} · ${workspace.profile.lifeSituation ?? "Belirtilmedi"}`} />
                   <Direction label="Kategori" value={workspace.profile.track || "Belirtilmedi"} />

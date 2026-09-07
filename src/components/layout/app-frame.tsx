@@ -11,6 +11,7 @@ import { isFirebaseConfigured } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { NorthLogo } from "@/components/layout/north-logo";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
@@ -64,12 +65,12 @@ export function AppFrame({children}:{children:React.ReactNode}) {
     if(workspace.authStatus==="signed_in"&&workspace.coaching.onboarding&&pathname==="/onboarding")router.replace("/");
   },[pathname,router,workspace.authStatus,workspace.coaching.onboarding,workspace.ready]);
   if(pathname.startsWith("/login")||pathname.startsWith("/auth")||pathname.startsWith("/account-reset")||pathname.startsWith("/kvkk")||pathname==="/onboarding"||pathname.startsWith("/focus/"))return <div className="north-route">{children}</div>;
-  if(isFirebaseConfigured()&&(!workspace.ready||workspace.authStatus!=="signed_in"||!workspace.coaching.onboarding))return <main className="grid min-h-dvh place-items-center px-6 text-center"><div><Image src="/north-mark.png" alt="" width={48} height={48} className="mx-auto mb-4 rounded-xl bg-white p-1"/><p className="text-sm text-muted-foreground">North hazırlanıyor…</p></div></main>;
+  if(isFirebaseConfigured()&&(!workspace.ready||workspace.authStatus!=="signed_in"||!workspace.coaching.onboarding))return <main className="grid min-h-dvh place-items-center px-6 text-center"><div><NorthLogo size={48} className="mx-auto mb-4"/><p className="text-sm text-muted-foreground">North hazırlanıyor…</p></div></main>;
   return <div className="north-shell min-h-dvh">
     <a className="skip-link" href="#north-content">İçeriğe geç</a>
     <header className={cn("north-topbar",scrolled&&"is-scrolled")}>
       <div className="north-topbar-inner">
-        <Link href="/" aria-label="North — Bugün" className="north-brand"><Image src="/north-mark.png" alt="" width={36} height={36} className="rounded-lg bg-white p-1" priority/><span>North</span></Link>
+        <Link href="/" aria-label="North — Bugün" className="north-brand"><NorthLogo size={34} priority/><span>North</span></Link>
         <TopNavigation pathname={pathname}/>
         <div className="north-tools"><WorkspaceSearch/><ThemeToggle/><Link href="/data" className="north-profile" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link><Link href="/profile" className="north-profile" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link></div>
       </div>
