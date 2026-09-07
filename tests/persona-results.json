@@ -7,6 +7,7 @@
     "status": "PASS",
     "checks": [
       "Exam template verified: yks_tyt",
+      "Adaptive test: 0/3 score, 3 deficiency areas identified",
       "5-Phase Plan: 1 to 24 weeks generated successfully",
       "Calendar allocation: 0 görev uygun boşluğa yerleştirildi",
       "Rescheduling: Shrink, Pool, Postpone, Drop verified (no debt)",
@@ -15,12 +16,18 @@
     ],
     "domainId": "yks_tyt",
     "domainName": "YKS_TYT",
+    "assessmentScore": "0 / 3",
+    "deficiencies": [
+      "Sınav Stratejisi & Turlama Tekniği",
+      "Yanlış Defteri ve Hata Analizi",
+      "Aralıklı Tekrar & Kalıcı Hafıza"
+    ],
     "periodPlanPhases": [
-      "4. Hafta: 1. Aşama: Başlangıç ve Temel Harita",
-      "8. Hafta: 2. Aşama: Ara Kontrol ve İlk Çıktı",
-      "16. Hafta: 3. Aşama: Yoğun Uygulama ve Derin Odak",
-      "20. Hafta: 4. Aşama: Tekrar ve Pekiştirme",
-      "24. Hafta: 5. Aşama: Final Kanıt ve Portföy"
+      "4. Hafta: 1. Aşama: Başlangıç ve Konu Haritası",
+      "8. Hafta: 2. Aşama: Ara Kontrol ve Branş Denemeleri",
+      "16. Hafta: 3. Aşama: Yoğun Soru Çözümü ve Derin Odak",
+      "20. Hafta: 4. Aşama: Deneme Sınavları ve Yanlış Analizi",
+      "24. Hafta: 5. Aşama: Final Net Hedefi ve Sınav Provası"
     ],
     "examEstScore": 384.7
   },
@@ -45,11 +52,11 @@
       "Oyun Kuralları & Şah Güvenliği"
     ],
     "periodPlanPhases": [
-      "2. Hafta: 1. Aşama: Başlangıç ve Temel Harita",
-      "6. Hafta: 2. Aşama: Ara Kontrol ve İlk Çıktı",
-      "10. Hafta: 3. Aşama: Yoğun Uygulama ve Derin Odak",
-      "14. Hafta: 4. Aşama: Tekrar ve Pekiştirme",
-      "16. Hafta: 5. Aşama: Final Kanıt ve Portföy"
+      "2. Hafta: 1. Aşama: Başlangıç ve Taktik Harita",
+      "6. Hafta: 2. Aşama: Ara Kontrol ve Parti Analizleri",
+      "10. Hafta: 3. Aşama: Yoğun Taktik ve Oyun Sonu Tekniği",
+      "14. Hafta: 4. Aşama: Taktik Tekrar ve Süreli Çözüm",
+      "16. Hafta: 5. Aşama: Hedef Elo ve Final Portföyü"
     ]
   },
   {
@@ -269,11 +276,11 @@
       "Responsive Mobil Arayüz"
     ],
     "periodPlanPhases": [
-      "2. Hafta: 1. Aşama: Başlangıç ve Temel Harita",
-      "4. Hafta: 2. Aşama: Ara Kontrol ve İlk Çıktı",
-      "8. Hafta: 3. Aşama: Yoğun Uygulama ve Derin Odak",
-      "10. Hafta: 4. Aşama: Tekrar ve Pekiştirme",
-      "12. Hafta: 5. Aşama: Final Kanıt ve Portföy"
+      "2. Hafta: 1. Aşama: Başlangıç ve Taktik Harita",
+      "4. Hafta: 2. Aşama: Ara Kontrol ve Parti Analizleri",
+      "8. Hafta: 3. Aşama: Yoğun Taktik ve Oyun Sonu Tekniği",
+      "10. Hafta: 4. Aşama: Taktik Tekrar ve Süreli Çözüm",
+      "12. Hafta: 5. Aşama: Hedef Elo ve Final Portföyü"
     ]
   },
   {
@@ -284,6 +291,7 @@
     "status": "PASS",
     "checks": [
       "Exam template verified: banking",
+      "Adaptive test: 0/3 score, 3 deficiency areas identified",
       "5-Phase Plan: 1 to 12 weeks generated successfully",
       "Calendar protection: 540 dk bloklu günde aşırı yükleme önlendi (0 görev atandı)",
       "Rescheduling: Shrink, Pool, Postpone, Drop verified (no debt)",
@@ -292,12 +300,18 @@
     ],
     "domainId": "banking",
     "domainName": "BANKING",
+    "assessmentScore": "0 / 3",
+    "deficiencies": [
+      "Sermaye Yeterliliği & Basel İlkeleri",
+      "Kredi Riski ve Varlık Kalitesi",
+      "Banka Muhasebesi Standartları"
+    ],
     "periodPlanPhases": [
-      "2. Hafta: 1. Aşama: Başlangıç ve Temel Harita",
-      "4. Hafta: 2. Aşama: Ara Kontrol ve İlk Çıktı",
-      "8. Hafta: 3. Aşama: Yoğun Uygulama ve Derin Odak",
-      "10. Hafta: 4. Aşama: Tekrar ve Pekiştirme",
-      "12. Hafta: 5. Aşama: Final Kanıt ve Portföy"
+      "2. Hafta: 1. Aşama: Başlangıç ve Konu Haritası",
+      "4. Hafta: 2. Aşama: Ara Kontrol ve Branş Denemeleri",
+      "8. Hafta: 3. Aşama: Yoğun Soru Çözümü ve Derin Odak",
+      "10. Hafta: 4. Aşama: Deneme Sınavları ve Yanlış Analizi",
+      "12. Hafta: 5. Aşama: Final Net Hedefi ve Sınav Provası"
     ],
     "examEstScore": 69.6
   },
@@ -309,6 +323,7 @@
     "status": "PASS",
     "checks": [
       "Exam template verified: kpss",
+      "Adaptive test: 0/3 score, 3 deficiency areas identified",
       "5-Phase Plan: 1 to 16 weeks generated successfully",
       "Calendar allocation: 0 görev uygun boşluğa yerleştirildi",
       "Rescheduling: Shrink, Pool, Postpone, Drop verified (no debt)",
@@ -317,12 +332,18 @@
     ],
     "domainId": "kpss",
     "domainName": "KPSS",
+    "assessmentScore": "0 / 3",
+    "deficiencies": [
+      "Sözel Mantık Tablolama",
+      "Anayasa Hukuku & Yasama/Yürütme/Yargı",
+      "Tarihsel Kronoloji & Neden-Sonuç"
+    ],
     "periodPlanPhases": [
-      "2. Hafta: 1. Aşama: Başlangıç ve Temel Harita",
-      "6. Hafta: 2. Aşama: Ara Kontrol ve İlk Çıktı",
-      "10. Hafta: 3. Aşama: Yoğun Uygulama ve Derin Odak",
-      "14. Hafta: 4. Aşama: Tekrar ve Pekiştirme",
-      "16. Hafta: 5. Aşama: Final Kanıt ve Portföy"
+      "2. Hafta: 1. Aşama: Başlangıç ve Konu Haritası",
+      "6. Hafta: 2. Aşama: Ara Kontrol ve Branş Denemeleri",
+      "10. Hafta: 3. Aşama: Yoğun Soru Çözümü ve Derin Odak",
+      "14. Hafta: 4. Aşama: Deneme Sınavları ve Yanlış Analizi",
+      "16. Hafta: 5. Aşama: Final Net Hedefi ve Sınav Provası"
     ],
     "examEstScore": 81.6
   },

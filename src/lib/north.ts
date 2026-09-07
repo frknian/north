@@ -75,7 +75,7 @@ export interface AreaRecord { id:string;areaId:string;module:string;title:string
 export const areaModules: Record<AreaKind, {name:string;fields:{key:string;label:string;type:"text"|"number"|"date"}[]}[]> = {
   math:[{name:"Dersler",fields:[{key:"exam",label:"Sınav tarihi",type:"date"}]},{name:"Konular",fields:[{key:"solved",label:"Çözülen problem",type:"number"},{key:"correct",label:"Doğru çözüm",type:"number"},{key:"revision",label:"Tekrar tarihi",type:"date"}]}],
   reading:[{name:"Kitaplar",fields:[{key:"pages",label:"Okunan sayfa",type:"number"},{key:"total",label:"Toplam sayfa",type:"number"}]}],
-  chess:[{name:"Oyunlar",fields:[{key:"opening",label:"Açılış",type:"text"},{key:"rating",label:"Oyun sonrası puan",type:"number"},{key:"blunders",label:"Büyük hata sayısı",type:"number"},{key:"result",label:"Sonuç (galibiyet / beraberlik / yenilgi)",type:"text"}]},{name:"Taktikler",fields:[{key:"attempts",label:"Deneme",type:"number"},{key:"correct",label:"Doğru",type:"number"}]}],
+  chess:[{name:"Oyunlar",fields:[{key:"opening",label:"Açılış",type:"text"},{key:"rating",label:"Oyun sonrası puan",type:"number"},{key:"blunders",label:"Büyük hata sayısı",type:"number"},{key:"result",label:"Sonuç (galibiyet / beraberlik / yenilgi)",type:"text"}]},{name:"Taktikler",fields:[{key:"attempts",label:"Bulmaca Sayısı",type:"number"},{key:"correct",label:"Doğru",type:"number"}]}],
   projects:[{name:"Çıktılar",fields:[{key:"deadline",label:"Son tarih",type:"date"},{key:"link",label:"Kanıt bağlantısı",type:"text"}]}],
   cyber:[],custom:[{name:"Çalışmalar",fields:[{key:"output",label:"Çıktı",type:"text"}]}],
 };
@@ -469,6 +469,120 @@ export function generatePeriodPlan(targetWeeks: number, primaryGoal: string): im
   const d4 = Math.max(d3 + 7, Math.round(totalDays * 0.85));
   const d5 = totalDays;
 
+  const g = primaryGoal.toLowerCase();
+  const isChess = /satranç|chess|elo/i.test(g);
+  const isExam = /yks|tyt|ayt|kpss|ales|dgs|banka|müfettiş/i.test(g);
+
+  if (isChess) {
+    return [
+      {
+        id: "phase-starter",
+        title: "1. Aşama: Başlangıç ve Taktik Harita",
+        horizonDays: d1,
+        targetWeek: Math.max(1, Math.round(d1 / 7)),
+        phase: "starter",
+        description: `${primaryGoal} için taktik motifleri, temel açılış ilkelerini ve analiz araçlarını (Lichess/Stockfish) belirle.`,
+        successCriteria: ["Taktik çalışma rutini kuruldu", "İlk analiz ve antrenman platformları belirlendi", "En az 3 odaklı taktik oturumu tamamlandı"],
+        status: "active",
+      },
+      {
+        id: "phase-mid-check",
+        title: "2. Aşama: Ara Kontrol ve Parti Analizleri",
+        horizonDays: d2,
+        targetWeek: Math.max(2, Math.round(d2 / 7)),
+        phase: "mid_check",
+        description: "İlk taktik setlerini ve maçları oyna; kaçırılan taktikleri (blunder) ve açılış hatalarını sınıflandır.",
+        successCriteria: ["İlk parti analizleri ve PGN kayıtları tamamlandı", "Sık yapılan hata motifleri belirlendi", "Hesaplama süresi optimize edildi"],
+        status: "upcoming",
+      },
+      {
+        id: "phase-application",
+        title: "3. Aşama: Yoğun Taktik ve Oyun Sonu Tekniği",
+        horizonDays: d3,
+        targetWeek: Math.max(3, Math.round(d3 / 7)),
+        phase: "application",
+        description: "Zorlayıcı taktik bulmacalar, konumsal planlama ve temel oyun sonu prensiplerine odaklan.",
+        successCriteria: ["En az 100 taktik bulmaca veya derin parti analizi tamamlandı", "Haftalık taktik tutarlılığı korundu", "Oyun sonu kural ve motifleri kaydedildi"],
+        status: "upcoming",
+      },
+      {
+        id: "phase-review",
+        title: "4. Aşama: Taktik Tekrar ve Süreli Çözüm",
+        horizonDays: d4,
+        targetWeek: Math.max(4, Math.round(d4 / 7)),
+        phase: "review",
+        description: "Zayıf taktik motifleri aralıklı tekrarla pekiştir, süreli bulmaca ve pratik parti simülasyonları yap.",
+        successCriteria: ["Zayıf taktik motifler tekrar edildi", "Taktik ve parti analiz sonuçları kaydedildi", "Blunder analizi tamamlandı"],
+        status: "upcoming",
+      },
+      {
+        id: "phase-final-proof",
+        title: "5. Aşama: Hedef Elo ve Final Portföyü",
+        horizonDays: d5,
+        targetWeek: weeks,
+        phase: "final_proof",
+        description: `${primaryGoal} hedefini doğrulanabilir bir Lichess/Chess.com rating gelişimi veya analiz portföyü ile tamamla.`,
+        successCriteria: ["Final rating ve analiz kanıtı kaydedildi", "Dönem değerlendirmesi tamamlandı", "Sonraki gelişim rotası belirlendi"],
+        status: "upcoming",
+      },
+    ];
+  }
+
+  if (isExam) {
+    return [
+      {
+        id: "phase-starter",
+        title: "1. Aşama: Başlangıç ve Konu Haritası",
+        horizonDays: d1,
+        targetWeek: Math.max(1, Math.round(d1 / 7)),
+        phase: "starter",
+        description: `${primaryGoal} için sınav müfredatını, eksik konuları ve ilk güvenilir soru kaynaklarını belirle.`,
+        successCriteria: ["Konu ve kazanım haritası çıkarıldı", "İlk teşhis denemesi tamamlandı", "Haftalık soru hedefi belirlendi"],
+        status: "active",
+      },
+      {
+        id: "phase-mid-check",
+        title: "2. Aşama: Ara Kontrol ve Branş Denemeleri",
+        horizonDays: d2,
+        targetWeek: Math.max(2, Math.round(d2 / 7)),
+        phase: "mid_check",
+        description: "İlk branş denemelerini süre baskısıyla çöz, net dağılımını ve kronik yanlışları analiz et.",
+        successCriteria: ["Branş deneme karneleri kaydedildi", "Yanlış defteri oluşturuldu", "Süre yönetimi optimize edildi"],
+        status: "upcoming",
+      },
+      {
+        id: "phase-application",
+        title: "3. Aşama: Yoğun Soru Çözümü ve Derin Odak",
+        horizonDays: d3,
+        targetWeek: Math.max(3, Math.round(d3 / 7)),
+        phase: "application",
+        description: "Eksik alt konularda derinleşerek soru bankalarını tara ve hız kazan.",
+        successCriteria: ["Hedef soru hacmine ulaşıldı", "Aralıksız haftalık çalışma tutarlılığı korundu", "Kritik soru tipleri kavrandı"],
+        status: "upcoming",
+      },
+      {
+        id: "phase-review",
+        title: "4. Aşama: Deneme Sınavları ve Yanlış Analizi",
+        horizonDays: d4,
+        targetWeek: Math.max(4, Math.round(d4 / 7)),
+        phase: "review",
+        description: "Eksik kalan alt konuları aralıklı tekrarla güçlendir, tam süre genel deneme sınavı simülasyonları yap.",
+        successCriteria: ["Zayıf alt konular tekrar edildi", "Deneme sınavı netleri kaydedildi", "Yanlış soru analizi tamamlandı"],
+        status: "upcoming",
+      },
+      {
+        id: "phase-final-proof",
+        title: "5. Aşama: Final Net Hedefi ve Sınav Provası",
+        horizonDays: d5,
+        targetWeek: weeks,
+        phase: "final_proof",
+        description: `${primaryGoal} hedefini hedeflenen net seviyesi ve doğrulanabilir deneme karneleri ile tamamla.`,
+        successCriteria: ["Hedef net skoru aşıldı", "Dönem değerlendirmesi tamamlandı", "Son sınav stratejisi netleştirildi"],
+        status: "upcoming",
+      },
+    ];
+  }
+
   return [
     {
       id: "phase-starter",
@@ -506,8 +620,8 @@ export function generatePeriodPlan(targetWeeks: number, primaryGoal: string): im
       horizonDays: d4,
       targetWeek: Math.max(4, Math.round(d4 / 7)),
       phase: "review",
-      description: "Eksik kalan alt konuları aralıklı tekrarla güçlendir, simülasyon veya deneme uygulamaları yap.",
-      successCriteria: ["Zayıf alt konular tekrar edildi", "Deneme/simülasyon sonuçları kaydedildi", "Hataların analizi tamamlandı"],
+      description: "Eksik kalan alt konuları aralıklı tekrarla güçlendir, kapsamlı uygulama ve pekiştirme çalışmaları yap.",
+      successCriteria: ["Zayıf alt konular tekrar edildi", "Uygulama ve pekiştirme sonuçları kaydedildi", "Hataların analizi tamamlandı"],
       status: "upcoming",
     },
     {

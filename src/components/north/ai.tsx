@@ -166,13 +166,23 @@ export function NorthAI({ taskId, embedded = false }: { taskId?: string; embedde
   const today = dayKey();
   const todayTasks = state.tasks.filter((task) => task.date === today && ["pending", "partial"].includes(task.status));
   const optionalPool = state.tasks.filter((task) => !task.mandatory && !task.date && ["pending", "partial"].includes(task.status));
-  const activeExam = workspace.examProfiles?.[0];
+  const primaryArea = state.areas.find((a) => isAreaActive(a)) || state.areas[0];
+  const isChess = primaryArea?.kind === "chess" || /satranç|chess/i.test(primaryArea?.name || "");
+  const isCoding = primaryArea?.kind === "projects" || /yazılım|software|web|mobil/i.test(primaryArea?.name || "");
+  const isCyber = primaryArea?.kind === "cyber" || /siber|cyber|güvenlik/i.test(primaryArea?.name || "");
+  const activeExam = workspace.examProfiles?.find((p) => p.trials && p.trials.length > 0);
 
   const quickPrompts = [
     { icon: "⚡", text: "Bugünkü planımı enerjime göre düzenle" },
     { icon: "🎯", text: "Takıldığım konuyu küçük adımlara böl" },
     { icon: "📉", text: "Bugünkü görev süremi kısalt (Mikro seans yap)" },
-    ...(activeExam
+    ...(isChess
+      ? [{ icon: "♞", text: "Satranç taktik hatalarımı ve blunder motiflerimi analiz et" }]
+      : isCoding
+      ? [{ icon: "💻", text: "Kodlama görevlerimi ve mimari takıldığım yerleri analiz et" }]
+      : isCyber
+      ? [{ icon: "🛡️", text: "Lab analizlerimi ve zafiyet çözümlerimi özetle" }]
+      : activeExam
       ? [{ icon: "📊", text: `${activeExam.title} deneme yanlışlarımı ve tekrar takvimimi analiz et` }]
       : [{ icon: "🔄", text: "Haftalık planımda geride kalan işleri yeniden dengele" }]),
     { icon: "🧭", text: "Bu haftanın odak hedefini ve darboğazlarımı söyle" },

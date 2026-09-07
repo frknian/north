@@ -17,8 +17,13 @@ export function AreaModules({ area }: { area: Area }) {
   const workspace = useWorkspace();
 
   const isExamArea = useMemo(
-    () => /yks|tyt|kpss|banka|sınav|ayt|ales|dgs/i.test(area.name) || /sınav/i.test(area.goal),
-    [area.name, area.goal]
+    () =>
+      area.kind !== "chess" &&
+      area.kind !== "cyber" &&
+      area.kind !== "reading" &&
+      (/yks|tyt|kpss|banka|sınav|ayt|ales|dgs|müfettiş/i.test(area.name) ||
+        (/sınav/i.test(area.goal) && !/satranç|chess|kodlama|yazılım|okuma/i.test(area.goal))),
+    [area.kind, area.name, area.goal]
   );
 
   const defaultExamType: Exclude<ExamType, "other"> = useMemo(() => {
@@ -168,7 +173,7 @@ export function AreaModules({ area }: { area: Area }) {
             Metrik Takibi ({area.metric})
           </Button>
 
-          {(isExamArea || currentExamProfile.trials.length > 0 || activeTab === "exam") && (
+          {isExamArea && (
             <Button size="sm" variant={activeTab === "exam" ? "default" : "outline"} onClick={() => setActiveTab("exam")}>
               <TrendingUp className="size-4" />
               Sınav & Deneme Planı
