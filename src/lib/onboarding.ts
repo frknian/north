@@ -1,5 +1,5 @@
 import { initialResources, initialSourceLocks } from "@/lib/resource-data";
-import { initializeNorth, weekKey } from "@/lib/north";
+import { dayKey, initializeNorth, shiftDay, weekKey } from "@/lib/north";
 import type { InitialSetupInput, Skill, Task, WorkspaceState } from "@/lib/types";
 
 export interface AssessmentQuestion {
@@ -229,6 +229,15 @@ export function calculateAssessment(answers: Record<string, string>, questions: 
   return { bySkill, score: Object.values(bySkill).reduce((sum, item) => sum + item.correct, 0), total: Object.values(bySkill).reduce((sum, item) => sum + item.total, 0) };
 }
 
+function courseDates(day: string, weeks: number) {
+  const indices: Record<string, number> = { Pazartesi: 1, Salı: 2, Çarşamba: 3, Perşembe: 4, Cuma: 5, Cumartesi: 6, Pazar: 0 };
+  const target = indices[day] ?? 1;
+  const today = new Date();
+  const offset = (target - today.getDay() + 7) % 7;
+  const first = shiftDay(dayKey(today), offset);
+  return Array.from({ length: weeks }, (_, index) => shiftDay(first, index * 7));
+}
+
 function starterTasks(input: InitialSetupInput): Task[] {
   const planId = "current-week";
   const focus = input.primaryFocus;
@@ -326,7 +335,7 @@ export function createPersonalizedWorkspace(input: InitialSetupInput): Workspace
   state.north = initializeNorth(state);
   if (state.north && input.isUniversityStudent) {
     const areaId = state.north.areas[0]?.id ?? "primary-goal";
-    state.north.events = input.universityCourses.map(course => ({ id: course.id, areaId, title: `${course.name} dersi`, date: "", time: `${course.day} ${course.start}`, kind: "block", minutes: course.minutes }));
+    state.north.events = input.universityCourses.flatMap(course => courseDates(course.day, 16).map((date, index) => ({ id: `${course.id}-${index}`, areaId, title: `${course.name} dersi`, date, time: course.start, kind: "block" as const, minutes: course.minutes })));
   }
   return state;
 }

@@ -23,6 +23,8 @@ export function NorthCalendar() {
   const areaFor = (areaId: string) => state.areas.find(area => area.id === areaId);
   const dateTasks = state.tasks.filter(task => task.date && task.status !== "cancelled");
   const optionalPool = state.tasks.filter(task => !task.mandatory && !task.date && !["done", "cancelled"].includes(task.status));
+  const selectedTasks = dateTasks.filter(task => task.date === date && !["done", "cancelled"].includes(task.status));
+  const selectedMinutes = selectedTasks.reduce((total, task) => total + task.minutes, 0);
 
   const addTask = (mandatory: boolean, plannedDate = date) => {
     const area = activeAreas[0];
@@ -38,6 +40,7 @@ export function NorthCalendar() {
   return <div className="page-content space-y-6">
     <Heading title="Takvim" description="Her günün görevi, son tarihi ve esnek çalışması tek bakışta burada."><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={!activeAreas.length} onClick={() => addTask(false)}><Plus />İsteğe bağlı çalışma</Button><Button disabled={!activeAreas.length} onClick={() => setEventDraft({ id: crypto.randomUUID(), areaId: activeAreas[0].id, title: "", date, time: "", kind: "block", minutes: activeAreas[0].preferredSessionMinutes ?? 50 })}><CalendarPlus />Etkinlik ekle</Button></div></Heading>
     <div className="north-calendar-toolbar"><div className="north-calendar-controls">{[["day", "Gün"], ["week", "Hafta"], ["month", "Ay"]].map(([value, label]) => <Button key={value} variant={view === value ? "secondary" : "ghost"} aria-pressed={view === value} onClick={() => setView(value)}>{label}</Button>)}</div><input aria-label="Takvim tarihi" className={fieldClass + " max-w-44"} type="date" value={date} onChange={event => { if (event.target.value) setDate(event.target.value); }} /></div>
+    <section className="north-calendar-summary" aria-label="Seçili gün özeti"><div><span>SEÇİLİ GÜN</span><strong>{selectedTasks.length} görev</strong><small>{selectedMinutes} dk planlı çalışma</small></div><div><span>İŞARETLER</span><p><b>◎</b> derin çalışma <b>⚗</b> lab <b>✦</b> pratik <b>↻</b> tekrar <b>▤</b> okuma</p></div><Button variant="outline" size="sm" disabled={!activeAreas.length} onClick={() => addTask(true)}>Güne görev ekle</Button></section>
     {optionalPool.length > 0 && <section className="north-optional-pool"><div><p className="north-calendar-kicker">ESNEK ÇALIŞMA HAVUZU</p><p className="mt-1 text-sm text-muted-foreground">Bunlar zorunlu değil. Uygun bir güne yerleştir veya olduğu gibi bırak.</p></div><div className="north-optional-list">{optionalPool.slice(0, 5).map(task => <button key={task.id} type="button" onClick={() => setTaskDraft({ ...task, date })}><span>{taskSymbols[task.taskType ?? "light"]}</span>{task.title}<small>{task.minutes} dk</small></button>)}</div></section>}
     {eventDraft && <EventEditor draft={eventDraft} activeAreas={activeAreas} onChange={setEventDraft} onCancel={() => setEventDraft(null)} onSave={() => { update(current => ({ ...current, events: current.events.some(item => item.id === eventDraft.id) ? current.events.map(item => item.id === eventDraft.id ? eventDraft : item) : [...current.events, eventDraft] })); setEventDraft(null); }} />}
     {taskDraft && <TaskEditor draft={taskDraft} activeAreas={activeAreas} onChange={setTaskDraft} onCancel={() => setTaskDraft(null)} onSave={saveTask} />}
