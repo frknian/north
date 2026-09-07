@@ -6,6 +6,8 @@ export interface Area {
   id: string; name: string; kind: AreaKind; icon: string; goal: string; priority: number;
   weeklyMinutes: number; minimumMinutes: number; archived: boolean; metric: string;
   target: number; notes: string; resources: string;
+  description?: string; preferredSessionMinutes?: number; accent?: string;
+  status?: "active" | "paused" | "archived";
 }
 export interface NorthTask {
   id: string; areaId: string; title: string; goal: string; minutes: number;
@@ -62,8 +64,11 @@ export function shiftDay(day: string, count: number) { const d = new Date(day+"T
 export function weekKey(day = dayKey()) { const d = new Date(day+"T12:00:00"); return shiftDay(day, -((d.getDay()+6)%7)); }
 export const kindLabels: Record<AreaKind, string> = { math: "Matematik", cyber: "Siber Güvenlik", reading: "Okuma", chess: "Satranç", projects: "Projeler", custom: "Özel alan" };
 export const metricDefaults: Record<AreaKind, string> = { math: "Çözülen problem", cyber: "Tamamlanan lab", reading: "Okunan sayfa", chess: "Çözülen taktik", projects: "Tamamlanan çıktı", custom: "Tamamlanan çalışma" };
+export const areaAccents = ["#9ebeb8", "#9aa9c7", "#b5a58a", "#a89bb8", "#9eae91", "#b39a9a"];
+export function areaStatus(area: Area) { return area.archived || area.status === "archived" ? "archived" : area.status === "paused" ? "paused" : "active"; }
+export function isAreaActive(area: Area) { return areaStatus(area) === "active"; }
 export function createArea(kind: AreaKind, id: string): Area {
-  return { id, kind, name: kindLabels[kind], icon: ({math:"∑",cyber:"⌘",reading:"▤",chess:"♞",projects:"◇",custom:"◎"})[kind], goal: "", priority: 2, weeklyMinutes: 0, minimumMinutes: 10, archived: false, metric: metricDefaults[kind], target: 0, notes: "", resources: "" };
+  return { id, kind, name: kindLabels[kind], icon: ({math:"∑",cyber:"⌘",reading:"▤",chess:"♞",projects:"◇",custom:"◎"})[kind], goal: "", priority: 2, weeklyMinutes: 0, minimumMinutes: 10, archived: false, metric: metricDefaults[kind], target: 0, notes: "", resources: "", description: "", preferredSessionMinutes: 50, accent: areaAccents[0], status: "active" };
 }
 export function initializeNorth(workspace: WorkspaceState): NorthState {
   const defaultAreas = (["math","cyber","reading","chess","projects"] as AreaKind[]).map(k => createArea(k,k));
@@ -81,14 +86,15 @@ export function initializeNorth(workspace: WorkspaceState): NorthState {
 }
 export function capacity(state: NorthState) { return Math.round(state.weeklyHours*60*(state.mode === "exam" ? .7 : 1)); }
 export function allocation(state: NorthState, area: Area) {
-  const active = state.areas.filter(a => !a.archived);
+  if (!isAreaActive(area)) return 0;
+  const active = state.areas.filter(isAreaActive);
   const total = active.reduce((s,a)=>s+a.weeklyMinutes,0);
   return Math.round(area.weeklyMinutes*(total > capacity(state) ? capacity(state)/total : 1));
 }
 export function dailySelection(state: NorthState, today=dayKey()) {
   const energy = state.energy.date === today ? state.energy.level : "normal";
   const week = weekKey(today);
-  const candidates = state.tasks.filter(t => ["pending","partial"].includes(t.status) && state.areas.some(a=>a.id===t.areaId&&!a.archived&&a.goal.trim()) && (!t.date ? t.week === week : t.date === today));
+  const candidates = state.tasks.filter(t => ["pending","partial"].includes(t.status) && state.areas.some(a=>a.id===t.areaId&&isAreaActive(a)&&a.goal.trim()) && (!t.date ? t.week === week : t.date === today));
   const score = (t: NorthTask) => {
     const a=state.areas.find(a=>a.id===t.areaId)!;
     const spent=state.activities.filter(s=>s.areaId===a.id&&s.date>=week&&s.date<=today).reduce((n,s)=>n+s.minutes,0);

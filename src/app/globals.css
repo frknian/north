@@ -263,7 +263,7 @@ input, select, textarea { min-width:0; }
  .north-context { padding:0 20px; margin-top:18px; }
  .north-page-header h1 { font-size:24px; }
  .north-page-header { align-items:flex-start; gap:16px; padding-bottom:14px; }
- .north-mobile-tabs { position:fixed; bottom:0; left:0; right:0; z-index:45; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); background:#17181bf5; border-top:1px solid var(--border); backdrop-filter:blur(16px); padding-top:8px; padding-bottom:max(8px,env(safe-area-inset-bottom)); }
+ .north-mobile-tabs { position:fixed; bottom:0; left:0; right:0; z-index:45; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); background:#17181bf5; border-top:1px solid var(--border); backdrop-filter:blur(16px); padding-top:8px; padding-bottom:max(8px,env(safe-area-inset-bottom)); }
  .north-mobile-tabs a { display:flex; min-height:48px; flex-direction:column; gap:5px; align-items:center; justify-content:center; color:var(--muted-foreground); font-size:10px; }
  .north-mobile-tabs a.is-active { color:var(--primary); }
  [data-slot=button], summary, .north-field, [data-slot=input], [data-slot=select-trigger] { min-height:44px; }
