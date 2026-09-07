@@ -204,6 +204,7 @@ export function createEmptyWorkspaceState(): WorkspaceState {
     jobs: [],
     applications: [],
     interviews: [],
+    companionSettings: { name: "Yol Arkadaşı", color: "blue" },
   };
   state.north = initializeNorth(state);
   return state;

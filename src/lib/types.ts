@@ -464,4 +464,12 @@ export interface WorkspaceState {
   domainProofs?: DomainProof[];
   examProfiles?: ExamProfile[];
   customMetricEntries?: CustomMetricEntry[];
+  companionSettings?: CompanionSettings;
+}
+
+export type CompanionColor = "blue" | "purple" | "emerald" | "amber" | "rose" | "cyan";
+
+export interface CompanionSettings {
+  name: string;
+  color: CompanionColor;
 }

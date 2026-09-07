@@ -23,6 +23,13 @@ export const viewport: Viewport = { themeColor: "#121315", width: "device-width"
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="tr" className={`${GeistSans.variable} ${GeistMono.variable} dark`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("north_theme");if(t==="light"){document.documentElement.classList.remove("dark")}else{document.documentElement.classList.add("dark")}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-dvh bg-background font-sans antialiased">
         <TooltipProvider>
           <WorkspaceProvider><AppFrame>{children}</AppFrame></WorkspaceProvider>

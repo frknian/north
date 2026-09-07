@@ -122,4 +122,5 @@ export const demoState: WorkspaceState = {
     preferences: { dailyReminderEnabled: true, weeklyReviewReminderEnabled: true, dailyAiLimit: 20, aiUsage: { date: "", count: 0 }, clearChatOnClose: true },
   },
   portfolio: [], jobs: [], applications: [], interviews: [],
+  companionSettings: { name: "Yol Arkadaşı", color: "blue" },
 };

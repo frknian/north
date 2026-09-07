@@ -67,6 +67,7 @@ interface WorkspaceContextValue extends WorkspaceState {
   clearCoachMessages: () => void;
   deleteCoachSessionArchive: (id: string) => void;
   clearAllCoachArchives: () => void;
+  updateCompanionSettings: (settings: Partial<import("@/lib/types").CompanionSettings>) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -96,6 +97,7 @@ function normalizeState(saved: Partial<WorkspaceState>): WorkspaceState {
     domainProofs: saved.domainProofs ?? [],
     examProfiles: saved.examProfiles ?? [],
     customMetricEntries: saved.customMetricEntries ?? [],
+    companionSettings: saved.companionSettings ?? { name: "Yol Arkadaşı", color: "blue" },
   };
 }
 
@@ -374,6 +376,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     clearAllCoachArchives: () => mutate((current) => ({
       ...current,
       coachSessionArchives: [],
+    })),
+    updateCompanionSettings: (patch) => mutate((current) => ({
+      ...current,
+      companionSettings: {
+        name: "Yol Arkadaşı",
+        color: "blue",
+        ...current.companionSettings,
+        ...patch,
+      },
     })),
   }), [authStatus, mutate, ready, state, syncMode, userEmail]);
 

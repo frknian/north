@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserGuide } from "@/components/features/user-guide";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -219,6 +220,23 @@ export default function ProfilePage() {
                   <Direction label="Kaynak tercihi" value={prefs.cost === "free_only" ? "Ücretsiz kaynaklar" : "Esnek bütçe"} />
                   <Button className="w-full" asChild><Link href="/north-ai"><Bot />North ile planla</Link></Button>
                   <Button variant="outline" className="w-full" asChild><Link href="/areas"><Target />Hedef alanlarını aç</Link></Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Görünüm ve Tema</CardTitle>
+                  <CardDescription>Arayüz temasını tercihinize göre belirleyin.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border bg-muted/20 p-3.5">
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">Koyu / Açık Tema</p>
+                      <p className="text-[11px] text-muted-foreground">Gece ve gündüz çalışma modunu değiştir</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ThemeToggle className="size-9 border bg-background" />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
               <Card>

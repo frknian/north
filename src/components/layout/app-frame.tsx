@@ -10,6 +10,7 @@ import { useWorkspace } from "@/components/features/workspace-provider";
 import { isFirebaseConfigured } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
@@ -70,7 +71,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
       <div className="north-topbar-inner">
         <Link href="/" aria-label="North — Bugün" className="north-brand"><Image src="/north-mark.png" alt="" width={36} height={36} className="rounded-lg bg-white p-1" priority/><span>North</span></Link>
         <TopNavigation pathname={pathname}/>
-        <div className="north-tools"><WorkspaceSearch/><Link href="/data" className="north-profile" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link><Link href="/profile" className="north-profile" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link></div>
+        <div className="north-tools"><WorkspaceSearch/><ThemeToggle/><Link href="/data" className="north-profile" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link><Link href="/profile" className="north-profile" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link></div>
       </div>
     </header>
     <main id="north-content" className="north-main" tabIndex={-1}>

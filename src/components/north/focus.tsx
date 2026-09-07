@@ -3,7 +3,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, Check, ExternalLink, HelpCircle, Pause, Play, Sparkles, Square } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Check,
+  Copy,
+  ExternalLink,
+  HelpCircle,
+  ListChecks,
+  Pause,
+  Play,
+  Sparkles,
+  Square,
+  Terminal,
+} from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { dayKey, suggestDailyAdaptation, type NorthActivity, type SupportSource } from "@/lib/north";
@@ -12,6 +25,7 @@ import { browserCompanion } from "@/lib/focus-companion";
 import { useNorth, fieldClass } from "./shared";
 import { Button } from "@/components/ui/button";
 import { Companion } from "./shared";
+import { getTaskGuidance } from "@/lib/task-guidance";
 
 const FocusCoach = dynamic(() => import("./ai").then((m) => m.NorthAI));
 
@@ -30,6 +44,10 @@ export function NorthFocus({ id }: { id: string }) {
   const task = state.tasks.find((t) => t.id === id);
   const area = state.areas.find((a) => a.id === task?.areaId);
 
+  const guidance = task ? getTaskGuidance(task, area) : null;
+  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
+  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
+
   const [timer, setTimer] = useState<Timer | null>(null);
   const [now, setNow] = useState(0);
   const [finishing, setFinishing] = useState(false);
@@ -44,6 +62,24 @@ export function NorthFocus({ id }: { id: string }) {
 
   const toggleDifficulty = (value: string) => setDifficulty((current) => (current === value ? "" : value));
 
+  function toggleStep(stepId: string) {
+    setCompletedSteps((prev) => {
+      const next = { ...prev, [stepId]: !prev[stepId] };
+      try {
+        sessionStorage.setItem(`north:focus:steps:${id}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
+  function handleCopy(cmd: string) {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(cmd);
+      setCopiedCmd(cmd);
+      setTimeout(() => setCopiedCmd(null), 2000);
+    }
+  }
+
   useEffect(() => {
     const hydration = setTimeout(() => {
       const key = `north:focus:${id}`;
@@ -56,6 +92,12 @@ export function NorthFocus({ id }: { id: string }) {
           }
         } catch {}
       }
+      try {
+        const storedSteps = sessionStorage.getItem(`north:focus:steps:${id}`);
+        if (storedSteps) {
+          setCompletedSteps(JSON.parse(storedSteps));
+        }
+      } catch {}
     }, 0);
     const tick = setInterval(() => setNow(Date.now()), 250);
     return () => {
@@ -83,7 +125,7 @@ export function NorthFocus({ id }: { id: string }) {
   const remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
   const progressPercent = Math.min(100, Math.max(0, (elapsedSeconds / totalSeconds) * 100));
 
-  function pause() {
+  function handlePause() {
     if (timer?.running) {
       setTimer({
         ...timer,
@@ -94,7 +136,8 @@ export function NorthFocus({ id }: { id: string }) {
     }
   }
 
-  function start() {
+  function handleStart() {
+    // eslint-disable-next-line react-hooks/purity
     const started = Date.now();
     setNow(started);
     setTimer({
@@ -108,13 +151,13 @@ export function NorthFocus({ id }: { id: string }) {
     if (area) void browserCompanion.start(area.id);
   }
 
-  function resume() {
+  function handleResume() {
     if (!timer) return;
     setTimer({ ...timer, started: Date.now(), running: true });
   }
 
-  function finish() {
-    pause();
+  function handleFinish() {
+    handlePause();
     setFinishing(true);
     setOutcome(remainingSeconds === 0 ? "done" : "partial");
   }
@@ -234,7 +277,7 @@ export function NorthFocus({ id }: { id: string }) {
           {/* CONTROLS */}
           <div className="flex flex-wrap items-center justify-center gap-3">
             {!timer ? (
-              <Button size="lg" className="rounded-full px-8 shadow-sm" onClick={start}>
+              <Button size="lg" className="rounded-full px-8 shadow-sm" onClick={handleStart}>
                 <Play className="mr-2 size-4" />
                 Odaklanmayı Başlat
               </Button>
@@ -244,7 +287,7 @@ export function NorthFocus({ id }: { id: string }) {
                   size="lg"
                   variant={timer.running ? "outline" : "default"}
                   className="rounded-full px-6"
-                  onClick={() => (timer.running ? pause() : resume())}
+                  onClick={() => (timer.running ? handlePause() : handleResume())}
                 >
                   {timer.running ? <Pause className="mr-2 size-4" /> : <Play className="mr-2 size-4" />}
                   {timer.running ? "Duraklat" : "Devam Et"}
@@ -253,7 +296,7 @@ export function NorthFocus({ id }: { id: string }) {
                   size="lg"
                   variant="secondary"
                   className="rounded-full px-6"
-                  onClick={() => (remainingSeconds === 0 ? finish() : setExitAt(Date.now()))}
+                  onClick={() => (remainingSeconds === 0 ? handleFinish() : setExitAt(Date.now()))}
                 >
                   <Square className="mr-2 size-4" />
                   Oturumu Bitir
@@ -271,6 +314,205 @@ export function NorthFocus({ id }: { id: string }) {
               North Koç&apos;a Danış
             </Button>
           </div>
+
+          {/* STEP-BY-STEP GUIDANCE, RESOURCES & COMMANDS */}
+          {guidance && (
+            <div className="mt-10 w-full max-w-xl space-y-6 text-left">
+              {/* SECTION 1: ADIM ADIM YOL HARİTASI */}
+              <div className="rounded-2xl border bg-card p-5 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3.5">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-6 place-items-center rounded-md bg-primary/10 text-primary">
+                      <ListChecks className="size-4" />
+                    </span>
+                    <h2 className="text-sm font-semibold text-foreground">Bu Oturumda Ne Yapacaksın?</h2>
+                  </div>
+                  {guidance.steps.length > 0 && (
+                    <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      {guidance.steps.filter((s) => completedSteps[s.id]).length} / {guidance.steps.length} tamamlandı
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{guidance.summary}</p>
+
+                {/* Progress bar */}
+                {guidance.steps.length > 0 && (
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full bg-primary transition-all duration-300"
+                      style={{
+                        width: `${
+                          (guidance.steps.filter((s) => completedSteps[s.id]).length / guidance.steps.length) * 100
+                        }%`,
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Steps checklist */}
+                <div className="mt-4 space-y-2.5">
+                  {guidance.steps.map((step) => {
+                    const isDone = !!completedSteps[step.id];
+                    return (
+                      <div
+                        key={step.id}
+                        onClick={() => toggleStep(step.id)}
+                        className={`group flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all ${
+                          isDone
+                            ? "border-primary/30 bg-primary/5 text-muted-foreground"
+                            : "border-border/60 bg-background/60 hover:border-primary/40 hover:bg-muted/30"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          aria-label={isDone ? "Adımı tamamlanmadı olarak işaretle" : "Adımı tamamla"}
+                          className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded border transition-colors ${
+                            isDone
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-muted-foreground/40 bg-background"
+                          }`}
+                        >
+                          {isDone && <Check className="size-3 stroke-[3]" />}
+                        </button>
+                        <div className="flex-1 space-y-1">
+                          <p
+                            className={`text-xs font-medium transition-colors ${
+                              isDone ? "line-through opacity-75 text-foreground" : "text-foreground"
+                            }`}
+                          >
+                            {step.title}
+                          </p>
+                          <p className="text-[11px] leading-relaxed text-muted-foreground">{step.detail}</p>
+                          {step.command && (
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(step.command!);
+                              }}
+                              className="mt-2 inline-flex items-center gap-2 rounded-md bg-muted/80 px-2.5 py-1 font-mono text-[11px] text-foreground transition-colors hover:bg-muted"
+                              title="Tıkla ve kopyala"
+                            >
+                              <code>{step.command}</code>
+                              <span className="text-[10px] text-primary">
+                                {copiedCmd === step.command ? "Kopyalandı ✓" : "Kopyala"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* SECTION 2: HIZLI KOMUTLAR & İPUÇLARI (if present) */}
+              {guidance.commands.length > 0 && (
+                <div className="rounded-2xl border bg-card p-5 shadow-sm">
+                  <div className="flex items-center gap-2 border-b pb-3.5">
+                    <span className="grid size-6 place-items-center rounded-md bg-primary/10 text-primary">
+                      <Terminal className="size-4" />
+                    </span>
+                    <h2 className="text-sm font-semibold text-foreground">Hızlı Komutlar &amp; Nasıl Yapılır?</h2>
+                  </div>
+
+                  <div className="mt-3.5 space-y-2.5">
+                    {guidance.commands.map((cmdTip, idx) => (
+                      <div key={idx} className="rounded-xl border bg-background/80 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-foreground">{cmdTip.title}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => handleCopy(cmdTip.command)}
+                            className="h-6 gap-1 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                          >
+                            {copiedCmd === cmdTip.command ? (
+                              <>
+                                <Check className="size-3 text-emerald-500" />
+                                <span className="text-emerald-500">Kopyalandı</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="size-3" />
+                                <span>Kopyala</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        <pre className="mt-1.5 overflow-x-auto rounded-lg bg-zinc-900 px-3 py-2 font-mono text-xs text-zinc-100 dark:bg-black/60">
+                          <code>{cmdTip.command}</code>
+                        </pre>
+                        <p className="mt-1.5 text-[11px] text-muted-foreground">{cmdTip.explanation}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION 3: ÖNERİLEN KAYNAKLAR & LABLAR */}
+              {guidance.resources.length > 0 && (
+                <div className="rounded-2xl border bg-card p-5 shadow-sm">
+                  <div className="flex items-center gap-2 border-b pb-3.5">
+                    <span className="grid size-6 place-items-center rounded-md bg-primary/10 text-primary">
+                      <BookOpen className="size-4" />
+                    </span>
+                    <h2 className="text-sm font-semibold text-foreground">Önerilen Kaynaklar &amp; Lab Bağlantıları</h2>
+                  </div>
+
+                  <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
+                    {guidance.resources.map((res, idx) => (
+                      <a
+                        key={idx}
+                        href={res.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex flex-col justify-between rounded-xl border bg-background/80 p-3 transition-all hover:border-primary/50 hover:bg-muted/30"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                              {res.badge}
+                            </span>
+                            <ExternalLink className="size-3 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
+                          </div>
+                          <h3 className="mt-2 text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                            {res.title}
+                          </h3>
+                          <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground leading-relaxed">
+                            {res.description}
+                          </p>
+                        </div>
+                        <span className="mt-3 text-[10px] font-medium text-primary underline underline-offset-2">
+                          Kaynağa Git →
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION 4: STUCK? ASK NORTH AI */}
+              <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-center sm:flex-row sm:text-left">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-foreground">Hâlâ nereden başlayacağını bilmiyor musun?</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    North Koç sana bu görev için adım adım pratik rehberlik yapmaya hazır.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setCoachOpen(true)}
+                  className="shrink-0 gap-1.5 rounded-full"
+                >
+                  <Sparkles className="size-3.5" />
+                  North Koç&apos;a Danış
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* EARLY EXIT / REASON SELECTION */}
           {exitAt !== null && (
@@ -293,7 +535,7 @@ export function NorthFocus({ id }: { id: string }) {
                 ))}
               </select>
               <div className="mt-4 flex gap-2">
-                <Button disabled={!reason} onClick={finish}>
+                <Button disabled={!reason} onClick={handleFinish}>
                   Erken Bitir
                 </Button>
                 <Button variant="ghost" onClick={() => setExitAt(null)}>
