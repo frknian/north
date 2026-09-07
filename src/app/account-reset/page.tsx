@@ -7,10 +7,8 @@ import { useRouter } from "next/navigation";
 import {
   deleteUser,
   EmailAuthProvider,
-  GoogleAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
-  reauthenticateWithPopup,
 } from "firebase/auth";
 import { deleteDoc, doc } from "firebase/firestore";
 import { ArrowLeft, Trash2 } from "lucide-react";
@@ -27,7 +25,6 @@ export default function AccountResetPage() {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
-  const [hasGoogleProvider, setHasGoogleProvider] = useState(false);
   const [hasPasswordProvider, setHasPasswordProvider] = useState(false);
   const [authReady, setAuthReady] = useState(true);
 
@@ -39,29 +36,22 @@ export default function AccountResetPage() {
 
     return onAuthStateChanged(firebase.auth, (user) => {
       setEmail(user?.email ?? "");
-      setHasGoogleProvider(user?.providerData.some((provider) => provider.providerId === "google.com") ?? false);
       setHasPasswordProvider(user?.providerData.some((provider) => provider.providerId === "password") ?? false);
       setAuthReady(true);
     });
   }, []);
 
-  async function removeAccount(method: "google" | "password") {
+  async function removeAccount() {
     const firebase = getFirebase();
     const user = firebase?.auth.currentUser;
     if (!firebase || !user || confirmation !== "SİL") return;
     setBusy(true);
     try {
-      if (method === "google") {
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: "select_account" });
-        await reauthenticateWithPopup(user, provider);
-      } else {
-        if (!user.email || password.length < 6) {
-          toast.error("Şifreni girerek devam et.");
-          return;
-        }
-        await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+      if (!user.email || password.length < 6) {
+        toast.error("Şifreni girerek devam et.");
+        return;
       }
+      await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
 
       await deleteDoc(doc(firebase.db, "users", user.uid, "workspaces", "cybercoach"));
       await deleteDoc(doc(firebase.db, "users", user.uid, "workspaces", "career-os")).catch(() => undefined);
@@ -72,11 +62,7 @@ export default function AccountResetPage() {
       router.replace("/login");
     } catch (error) {
       const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
-      const message = code.includes("popup-closed-by-user")
-        ? "Google doğrulama penceresi kapatıldı. Hesabın silinmedi."
-        : code.includes("popup-blocked")
-          ? "Tarayıcı Google doğrulama penceresini engelledi. Açılır pencerelere izin verip tekrar dene."
-          : code.includes("unauthorized-domain")
+      const message = code.includes("unauthorized-domain")
             ? "Bu alan adı Firebase'de yetkili değil. Firebase Authentication ayarlarından cybercoach.vercel.app alan adını ekle."
             : code.includes("invalid-credential") || code.includes("wrong-password")
               ? "Şifren doğru değil."
@@ -96,9 +82,8 @@ export default function AccountResetPage() {
       {!authReady ? <p className="text-sm text-muted-foreground">Hesap bilgileri kontrol ediliyor…</p> : !email ? <div className="space-y-3 rounded-lg border bg-muted/30 p-4"><p className="text-sm text-muted-foreground">Hesap silmek için önce silmek istediğin hesapla giriş yapmalısın.</p><Button className="w-full" asChild><Link href="/login">Giriş yap</Link></Button></div> : <>
       <Field label="Giriş yapılmış hesap"><Input type="email" value={email} readOnly aria-readonly="true" /></Field>
       <Field label="Onaylamak için SİL yaz"><Input value={confirmation} onChange={(event) => setConfirmation(event.target.value.toLocaleUpperCase("tr-TR"))} /></Field>
-      {hasGoogleProvider && <Button variant="destructive" className="w-full" disabled={busy || confirmation !== "SİL"} onClick={() => void removeAccount("google")}><Trash2/>{busy ? "Hesap siliniyor…" : "Google ile doğrula ve hesabı sil"}</Button>}
-      {hasPasswordProvider && <><Field label="Şifren"><Input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></Field><Button variant="destructive" className="w-full" disabled={busy || password.length < 6 || confirmation !== "SİL"} onClick={() => void removeAccount("password")}><Trash2/>{busy ? "Hesap siliniyor…" : "Şifre ile doğrula ve hesabı sil"}</Button></>}
-      {!hasGoogleProvider && !hasPasswordProvider && <p className="text-sm text-muted-foreground">Bu hesap için desteklenen bir giriş yöntemi bulunamadı. Lütfen destekle iletişime geç.</p>}
+      {hasPasswordProvider && <><Field label="Şifren"><Input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></Field><Button variant="destructive" className="w-full" disabled={busy || password.length < 6 || confirmation !== "SİL"} onClick={() => void removeAccount()}><Trash2/>{busy ? "Hesap siliniyor…" : "Şifre ile doğrula ve hesabı sil"}</Button></>}
+      {!hasPasswordProvider && <p className="text-sm text-muted-foreground">Bu hesap için e-posta/şifre girişi bulunamadı.</p>}
       </>}
       <Button variant="ghost" className="w-full" asChild><Link href="/login"><ArrowLeft/>Giriş ekranına dön</Link></Button>
     </CardContent></Card>
