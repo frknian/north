@@ -112,18 +112,25 @@ export function distributePlanTasksToCalendar(
     weeklyHours?: number;
     events?: NorthEvent[];
     today?: string;
+    week?: string;
+    forceRedistribute?: boolean;
   } = {}
 ): NorthTask[] {
   const today = options.today || dayKey();
-  const currentWeek = weekKey(today);
+  const currentWeek = options.week || weekKey(today);
   const events = options.events || [];
   const weeklyMinutes = (options.weeklyHours ?? 10) * 60;
   const dailyTargetCapacity = Math.max(45, Math.round(weeklyMinutes / 5));
 
   const dayMinutes: Record<string, number> = {};
 
+  const daysInCurrentWeek: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    daysInCurrentWeek.push(shiftDay(currentWeek, i));
+  }
+
   for (const t of tasks) {
-    if (t.date && t.status !== "cancelled") {
+    if (t.date && t.status !== "cancelled" && (!options.forceRedistribute || t.week !== currentWeek || t.status === "done")) {
       dayMinutes[t.date] = (dayMinutes[t.date] || 0) + t.minutes;
     }
   }
@@ -134,32 +141,28 @@ export function distributePlanTasksToCalendar(
     }
   }
 
-  const daysInCurrentWeek: string[] = [];
-  for (let i = 0; i < 7; i++) {
-    daysInCurrentWeek.push(shiftDay(currentWeek, i));
-  }
-
-  const availableDays = daysInCurrentWeek.filter(d => d >= today);
-  if (availableDays.length === 0) {
-    for (let i = 0; i < 7; i++) {
-      availableDays.push(shiftDay(today, i));
+  const weekdays = daysInCurrentWeek.slice(0, 5);
+  let availableDays = weekdays;
+  if (!options.week && today > weekdays[0]) {
+    const fromToday = daysInCurrentWeek.filter(d => d >= today);
+    if (fromToday.length > 0) {
+      availableDays = fromToday;
     }
   }
 
   let dayIndex = 0;
 
   return tasks.map(task => {
-    if (task.date) {
+    if (task.status === "done" || task.status === "cancelled") {
       return task;
     }
 
-    if (task.mandatory && (!dayMinutes[today] || dayMinutes[today] < dailyTargetCapacity)) {
-      dayMinutes[today] = (dayMinutes[today] || 0) + task.minutes;
-      return {
-        ...task,
-        date: today,
-        week: weekKey(today),
-      };
+    if (task.date && !options.forceRedistribute) {
+      return task;
+    }
+
+    if (task.week && task.week !== currentWeek && task.date) {
+      return task;
     }
 
     let bestDay = availableDays[dayIndex % availableDays.length];
@@ -188,9 +191,22 @@ export function distributePlanTasksToCalendar(
     return {
       ...task,
       date: bestDay,
-      week: weekKey(bestDay),
+      week: currentWeek,
     };
   });
+}
+
+export function distributePoolTasksToWeek(state: NorthState, week: string = weekKey()): NorthState {
+  const updatedTasks = distributePlanTasksToCalendar(state.tasks, {
+    weeklyHours: state.weeklyHours,
+    events: state.events,
+    week,
+    forceRedistribute: false,
+  });
+  return {
+    ...state,
+    tasks: updatedTasks,
+  };
 }
 
 export function rolloverUnfinishedTasks(state: NorthState, today = dayKey()): RolloverResult {
