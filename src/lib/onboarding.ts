@@ -1,5 +1,5 @@
 import { initialResources, initialSourceLocks } from "@/lib/resource-data";
-import { dayKey, initializeNorth, shiftDay, weekKey } from "@/lib/north";
+import { dayKey, generatePeriodPlan, initializeNorth, shiftDay, weekKey } from "@/lib/north";
 import { findDomain, genericDomainQuestions } from "@/lib/domain-catalog";
 import type { InitialSetupInput, Skill, Task, WorkspaceState } from "@/lib/types";
 
@@ -320,6 +320,9 @@ export function createPersonalizedWorkspace(input: InitialSetupInput): Workspace
     primaryFocus: input.primaryFocus,
     interests: input.interests,
     areaGoals: input.areaGoals,
+    ageRange: input.ageRange,
+    lifeSituation: input.lifeSituation,
+    learningPreferences: input.learningPreferences,
     university: { isStudent: input.isUniversityStudent, school: input.universitySchool.trim(), department: input.universityDepartment.trim(), courses: input.universityCourses },
     weeklyCapacityHours: input.weeklyCapacityHours,
     preferredSessionMinutes: input.preferredSessionMinutes,
@@ -342,15 +345,12 @@ export function createPersonalizedWorkspace(input: InitialSetupInput): Workspace
     assessmentTotal: result.total,
     assessmentBySkill: result.bySkill,
   };
-  state.coaching.milestones = [
-    { id: "milestone-30", title: "Düzenli çalışma döngüsü", horizonDays: 30, description: `${input.primaryFocus} için sürdürülebilir bir çalışma ritmi kur.`, successCriteria: ["En az 8 odak oturumu", "2 güvenli pratik", "2 doğrulanabilir kanıt"], status: "active" },
-    { id: "milestone-60", title: "Bağımsız uygulama", horizonDays: 60, description: "Yönlendirme ihtiyacını azaltarak bilgiyi uygulamaya dönüştür.", successCriteria: ["3 bağımsız pratik", "1 tekrar kullanılabilir teknik not", "Haftalık değerlendirme"], status: "upcoming" },
-    { id: "milestone-90", title: "Hedefe dönük portföy", horizonDays: 90, description: input.goal, successCriteria: ["3 kaliteli kanıt", "1 yayınlanabilir çalışma", "Sonraki 90 gün planı"], status: "upcoming" },
-  ];
+  const targetWeeks = input.areaGoals[input.primaryFocus]?.targetWeeks ?? 12;
+  state.coaching.milestones = generatePeriodPlan(targetWeeks, input.goal || input.primaryFocus);
   state.north = initializeNorth(state);
   if (state.north && input.isUniversityStudent) {
     const areaId = state.north.areas[0]?.id ?? "primary-goal";
-    state.north.events = input.universityCourses.flatMap(course => courseDates(course.day, 16).map((date, index) => ({ id: `${course.id}-${index}`, areaId, title: `${course.name} dersi`, date, time: course.start, kind: "block" as const, minutes: course.minutes })));
+    state.north.events = input.universityCourses.flatMap(course => courseDates(course.day, 16).map((date, index) => ({ id: `${course.id}-${index}`, areaId, title: `${course.name} dersi`, date, time: course.start, kind: "class" as const, minutes: course.minutes })));
   }
   return state;
 }

@@ -8,6 +8,16 @@ export type ResourceRating = "very_useful" | "useful" | "neutral" | "not_useful"
 export type EnergyLevel = "low" | "medium" | "high";
 export type CheckinOutcome = "ready" | "stuck" | "rest" | "completed";
 
+export type AgeRange = "16-18" | "19-24" | "25-32" | "33-40";
+export type LifeSituation = "high_school" | "university" | "working" | "career_changer" | "other";
+
+export interface LearningPreferences {
+  language: "tr" | "en" | "both";
+  cost: "free_only" | "paid_allowed";
+  format: ("video" | "reading" | "practice" | "interactive")[];
+  weeklyBudget: number;
+}
+
 export interface Profile {
   id: string;
   fullName: string;
@@ -19,6 +29,9 @@ export interface Profile {
   universityMode: UniversityMode;
   preferredSessionMinutes: 45 | 50 | 60;
   weeklyCapacityHours: number;
+  ageRange?: AgeRange;
+  lifeSituation?: LifeSituation;
+  learningPreferences?: LearningPreferences;
   interests?: string[];
   areaGoals?: Record<string, { goal: string; targetWeeks: number }>;
   university?: {
@@ -246,15 +259,113 @@ export interface InitialSetupInput {
   preferredStyle: CoachingOnboarding["preferredStyle"];
   constraints: string;
   assessmentAnswers: Record<string, string>;
+  ageRange?: AgeRange;
+  lifeSituation?: LifeSituation;
+  learningPreferences?: LearningPreferences;
 }
+
+export type MilestonePhase = "starter" | "mid_check" | "application" | "review" | "final_proof";
 
 export interface Milestone {
   id: string;
   title: string;
-  horizonDays: 30 | 60 | 90;
+  horizonDays: number;
   description: string;
   successCriteria: string[];
   status: "upcoming" | "active" | "completed";
+  phase?: MilestonePhase;
+  targetWeek?: number;
+}
+
+export interface FeedbackMemoryItem {
+  id: string;
+  category: "difficulty" | "resource" | "schedule_time" | "format" | "energy" | "other";
+  signal: string;
+  rule: string;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export type DomainProofKind =
+  | "notebook"
+  | "dashboard"
+  | "clinical_note"
+  | "case_summary"
+  | "citation_analysis"
+  | "calculation"
+  | "drawing"
+  | "technical_report"
+  | "github_link"
+  | "game_analysis"
+  | "exam_trial"
+  | "other";
+
+export interface DomainProof {
+  id: string;
+  areaId: string;
+  title: string;
+  kind: DomainProofKind;
+  description: string;
+  url?: string;
+  notes?: string;
+  fileSummary?: string;
+  screenshotNote?: string;
+  createdAt: string;
+}
+
+export type ExamType = "yks_tyt" | "kpss" | "banking" | "other";
+
+export interface ExamSubjectScore {
+  subjectId: string;
+  subjectName: string;
+  correct: number;
+  incorrect: number;
+  empty: number;
+  net: number;
+}
+
+export interface WrongAnswerAnalysis {
+  id: string;
+  subjectId: string;
+  topic: string;
+  reason: "knowledge_gap" | "careless_mistake" | "time_pressure" | "misread";
+  notes?: string;
+  reviewDate?: string;
+  reviewed?: boolean;
+}
+
+export interface TrialExam {
+  id: string;
+  title: string;
+  date: string;
+  examType: ExamType;
+  totalNet: number;
+  estimatedScore?: number;
+  subjectScores: ExamSubjectScore[];
+  wrongAnalyses: WrongAnswerAnalysis[];
+  durationMinutes?: number;
+  notes?: string;
+}
+
+export interface ExamProfile {
+  id: string;
+  examType: ExamType;
+  title: string;
+  examDate: string;
+  targetScore?: number;
+  targetNet?: number;
+  trials: TrialExam[];
+  activeSubjects: string[];
+}
+
+export interface CustomMetricEntry {
+  id: string;
+  areaId: string;
+  date: string;
+  metricName: string;
+  amount: number;
+  unit: string;
+  notes?: string;
 }
 
 export interface DailyCheckin {
@@ -339,4 +450,8 @@ export interface WorkspaceState {
   jobs: JobPosting[];
   applications: JobApplication[];
   interviews: InterviewAttempt[];
+  feedbackMemory?: FeedbackMemoryItem[];
+  domainProofs?: DomainProof[];
+  examProfiles?: ExamProfile[];
+  customMetricEntries?: CustomMetricEntry[];
 }

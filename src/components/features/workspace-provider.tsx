@@ -54,6 +54,15 @@ interface WorkspaceContextValue extends WorkspaceState {
   addApplication: (application: JobApplication) => void;
   updateApplication: (id: string, patch: Partial<JobApplication>) => void;
   addInterview: (attempt: InterviewAttempt) => void;
+  addFeedbackMemory: (item: import("@/lib/types").FeedbackMemoryItem) => void;
+  updateFeedbackMemory: (id: string, patch: Partial<import("@/lib/types").FeedbackMemoryItem>) => void;
+  deleteFeedbackMemory: (id: string) => void;
+  addDomainProof: (proof: import("@/lib/types").DomainProof) => void;
+  deleteDomainProof: (id: string) => void;
+  saveExamProfile: (profile: import("@/lib/types").ExamProfile) => void;
+  addTrialExam: (examProfileId: string, trial: import("@/lib/types").TrialExam) => void;
+  deleteTrialExam: (examProfileId: string, trialId: string) => void;
+  addCustomMetricEntry: (entry: import("@/lib/types").CustomMetricEntry) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -78,6 +87,10 @@ function normalizeState(saved: Partial<WorkspaceState>): WorkspaceState {
       preferences: { ...demoState.coaching.preferences, ...saved.coaching?.preferences },
     },
     portfolio: saved.portfolio ?? [], jobs: saved.jobs ?? [], applications: saved.applications ?? [], interviews: saved.interviews ?? [],
+    feedbackMemory: saved.feedbackMemory ?? [],
+    domainProofs: saved.domainProofs ?? [],
+    examProfiles: saved.examProfiles ?? [],
+    customMetricEntries: saved.customMetricEntries ?? [],
   };
 }
 
@@ -291,6 +304,30 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     addApplication: (application) => mutate((current) => ({ ...current, applications: [application, ...current.applications] })),
     updateApplication: (id, patch) => mutate((current) => ({ ...current, applications: current.applications.map((application) => application.id === id ? { ...application, ...patch } : application) })),
     addInterview: (attempt) => mutate((current) => ({ ...current, interviews: [attempt, ...current.interviews] })),
+    addFeedbackMemory: (item) => mutate((current) => {
+      const list = [...(current.feedbackMemory ?? []), item];
+      return { ...current, feedbackMemory: list, north: current.north ? { ...current.north, feedbackMemory: list } : current.north };
+    }),
+    updateFeedbackMemory: (id, patch) => mutate((current) => {
+      const list = (current.feedbackMemory ?? []).map((item) => (item.id === id ? { ...item, ...patch } : item));
+      return { ...current, feedbackMemory: list, north: current.north ? { ...current.north, feedbackMemory: list } : current.north };
+    }),
+    deleteFeedbackMemory: (id) => mutate((current) => {
+      const list = (current.feedbackMemory ?? []).filter((item) => item.id !== id);
+      return { ...current, feedbackMemory: list, north: current.north ? { ...current.north, feedbackMemory: list } : current.north };
+    }),
+    addDomainProof: (proof) => mutate((current) => ({ ...current, domainProofs: [proof, ...(current.domainProofs ?? [])] })),
+    deleteDomainProof: (id) => mutate((current) => ({ ...current, domainProofs: (current.domainProofs ?? []).filter((p) => p.id !== id) })),
+    saveExamProfile: (profile) => mutate((current) => ({ ...current, examProfiles: [...(current.examProfiles ?? []).filter((p) => p.id !== profile.id), profile] })),
+    addTrialExam: (examProfileId, trial) => mutate((current) => ({
+      ...current,
+      examProfiles: (current.examProfiles ?? []).map((p) => (p.id === examProfileId ? { ...p, trials: [trial, ...p.trials] } : p)),
+    })),
+    deleteTrialExam: (examProfileId, trialId) => mutate((current) => ({
+      ...current,
+      examProfiles: (current.examProfiles ?? []).map((p) => (p.id === examProfileId ? { ...p, trials: p.trials.filter((t) => t.id !== trialId) } : p)),
+    })),
+    addCustomMetricEntry: (entry) => mutate((current) => ({ ...current, customMetricEntries: [entry, ...(current.customMetricEntries ?? [])] })),
   }), [authStatus, mutate, ready, state, syncMode, userEmail]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

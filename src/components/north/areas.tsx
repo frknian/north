@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Archive, ArrowDown, ArrowUp, CirclePause, CirclePlay, Pencil, Plus, Trash2 } from "lucide-react";
 import { AreaModules } from "./area-modules";
+import { findDomain } from "@/lib/domain-catalog";
 import { allocation, areaAccents, areaStatus, createArea, dayKey, isAreaActive, kindLabels, weekKey, type Area, type AreaKind } from "@/lib/north";
 import { useNorth, Heading, Field, fieldClass } from "./shared";
 import { Button } from "@/components/ui/button";
@@ -120,10 +121,18 @@ function AreaWorkspace({ area, tab, setTab, onEdit, draft, setDraft, saveArea }:
   return <div className="page-content space-y-6">
     <Heading title={`${area.icon} ${area.name}`} description={area.description || area.goal || "Bu alanın yönünü ve planını yönet."}><Button variant="outline" onClick={onEdit}>Alanı düzenle</Button></Heading>
     {draft ? <AreaEditor draft={draft} setDraft={setDraft} onSave={saveArea} onCancel={() => setDraft(null)} /> : null}
-    <div className="north-internal-tabs" aria-label="Alan bölümleri">{[["overview", "Genel bakış"], ["plan", "Plan"], ["progress", "İlerleme"], ["resources", "Kaynaklar"], ["notes", "Notlar"]].map(([key, label]) => <Button key={key} variant={tab === key ? "secondary" : "ghost"} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</Button>)}</div>
+    <div className="north-internal-tabs" aria-label="Alan bölümleri">{[
+      ["overview", "Genel bakış"],
+      ["plan", "Plan"],
+      ["records", /yks|tyt|kpss|banka|sınav|ayt|ales|dgs/i.test(`${area.name} ${area.goal}`) ? "Sınav ve Kanıtlar" : "Kayıt ve Kanıtlar"],
+      ["progress", "İlerleme"],
+      ["resources", "Kaynaklar"],
+      ["notes", "Notlar"],
+    ].map(([key, label]) => <Button key={key} variant={tab === key ? "secondary" : "ghost"} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</Button>)}</div>
     {tab === "overview" ? <section className="grid gap-4 md:grid-cols-2"><div className="surface space-y-4 p-6"><p className="text-xs text-muted-foreground">Ana hedef</p><h2 className="text-xl font-medium">{area.goal || "Henüz hedef belirlenmedi"}</h2><p className="text-sm text-muted-foreground">{priorityLabels[area.priority] ?? "Orta"} öncelik · {area.weeklyMinutes} dk/hafta · {area.preferredSessionMinutes ?? 50} dk oturum</p><Button asChild><Link href="/week">Bu alanı planla</Link></Button></div><div className="surface space-y-3 p-6"><p className="text-xs text-muted-foreground">Aktif işler ve tarihler</p><p className="text-2xl">{tasks.filter((task) => ["pending", "partial"].includes(task.status)).length} görev</p>{deadlines.slice(0, 3).map((deadline) => <p key={deadline.id} className="text-sm text-muted-foreground">{deadline.date} · {deadline.title}</p>)}{!deadlines.length ? <p className="text-sm text-muted-foreground">Yaklaşan son tarih yok.</p> : null}</div></section> : null}
     {tab === "overview" && area.kind === "cyber" ? <div className="surface flex flex-wrap gap-4 p-5 text-sm text-primary">{[["/labs", "Lablar"], ["/skills", "Beceriler"], ["/certifications", "Sertifikalar"], ["/evidence", "Kanıtlar"]].map(([url, label]) => <Link key={url} href={url}>{label} →</Link>)}</div> : null}
-    {tab === "overview" && area.kind !== "cyber" ? <details className="north-disclosure"><summary>{area.kind === "math" ? "Dersler ve konular" : area.kind === "reading" ? "Kitaplar" : area.kind === "chess" ? "Oyunlar ve bulmacalar" : "Alan kayıtları"}</summary><div className="mt-4"><AreaModules key={area.id + area.kind} area={area} /></div></details> : null}
+    {tab === "overview" && area.kind !== "cyber" ? <details className="north-disclosure"><summary>{area.kind === "math" ? "Dersler ve konular" : area.kind === "reading" ? "Kitaplar" : area.kind === "chess" ? "Oyunlar ve bulmacalar" : "Alan kayıtları ve kanıtlar"}</summary><div className="mt-4"><AreaModules key={area.id + area.kind} area={area} /></div></details> : null}
+    {tab === "records" ? <div className="mt-2"><AreaModules key={area.id + area.kind} area={area} /></div> : null}
     {tab === "plan" ? <div className="surface divide-y px-5">{tasks.map((task) => <div className="flex items-center justify-between gap-4 py-4" key={task.id}><div><p>{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.goal} · {task.minutes} dk</p></div><Button size="sm" variant="ghost" asChild><Link href={task.status === "done" ? "/week" : `/focus/${task.id}`}>{task.status === "done" ? "Tamamlandı" : "Başla →"}</Link></Button></div>)}<Link href="/week" className="block py-4 text-primary">Haftalık planı düzenle →</Link></div> : null}
     {(tab === "notes" || tab === "resources") ? <AreaText key={tab + area.id} area={area} field={tab} onSave={(text) => update((workspace) => ({ ...workspace, areas: workspace.areas.map((item) => item.id === area.id ? { ...item, [tab]: text } : item) }))} /> : null}
     {tab === "progress" ? <section className="surface space-y-3 p-6"><h2 className="text-lg">{area.metric}</h2><p className="text-3xl">{state.activities.filter((activity) => activity.areaId === area.id && activity.metric === area.metric).reduce((total, activity) => total + activity.amount, 0)} {area.target > 0 ? `/ ${area.target}` : ""}</p><p className="text-sm text-muted-foreground">{allocation(state, area)} dk haftalık hedef · kayıtlı gerçek çalışma üzerinden hesaplanır.</p><Link href="/progress" className="text-primary">Genel ilerlemeye git →</Link></section> : null}
@@ -138,9 +147,19 @@ function AreaText({ area, field, onSave }: { area: Area; field: "notes" | "resou
 }
 
 function resourceRecommendations(area: Area) {
+  const matched = findDomain(area.name) || findDomain(area.kind);
+  if (matched && matched.resources && matched.resources.length > 0) {
+    return matched.resources.map((r) => {
+      const parts = r.split(" — ");
+      return {
+        title: parts[0]?.trim() || r,
+        url: parts[1]?.trim() || "",
+      };
+    });
+  }
   if (area.kind === "math") return [{ title: "Khan Academy Matematik", url: "https://www.khanacademy.org/math" }, { title: "MIT OpenCourseWare", url: "https://ocw.mit.edu/" }];
   if (area.kind === "cyber") return [{ title: "OWASP Web Security Testing Guide", url: "https://owasp.org/www-project-web-security-testing-guide/" }, { title: "PortSwigger Web Security Academy", url: "https://portswigger.net/web-security" }];
   if (area.kind === "projects") return [{ title: "MDN Web Docs", url: "https://developer.mozilla.org/" }, { title: "The Odin Project", url: "https://www.theodinproject.com/" }];
   if (area.kind === "reading") return [{ title: "Goodreads", url: "https://www.goodreads.com/" }];
-  return [{ title: "Kendi güvenilir kaynağını ekle", url: "" }].filter(item => item.url);
+  return [];
 }

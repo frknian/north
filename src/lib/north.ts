@@ -33,15 +33,30 @@ export interface NorthDailyAdaptation {
   date: string; taskId?: string; originalMinutes?: number; recommendedMinutes?: number;
   message: string;
 }
-export interface NorthEvent { id: string; areaId: string; title: string; date: string; time: string; kind: "exam" | "deadline" | "block"; minutes: number }
+export interface NorthEvent {
+  id: string;
+  areaId: string;
+  title: string;
+  date: string;
+  time: string;
+  kind: "exam" | "deadline" | "block" | "class" | "shift" | "personal";
+  minutes: number;
+}
 export interface NorthState {
   records?: AreaRecord[];
-  version: 1; areas: Area[]; tasks: NorthTask[]; activities: NorthActivity[]; events: NorthEvent[];
+  version: 1;
+  areas: Area[];
+  tasks: NorthTask[];
+  activities: NorthActivity[];
+  events: NorthEvent[];
   energy: { date: string; level: "low" | "normal" | "high" };
-  weeklyHours: number; mode: string; customMode: string;
+  weeklyHours: number;
+  mode: string;
+  customMode: string;
   protection: { areaId: string; date: string; kind: "rest" | "freeze" }[];
   intelligence?: NorthIntelligenceState;
   dailyAdaptation?: NorthDailyAdaptation;
+  feedbackMemory?: import("./types").FeedbackMemoryItem[];
 }
 export type PatternStatus = "insufficient" | "emerging" | "reliable" | "strong";
 export type PatternConfidence = "low" | "medium" | "high";
@@ -134,7 +149,7 @@ export function dailySelection(state: NorthState, today=dayKey()) {
   const deep=ranked.filter(t=>t.minutes>20&&!touched.has(t.id)).slice(0,Math.max(0,2-usedDeep));
   const light=ranked.filter(t=>t.minutes<=20&&!touched.has(t.id)).slice(0,Math.max(0,2-usedLight));
   const spent=state.activities.filter(a=>a.date>=week&&a.date<=today).reduce((n,a)=>n+a.minutes,0);
-  const blockedMinutes=state.events.filter(event=>event.date===today&&event.kind==="block").reduce((total,event)=>total+event.minutes,0);
+  const blockedMinutes=state.events.filter(event=>event.date===today&&["block","class","shift","personal","exam"].includes(event.kind)).reduce((total,event)=>total+event.minutes,0);
   const dailyCapacity=blockedMinutes ? Math.max(0,Math.round(capacity(state)/7)-blockedMinutes) : capacity(state);
   let remaining=Math.min(Math.max(0,capacity(state)-spent),dailyCapacity);
   return [...deep,...light].slice(0,4).filter(t=>{
@@ -179,4 +194,102 @@ export function missedAdvice(task: NorthTask) {
   if(!task.mandatory&&!task.deadline)return {action:"cancel" as const,label:"Bu hafta bırak",why:"İsteğe bağlı bir görev; yeni bir borca dönüşmek zorunda değil."};
   if(task.minutes>50)return {action:"reduce" as const,label:"Küçült ve havuza al",why:"Daha küçük bir oturumla yeniden başlamak kolaylaşabilir."};
   return {action:"pool" as const,label:"Haftalık havuza al",why:"Önemli görev korunur; uygun günü sen seçersin."};
+}
+
+export function shrinkTask(task: NorthTask, newMinutes = Math.max(20, Math.round(task.minutes / 2))): NorthTask {
+  return {
+    ...task,
+    minutes: newMinutes,
+    why: `${task.why ? `${task.why} · ` : ""}Süre ${task.minutes} dk'dan ${newMinutes} dk'ya indirildi.`.trim(),
+  };
+}
+
+export function poolTask(task: NorthTask): NorthTask {
+  return {
+    ...task,
+    date: "",
+    mandatory: false,
+    why: `${task.why ? `${task.why} · ` : ""}Haftalık esnek havuza alındı.`.trim(),
+  };
+}
+
+export function postponeTask(task: NorthTask, targetDate: string): NorthTask {
+  return {
+    ...task,
+    date: targetDate,
+    week: weekKey(targetDate),
+    rescheduledCount: (task.rescheduledCount ?? 0) + 1,
+    why: `${task.why ? `${task.why} · ` : ""}${targetDate} tarihine ertelendi.`.trim(),
+  };
+}
+
+export function dropTask(task: NorthTask): NorthTask {
+  return {
+    ...task,
+    status: "cancelled",
+    why: "Borca dönüştürülmeden bırakıldı.",
+  };
+}
+
+export function generatePeriodPlan(targetWeeks: number, primaryGoal: string): import("./types").Milestone[] {
+  const weeks = targetWeeks >= 4 && targetWeeks <= 52 ? targetWeeks : ([4, 8, 12, 16, 24].includes(targetWeeks) ? targetWeeks : 12);
+  const totalDays = weeks * 7;
+  const d1 = Math.max(7, Math.round(totalDays * 0.15));
+  const d2 = Math.max(d1 + 7, Math.round(totalDays * 0.35));
+  const d3 = Math.max(d2 + 7, Math.round(totalDays * 0.65));
+  const d4 = Math.max(d3 + 7, Math.round(totalDays * 0.85));
+  const d5 = totalDays;
+
+  return [
+    {
+      id: "phase-starter",
+      title: "1. Aşama: Başlangıç ve Temel Harita",
+      horizonDays: d1,
+      targetWeek: Math.max(1, Math.round(d1 / 7)),
+      phase: "starter",
+      description: `${primaryGoal} için kavramsal çerçeveyi, araç kurulumunu ve ilk güvenilir kaynakları belirle.`,
+      successCriteria: ["Temel ön koşul haritası hazırlandı", "İlk güvenilir kaynaklar belirlendi", "En az 3 odak oturumu tamamlandı"],
+      status: "active",
+    },
+    {
+      id: "phase-mid-check",
+      title: "2. Aşama: Ara Kontrol ve İlk Çıktı",
+      horizonDays: d2,
+      targetWeek: Math.max(2, Math.round(d2 / 7)),
+      phase: "mid_check",
+      description: "İlk pratikleri test et, karşılaşılan darboğazları belirle ve çalışma ritmini doğrula.",
+      successCriteria: ["İlk küçük uygulama/kanıt tamamlandı", "Zorlanılan alt konular sınıflandırıldı", "Kapasite ve çalışma saatleri optimize edildi"],
+      status: "upcoming",
+    },
+    {
+      id: "phase-application",
+      title: "3. Aşama: Yoğun Uygulama ve Derin Odak",
+      horizonDays: d3,
+      targetWeek: Math.max(3, Math.round(d3 / 7)),
+      phase: "application",
+      description: "Yönlendirme ihtiyacını azaltarak bağımsız problem çözme ve proje üretimine odaklan.",
+      successCriteria: ["En az 2 bağımsız teknik çalışma veya pratik çıktı", "Aralıksız haftalık tutarlılık sağlandı", "Kaynak kullanım notları kaydedildi"],
+      status: "upcoming",
+    },
+    {
+      id: "phase-review",
+      title: "4. Aşama: Tekrar ve Pekiştirme",
+      horizonDays: d4,
+      targetWeek: Math.max(4, Math.round(d4 / 7)),
+      phase: "review",
+      description: "Eksik kalan alt konuları aralıklı tekrarla güçlendir, simülasyon veya deneme uygulamaları yap.",
+      successCriteria: ["Zayıf alt konular tekrar edildi", "Deneme/simülasyon sonuçları kaydedildi", "Hataların analizi tamamlandı"],
+      status: "upcoming",
+    },
+    {
+      id: "phase-final-proof",
+      title: "5. Aşama: Final Kanıt ve Portföy",
+      horizonDays: d5,
+      targetWeek: weeks,
+      phase: "final_proof",
+      description: `${primaryGoal} hedefini somut, doğrulanabilir bir portföy çıktısı veya sertifikalı başarı ile tamamla.`,
+      successCriteria: ["Final kanıtı kaydedildi", "Dönem değerlendirmesi tamamlandı", "Sonraki gelişim rotası belirlendi"],
+      status: "upcoming",
+    },
+  ];
 }

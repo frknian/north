@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { BookOpenText, Bot, CircleHelp, Languages, LogOut, Plus, ShieldCheck, Target, UserRound } from "lucide-react";
+import { BookOpenText, Bot, Brain, CircleHelp, Languages, LogOut, Plus, ShieldCheck, Sparkles, Target, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserGuide } from "@/components/features/user-guide";
@@ -19,13 +19,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { getFirebase } from "@/lib/firebase/client";
-import type { UniversityMode } from "@/lib/types";
+import type { AgeRange, FeedbackMemoryItem, LearningPreferences, LifeSituation, UniversityMode } from "@/lib/types";
 
 export default function ProfilePage() {
   const router = useRouter();
   const workspace = useWorkspace();
   const [note, setNote] = useState({ title: "", category: "Genel", content: "" });
   const [vocab, setVocab] = useState({ term: "", meaning: "", example: "" });
+  const [memoryDraft, setMemoryDraft] = useState<Partial<FeedbackMemoryItem>>({
+    category: "schedule_time",
+    signal: "",
+    rule: "",
+    enabled: true,
+  });
 
   function saveNote() {
     if (!note.title.trim()) return;
@@ -41,6 +47,21 @@ export default function ProfilePage() {
     toast.success("Terim kaydedildi.");
   }
 
+  function saveMemory() {
+    if (!memoryDraft.signal?.trim() || !memoryDraft.rule?.trim()) return;
+    const item: FeedbackMemoryItem = {
+      id: crypto.randomUUID(),
+      category: memoryDraft.category ?? "other",
+      signal: memoryDraft.signal.trim(),
+      rule: memoryDraft.rule.trim(),
+      enabled: true,
+      createdAt: new Date().toISOString(),
+    };
+    workspace.addFeedbackMemory(item);
+    setMemoryDraft({ category: "schedule_time", signal: "", rule: "", enabled: true });
+    toast.success("Geri bildirim kuralı hafızaya eklendi.");
+  }
+
   async function signOutUser() {
     const firebase = getFirebase();
     if (firebase) await signOut(firebase.auth);
@@ -48,12 +69,20 @@ export default function ProfilePage() {
     router.refresh();
   }
 
+  const prefs: LearningPreferences = workspace.profile.learningPreferences ?? {
+    language: "both",
+    cost: "free_only",
+    format: ["reading", "interactive"],
+    weeklyBudget: 0,
+  };
+
   return <>
-    <PageHeader eyebrow="Sistem ayarları" title="Profil ve çalışma kütüphanesi" description="Hedefini, çalışma kapasiteni ve kişisel bilgi arşivini yönet." />
+    <PageHeader eyebrow="Sistem ayarları" title="Profil ve koçluk tercihleri" description="Yaşam durumunu, öğrenme tercihlerini ve North AI hafızasını yönet." />
     <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
       <Tabs defaultValue="profile">
-        <TabsList className="mb-5 grid h-auto w-full grid-cols-2 sm:grid-cols-4">
+        <TabsList className="mb-5 grid h-auto w-full grid-cols-2 sm:grid-cols-5">
           <TabsTrigger value="profile"><UserRound />Profil</TabsTrigger>
+          <TabsTrigger value="memory"><Brain />AI Hafızası</TabsTrigger>
           <TabsTrigger value="notes"><BookOpenText />Notlar</TabsTrigger>
           <TabsTrigger value="terms"><Languages />Terimler</TabsTrigger>
           <TabsTrigger value="guide"><CircleHelp />Kılavuz</TabsTrigger>
@@ -62,14 +91,43 @@ export default function ProfilePage() {
         <TabsContent value="profile">
           <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
             <Card>
-              <CardHeader><CardTitle>Hedef ve çalışma düzeni</CardTitle><CardDescription>Buradaki değişiklikler ana alanına ve North planına yansır.</CardDescription></CardHeader>
+              <CardHeader><CardTitle>Hedef ve çalışma düzeni</CardTitle><CardDescription>Yaş ve yaşam durumun yalnızca plan yoğunluğu ve dil tonu için kullanılır; ayrımcı karar üretilmez.</CardDescription></CardHeader>
               <CardContent className="space-y-5">
                 <Field label="Adın"><Input value={workspace.profile.fullName} onChange={(event) => workspace.updateProfile({ fullName: event.target.value })} /></Field>
+                
+                {/* Age & Life Situation */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Hedef kategorisi"><Input value={workspace.profile.track} onChange={(event) => workspace.updateProfile({ track: event.target.value })} placeholder="Kariyer, eğitim, sağlık…" /></Field>
+                  <Field label="Yaş aralığı">
+                    <Select value={workspace.profile.ageRange ?? "19-24"} onValueChange={(val) => workspace.updateProfile({ ageRange: val as AgeRange })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="16-18">16 – 18 (Lise çağı)</SelectItem>
+                        <SelectItem value="19-24">19 – 24 (Üniversite / Erken kariyer)</SelectItem>
+                        <SelectItem value="25-32">25 – 32 (Genç profesyonel)</SelectItem>
+                        <SelectItem value="33-40">33 – 40 (Deneyimli profesyonel / Kariyer)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Yaşam durumu">
+                    <Select value={workspace.profile.lifeSituation ?? "university"} onValueChange={(val) => workspace.updateProfile({ lifeSituation: val as LifeSituation })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high_school">Lise öğrencisi</SelectItem>
+                        <SelectItem value="university">Üniversite öğrencisi</SelectItem>
+                        <SelectItem value="working">Tam/Yarı zamanlı çalışan</SelectItem>
+                        <SelectItem value="career_changer">Kariyer değiştiren</SelectItem>
+                        <SelectItem value="other">Diğer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Hedef kategorisi"><Input value={workspace.profile.track} onChange={(event) => workspace.updateProfile({ track: event.target.value })} placeholder="Kariyer, eğitim, sınav…" /></Field>
                   <Field label="Ana odak"><Input value={workspace.profile.primaryFocus} onChange={(event) => workspace.updateProfile({ primaryFocus: event.target.value })} placeholder="Neyi geliştirmek istiyorsun?" /></Field>
                 </div>
-                <Field label="90 günlük hedef"><Textarea value={workspace.profile.goal} onChange={(event) => workspace.updateProfile({ goal: event.target.value })} placeholder="90 günün sonunda hangi ölçülebilir sonuca ulaşmak istiyorsun?" /></Field>
+                <Field label="Dönem / 90 günlük hedef"><Textarea value={workspace.profile.goal} onChange={(event) => workspace.updateProfile({ goal: event.target.value })} placeholder="Dönemin sonunda hangi somut sonuca ulaşmak istiyorsun?" /></Field>
+                
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Field label="Hafta yoğunluğu">
                     <Select value={workspace.profile.universityMode} onValueChange={(value) => workspace.updateProfile({ universityMode: value as UniversityMode })}>
@@ -81,7 +139,44 @@ export default function ProfilePage() {
                       <SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="45">45 dakika</SelectItem><SelectItem value="50">50 dakika</SelectItem><SelectItem value="60">60 dakika</SelectItem></SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Haftalık kapasite"><Input type="number" min={1} max={60} value={workspace.profile.weeklyCapacityHours} onChange={(event) => workspace.updateProfile({ weeklyCapacityHours: Math.max(1, Number(event.target.value)) })} /></Field>
+                  <Field label="Haftalık kapasite (saat)"><Input type="number" min={1} max={60} value={workspace.profile.weeklyCapacityHours} onChange={(event) => workspace.updateProfile({ weeklyCapacityHours: Math.max(1, Number(event.target.value)) })} /></Field>
+                </div>
+
+                {/* Resource Preferences */}
+                <div className="rounded-xl border bg-muted/20 p-4 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">Kaynak ve Bütçe Tercihleri</h3>
+                    <p className="text-xs text-muted-foreground">North sana bu tercihlere göre kaynak ve görev önerir.</p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Field label="Kaynak Dili">
+                      <Select value={prefs.language} onValueChange={(val: "tr" | "en" | "both") => workspace.updateProfile({ learningPreferences: { ...prefs, language: val } })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tr">Yalnızca Türkçe</SelectItem>
+                          <SelectItem value="en">İngilizce ağırlıklı</SelectItem>
+                          <SelectItem value="both">Türkçe &amp; İngilizce</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field label="Maliyet Tercihi">
+                      <Select value={prefs.cost} onValueChange={(val: "free_only" | "paid_allowed") => workspace.updateProfile({ learningPreferences: { ...prefs, cost: val } })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free_only">Sadece Ücretsiz</SelectItem>
+                          <SelectItem value="paid_allowed">Ücretli Olabilir</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field label="Haftalık Bütçe (TL)">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={prefs.weeklyBudget}
+                        onChange={(e) => workspace.updateProfile({ learningPreferences: { ...prefs, weeklyBudget: Number(e.target.value) } })}
+                      />
+                    </Field>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -90,10 +185,10 @@ export default function ProfilePage() {
               <Card>
                 <CardHeader><div className="flex items-center gap-3"><Image src="/north-mark.png" alt="" width={36} height={36} className="rounded-lg bg-white p-1" /><div><CardTitle>Yön özeti</CardTitle><CardDescription>North’un planlama sırasında kullandığı bağlam.</CardDescription></div></div></CardHeader>
                 <CardContent className="space-y-4">
+                  <Direction label="Yaş &amp; Durum" value={`${workspace.profile.ageRange ?? "Belirtilmedi"} · ${workspace.profile.lifeSituation ?? "Belirtilmedi"}`} />
                   <Direction label="Kategori" value={workspace.profile.track || "Belirtilmedi"} />
                   <Direction label="Ana odak" value={workspace.profile.primaryFocus || "Belirtilmedi"} />
-                  <Direction label="Sonraki odak" value={workspace.profile.secondaryFocus || "Henüz yok"} />
-                  <Direction label="Uzun vade" value={workspace.profile.futureFocus || "Henüz yok"} />
+                  <Direction label="Kaynak tercihi" value={prefs.cost === "free_only" ? "Ücretsiz kaynaklar" : "Esnek bütçe"} />
                   <Button className="w-full" asChild><Link href="/north-ai"><Bot />North ile planla</Link></Button>
                   <Button variant="outline" className="w-full" asChild><Link href="/areas"><Target />Hedef alanlarını aç</Link></Button>
                 </CardContent>
@@ -106,6 +201,106 @@ export default function ProfilePage() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+        </TabsContent>
+
+        {/* FEEDBACK MEMORY TAB */}
+        <TabsContent value="memory">
+          <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Brain className="size-5 text-primary" />
+                  <CardTitle>North AI Geri Bildirim Hafızası</CardTitle>
+                </div>
+                <CardDescription>
+                  Çalışmalarında &quot;bu kaynak zor&quot;, &quot;akşam çalışamıyorum&quot;, &quot;video istemiyorum&quot; gibi belirttiğin sinyaller burada kurallara dönüşür. İstediklerini açabilir, düzenleyebilir veya silebilirsin.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {(workspace.feedbackMemory ?? []).map((item) => (
+                    <div key={item.id} className="flex items-start justify-between gap-3 rounded-xl border p-3.5 text-xs">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={item.enabled ? "default" : "outline"} className="text-[10px]">
+                            {item.category === "schedule_time" ? "Zamanlama" : item.category === "difficulty" ? "Zorluk" : item.category === "format" ? "Format" : item.category === "resource" ? "Kaynak" : "Genel"}
+                          </Badge>
+                          <span className="font-medium text-foreground">{item.rule}</span>
+                        </div>
+                        <p className="text-muted-foreground">Sinyal: &ldquo;{item.signal}&rdquo;</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="xs"
+                          variant={item.enabled ? "outline" : "secondary"}
+                          onClick={() => workspace.updateFeedbackMemory(item.id, { enabled: !item.enabled })}
+                        >
+                          {item.enabled ? "Devre Dışı Bırak" : "Etkinleştir"}
+                        </Button>
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => {
+                            workspace.deleteFeedbackMemory(item.id);
+                            toast.success("Kural hafızadan silindi.");
+                          }}
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {(!workspace.feedbackMemory || workspace.feedbackMemory.length === 0) && (
+                    <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
+                      <Sparkles className="mx-auto mb-2 size-5 text-muted-foreground" />
+                      Henüz kayıtlı bir AI geri bildirim kuralı yok. North ile konuştukça veya aşağıdan kendin ekledikçe burada listelenir.
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ADD MANUAL FEEDBACK RULE */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Kendi Kuralını Ekle</CardTitle>
+                <CardDescription>North AI plan yaparken bu kuralları daima dikkate alır.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Field label="Kategori">
+                  <Select value={memoryDraft.category} onValueChange={(val: FeedbackMemoryItem["category"]) => setMemoryDraft({ ...memoryDraft, category: val })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="schedule_time">Zamanlama / Saat</SelectItem>
+                      <SelectItem value="format">Format / İçerik türü</SelectItem>
+                      <SelectItem value="difficulty">Zorluk derecesi</SelectItem>
+                      <SelectItem value="resource">Kaynak tercihi</SelectItem>
+                      <SelectItem value="energy">Enerji seviyesi</SelectItem>
+                      <SelectItem value="other">Diğer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Kullanıcı Sinyali">
+                  <Input
+                    value={memoryDraft.signal}
+                    onChange={(e) => setMemoryDraft({ ...memoryDraft, signal: e.target.value })}
+                    placeholder="Örn: Akşam saat 21:00 sonrası odaklanamıyorum"
+                  />
+                </Field>
+                <Field label="North AI Kuralı">
+                  <Input
+                    value={memoryDraft.rule}
+                    onChange={(e) => setMemoryDraft({ ...memoryDraft, rule: e.target.value })}
+                    placeholder="Örn: Akşam 21:00 sonrasına derin çalışma koyma, hafif tekrar ver"
+                  />
+                </Field>
+                <Button className="w-full" onClick={saveMemory} disabled={!memoryDraft.signal?.trim() || !memoryDraft.rule?.trim()}>
+                  <Plus className="size-3.5" /> Kuralı Hafızaya Ekle
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 

@@ -147,9 +147,9 @@ button, a, summary { touch-action:manipulation; }
 button, input, select, textarea { transition:background-color 180ms ease,border-color 180ms ease,color 180ms ease,box-shadow 180ms ease; }
 input, select, textarea { min-width:0; }
 :focus-visible { outline:2px solid var(--primary); outline-offset:4px; }
-.north-topbar { position:sticky; top:0; z-index:40; background:#101828f5; border-bottom:1px solid #1d2939; backdrop-filter:blur(16px); }
-.north-topbar-inner { max-width:1240px; height:76px; padding:0 32px; margin:auto; display:flex; align-items:center; gap:40px; transition:height 200ms ease; }
-.north-topbar.is-scrolled .north-topbar-inner { height:64px; }
+.north-topbar { position:sticky; top:0; z-index:40; background:#101828f5; border-bottom:1px solid #1d2939; backdrop-filter:blur(16px); transition:border-color 200ms ease,box-shadow 200ms ease,background-color 200ms ease; }
+.north-topbar-inner { max-width:1240px; height:64px; padding:0 32px; margin:auto; display:flex; align-items:center; gap:40px; }
+.north-topbar.is-scrolled { border-bottom-color:#344054; box-shadow:0 4px 24px rgba(0,0,0,0.4); background:#0c111dfa; }
 .north-brand { display:flex; align-items:center; gap:9px; font-size:17px; font-weight:600; letter-spacing:-.04em; flex-shrink:0; }
 .north-brand img { width:34px; height:34px; object-fit:contain; }
 .north-desktop-tabs { display:flex; align-items:center; gap:6px; height:100%; }
@@ -255,9 +255,9 @@ input, select, textarea { min-width:0; }
 @media(max-width:767px) { .north-today { gap:24px; } .north-focus-card { padding:24px; } .north-focus-card h2 { font-size:24px; } .north-task-row { gap:8px; flex-wrap:wrap; } .north-task-row .north-task-actions { display:flex; align-items:center; justify-content:space-between; width:100%; max-width:none; } .north-task-row .north-task-goal { display:none; } .north-task-row details { max-width:200px; } }
 @keyframes north-enter { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
 @media(min-width:1600px) { .north-main { padding-top:24px; } }
-@media(min-width:768px) and (max-width:1023px) { .north-topbar-inner { gap:16px; padding:0 20px; height:68px; } .north-top-tab { padding:0 10px; } .north-tools kbd { display:none; } .north-tools { gap:5px; } }
+@media(min-width:768px) and (max-width:1023px) { .north-topbar-inner { gap:16px; padding:0 20px; height:64px; } .north-top-tab { padding:0 10px; } .north-tools kbd { display:none; } .north-tools { gap:5px; } }
 @media(max-width:767px) {
- .north-topbar-inner,.north-topbar.is-scrolled .north-topbar-inner { height:60px; padding:0 20px; }
+ .north-topbar-inner { height:60px; padding:0 20px; }
  .north-desktop-tabs { display:none; }
  .north-tools kbd { display:none; }
  .north-main { padding:0 0 90px; }
