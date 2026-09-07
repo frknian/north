@@ -3,11 +3,14 @@ import { NextResponse } from "next/server";
 import { careerModel, hasAiConfiguration, securityBoundary } from "@/lib/ai/model";
 import { careerGuide } from "@/lib/ai/career-guide";
 import { plannerInputSchema, plannerOutputSchema } from "@/lib/ai/schemas";
-import { verifyFirebaseRequest } from "@/lib/firebase/admin";
+import { readLimitedJson, secureApiRequest } from "@/lib/server/api-security";
 
 export async function POST(request: Request) {
-  if (!await verifyFirebaseRequest(request)) return NextResponse.json({ error: "Oturum gerekli." }, { status: 401 });
-  const parsed = plannerInputSchema.safeParse(await request.json());
+  const access = await secureApiRequest(request, "ai:planner");
+  if (!access.ok) return access.response;
+  const body = await readLimitedJson(request);
+  if (!body.ok) return body.response;
+  const parsed = plannerInputSchema.safeParse(body.data);
   if (!parsed.success) return NextResponse.json({ error: "Invalid planning context" }, { status: 400 });
   if (!hasAiConfiguration()) return NextResponse.json({ error: "OPENAI_API_KEY is not configured" }, { status: 503 });
   const count = parsed.data.profile.mode === "exam" ? 4 : parsed.data.profile.mode === "free" ? 14 : 10;

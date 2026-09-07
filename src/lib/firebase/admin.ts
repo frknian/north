@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Verifies a Firebase ID token through Google Identity Toolkit.
  *
@@ -6,7 +8,9 @@
  * avoids loading an unused Admin dependency in every serverless AI function.
  */
 export async function verifyFirebaseRequest(request: Request) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const authorization = request.headers.get("authorization") ?? "";
+  const match = /^Bearer ([A-Za-z0-9._-]{20,4096})$/.exec(authorization);
+  const token = match?.[1];
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
   if (!token || !apiKey) return null;
 
@@ -16,6 +20,7 @@ export async function verifyFirebaseRequest(request: Request) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idToken: token }),
       cache: "no-store",
+      signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) return null;
     const data = await response.json() as { users?: Array<{ localId: string; email?: string }> };

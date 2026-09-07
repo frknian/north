@@ -1,10 +1,14 @@
-import { verifyFirebaseRequest } from "@/lib/firebase/admin";
+import { readLimitedJson, secureApiRequest } from "@/lib/server/api-security";
 
 export async function POST(request: Request) {
-  if (!(await verifyFirebaseRequest(request))) return Response.json({ error: "GitHub verisini almak için giriş yap." }, { status: 401 });
+  const access = await secureApiRequest(request, "github:repository", { perMinute: 20, perDay: 200 });
+  if (!access.ok) return access.response;
+  const body = await readLimitedJson(request, 8 * 1024);
+  if (!body.ok) return body.response;
   let path: string;
   try {
-    const { url } = await request.json();
+    const { url } = body.data as { url?: unknown };
+    if (typeof url !== "string" || url.length > 300) throw new Error();
     const parsed = new URL(url);
     if (parsed.protocol !== "https:" || parsed.hostname !== "github.com" || parsed.username || parsed.password || !/^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/?$/.test(parsed.pathname)) throw new Error();
     path = parsed.pathname.replace(/\/$/, "").replace(/\.git$/, "");

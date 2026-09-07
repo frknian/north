@@ -2,11 +2,14 @@ import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { careerModel, hasAiConfiguration, securityBoundary } from "@/lib/ai/model";
 import { mentorInputSchema } from "@/lib/ai/schemas";
-import { verifyFirebaseRequest } from "@/lib/firebase/admin";
+import { readLimitedJson, secureApiRequest } from "@/lib/server/api-security";
 
 export async function POST(request: Request) {
-  if (!await verifyFirebaseRequest(request)) return NextResponse.json({ error: "Oturum gerekli." }, { status: 401 });
-  const parsed = mentorInputSchema.safeParse(await request.json());
+  const access = await secureApiRequest(request, "ai:mentor");
+  if (!access.ok) return access.response;
+  const body = await readLimitedJson(request);
+  if (!body.ok) return body.response;
+  const parsed = mentorInputSchema.safeParse(body.data);
   if (!parsed.success) return NextResponse.json({ error: "Invalid mentor context" }, { status: 400 });
   const { requestedLevel, question, lab } = parsed.data;
   if (requestedLevel === 0) return NextResponse.json({ answer: "Level 0 is active. Continue independently and record your next observation." });
