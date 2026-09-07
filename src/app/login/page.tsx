@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -9,10 +9,13 @@ import {
   deleteUser,
   getAdditionalUserInfo,
   GoogleAuthProvider,
+  getRedirectResult,
   signInWithEmailAndPassword,
+  signInWithRedirect,
   signInWithPopup,
   updateProfile,
   type User,
+  type UserCredential,
 } from "firebase/auth";
 import { deleteDoc, doc, setDoc } from "firebase/firestore";
 import { ArrowRight } from "lucide-react";
@@ -26,6 +29,7 @@ import { getFirebase, isFirebaseConfigured } from "@/lib/firebase/client";
 
 const KVKK_VERSION = "2026-09-06";
 const USERNAME_PATTERN = /^[a-zA-Z0-9çÇğĞıİöÖşŞüÜ._-]{3,24}$/;
+const GOOGLE_REDIRECT_INTENT_KEY = "north:google-redirect-intent";
 
 function authErrorMessage(error: unknown) {
   const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
@@ -54,11 +58,11 @@ export default function LoginPage() {
   const normalizedUsername = username.trim();
   const signupReady = USERNAME_PATTERN.test(normalizedUsername) && noticeRead;
 
-  async function saveRegistration(user: User, provider: "password" | "google.com") {
+  async function saveRegistration(user: User, provider: "password" | "google.com", requestedUsername = normalizedUsername) {
     const firebase = getFirebase();
     if (!firebase) return;
     const acceptedAt = new Date().toISOString();
-    await updateProfile(user, { displayName: normalizedUsername });
+    await updateProfile(user, { displayName: requestedUsername });
     await setDoc(doc(firebase.db, "users", user.uid, "workspaces", "cybercoach"), {
       account: {
         username: normalizedUsername,
@@ -77,6 +81,52 @@ export default function LoginPage() {
     }
     await deleteUser(user).catch(() => undefined);
   }
+
+  const completeGoogleAuthentication = useCallback(async (result: UserCredential, requestedMode: "signin" | "signup", requestedUsername: string) => {
+    const isNewUser = Boolean(getAdditionalUserInfo(result)?.isNewUser);
+    if (requestedMode === "signin" && isNewUser) {
+      await removeIncompleteRegistration(result.user);
+      toast.error("Bu Google hesabı North'ta kayıtlı değil. Kayıt ol sekmesinden kullanıcı adı ve KVKK onayıyla devam et.");
+      return;
+    }
+    if (requestedMode === "signup" && isNewUser) {
+      try {
+        await saveRegistration(result.user, "google.com", requestedUsername);
+      } catch (error) {
+        await removeIncompleteRegistration(result.user);
+        throw error;
+      }
+      toast.success("Google hesabınla kayıt oldun. Şimdi başlangıç değerlendirmesine geçiyoruz.");
+      router.push("/onboarding");
+    } else {
+      toast.success(requestedMode === "signup" ? "Bu Google hesabı zaten kayıtlıydı; giriş yapıldı." : "Google hesabınla giriş yaptın.");
+      router.push("/");
+    }
+    router.refresh();
+  // The redirect result is consumed once; values are kept in sessionStorage before navigation.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
+
+  useEffect(() => {
+    const firebase = getFirebase();
+    if (!firebase) return;
+    let active = true;
+    void getRedirectResult(firebase.auth).then(async (result) => {
+      if (!result || !active) return;
+      const stored = window.sessionStorage.getItem(GOOGLE_REDIRECT_INTENT_KEY);
+      window.sessionStorage.removeItem(GOOGLE_REDIRECT_INTENT_KEY);
+      const intent = stored ? JSON.parse(stored) as { mode?: "signin" | "signup"; username?: string } : {};
+      setBusy(true);
+      try {
+        await completeGoogleAuthentication(result, intent.mode === "signup" ? "signup" : "signin", intent.username ?? "");
+      } catch (error) {
+        toast.error(authErrorMessage(error));
+      } finally {
+        if (active) setBusy(false);
+      }
+    }).catch((error) => { if (active) toast.error(authErrorMessage(error)); });
+    return () => { active = false; };
+  }, [completeGoogleAuthentication]);
 
   async function authenticate() {
     const firebase = getFirebase();
@@ -116,33 +166,18 @@ export default function LoginPage() {
       return;
     }
     setBusy(true);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
       const result = await signInWithPopup(firebase.auth, provider);
-      const isNewUser = Boolean(getAdditionalUserInfo(result)?.isNewUser);
-
-      if (mode === "signin" && isNewUser) {
-        await removeIncompleteRegistration(result.user);
-        toast.error("Bu Google hesabı North'ta kayıtlı değil. Kayıt ol sekmesinden kullanıcı adı ve KVKK onayıyla devam et.");
+      await completeGoogleAuthentication(result, mode, normalizedUsername);
+    } catch (error) {
+      const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+      if (code === "auth/internal-error") {
+        window.sessionStorage.setItem(GOOGLE_REDIRECT_INTENT_KEY, JSON.stringify({ mode, username: normalizedUsername }));
+        await signInWithRedirect(firebase.auth, provider);
         return;
       }
-
-      if (mode === "signup" && isNewUser) {
-        try {
-          await saveRegistration(result.user, "google.com");
-        } catch (error) {
-          await removeIncompleteRegistration(result.user);
-          throw error;
-        }
-        toast.success("Google hesabınla kayıt oldun. Şimdi başlangıç değerlendirmesine geçiyoruz.");
-        router.push("/onboarding");
-      } else {
-        toast.success(mode === "signup" ? "Bu Google hesabı zaten kayıtlıydı; giriş yapıldı." : "Google hesabınla giriş yaptın.");
-        router.push("/");
-      }
-      router.refresh();
-    } catch (error) {
       toast.error(authErrorMessage(error));
     } finally {
       setBusy(false);
