@@ -134,6 +134,11 @@ export function getAssessmentQuestions(primaryFocus: string | string[]): Assessm
   if (/siber|güvenlik|pentest|soc/i.test(areaName) && /web|uygulama/i.test(goal)) return assessmentQuestionSets["Web uygulama güvenliği"].slice(0, 3).map(question => ({ ...question, skill: areaName }));
   if (/siber|güvenlik|pentest|soc/i.test(areaName)) return fundamentalsQuestions.slice(0, 3).map(question => ({ ...question, skill: areaName }));
   primaryFocus = areaName;
+  if (/satranç|chess/i.test(primaryFocus)) return [
+    { id: "chess-fork", skill: primaryFocus, prompt: "Satrançta çatal (fork) taktiği neyi anlatır?", options: [{ value: "a", label: "Bir taşla iki veya daha fazla taşı aynı anda tehdit etmeyi" }, { value: "b", label: "Oyunu beraberlikle bitirmeyi" }, { value: "c", label: "Piyon terfisini engellemeyi" }], correct: "a" },
+    { id: "chess-castle", skill: primaryFocus, prompt: "Rok yapabilmek için aşağıdakilerden hangisi gereklidir?", options: [{ value: "a", label: "Şahın veya kalenin daha önce hareket etmemiş olması" }, { value: "b", label: "Vezirin tahtada olmaması" }, { value: "c", label: "En az 20 hamle yapılmış olması" }], correct: "a" },
+    { id: "chess-development", skill: primaryFocus, prompt: "Açılışta taş gelişimi için en sağlıklı genel yaklaşım hangisidir?", options: [{ value: "a", label: "Aynı taşı tekrar tekrar hareket ettirmek" }, { value: "b", label: "Merkezi destekleyip hafif taşları geliştirmek" }, { value: "c", label: "Şahı erken merkeze yürütmek" }], correct: "b" },
+  ];
   if (/matematik|istatistik|ekonomi|iktisat/i.test(primaryFocus)) return [
     { id: "math-function", skill: primaryFocus, prompt: "f(x) = 2x + 3 için f(4) değeri kaçtır?", options: [{ value: "a", label: "8" }, { value: "b", label: "11" }, { value: "c", label: "14" }], correct: "b" },
     { id: "math-equation", skill: primaryFocus, prompt: "3x − 6 = 12 denkleminin çözümü nedir?", options: [{ value: "a", label: "x = 2" }, { value: "b", label: "x = 4" }, { value: "c", label: "x = 6" }], correct: "c" },
