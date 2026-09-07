@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -47,8 +46,7 @@ import { PipTimerController } from "@/lib/pip-timer";
 import { BrainDumpModal } from "./brain-dump";
 import { BreathworkModal } from "./breathwork-modal";
 import { toast } from "sonner";
-
-const FocusCoach = dynamic(() => import("./ai").then((m) => m.NorthAI));
+import { NorthChatPopover } from "./north-chat-popover";
 
 type Timer = {
   id: string;
@@ -1475,21 +1473,8 @@ export function NorthFocus({ id }: { id: string }) {
       <BrainDumpModal open={brainDumpOpen} onOpenChange={setBrainDumpOpen} />
       <BreathworkModal open={breathworkOpen} onOpenChange={setBreathworkOpen} />
 
-      {/* COACH DRAWER DIALOG */}
-      <Dialog open={coachOpen} onOpenChange={setCoachOpen}>
-        <DialogContent className="max-h-[90dvh] w-full max-w-xl overflow-y-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              North Koç
-            </DialogTitle>
-            <DialogDescription>
-              Yalnızca şu anki görev için hızlı ipucu, yaklaşım ve sonraki adım tavsiyesi.
-            </DialogDescription>
-          </DialogHeader>
-          {coachOpen && <FocusCoach taskId={id} embedded />}
-        </DialogContent>
-      </Dialog>
+      {/* NORTH CHAT POPOVER (EXACT SAME AS ON HOME SCREEN) */}
+      <NorthChatPopover open={coachOpen} onOpenChange={setCoachOpen} taskId={id} />
     </main>
   );
 }
