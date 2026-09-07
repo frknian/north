@@ -143,37 +143,72 @@ export function distributePlanTasksToCalendar(
 
   const weekdays = daysInCurrentWeek.slice(0, 5);
   let availableDays = weekdays;
-  if (!options.week && today > weekdays[0]) {
-    const fromToday = daysInCurrentWeek.filter(d => d >= today);
+  if (!options.week && !options.forceRedistribute && today > weekdays[0]) {
+    const fromToday = daysInCurrentWeek.filter(d => d >= today && d <= weekdays[4]);
     if (fromToday.length > 0) {
       availableDays = fromToday;
     }
   }
 
-  let dayIndex = 0;
+  // Separate tasks to be distributed from those that stay as-is
+  const tasksToDistribute: NorthTask[] = [];
 
-  return tasks.map(task => {
+  for (const task of tasks) {
     if (task.status === "done" || task.status === "cancelled") {
-      return task;
+      continue;
     }
-
     if (task.date && !options.forceRedistribute) {
-      return task;
+      continue;
     }
-
     if (task.week && task.week !== currentWeek && task.date) {
-      return task;
+      continue;
     }
+    tasksToDistribute.push(task);
+  }
 
-    let bestDay = availableDays[dayIndex % availableDays.length];
+  if (tasksToDistribute.length === 0) {
+    return tasks;
+  }
+
+  // Group tasks by areaId so we can interleave them across days (Pzt x, y; Sal y, z; etc.)
+  const tasksByArea: Record<string, NorthTask[]> = {};
+  for (const t of tasksToDistribute) {
+    const aid = t.areaId || "default";
+    if (!tasksByArea[aid]) tasksByArea[aid] = [];
+    tasksByArea[aid].push(t);
+  }
+
+  // Interleave tasks from different areas
+  const interleavedTasks: NorthTask[] = [];
+  const areaIds = Object.keys(tasksByArea);
+  let hasRemaining = true;
+  let round = 0;
+  while (hasRemaining) {
+    hasRemaining = false;
+    for (const aid of areaIds) {
+      if (tasksByArea[aid].length > round) {
+        interleavedTasks.push(tasksByArea[aid][round]);
+        if (tasksByArea[aid].length > round + 1) {
+          hasRemaining = true;
+        }
+      }
+    }
+    round++;
+  }
+
+  const assignedMap = new Map<string, string>();
+  let dayPointer = 0;
+
+  for (const task of interleavedTasks) {
+    let bestDay = availableDays[dayPointer % availableDays.length];
     let foundUnderCapacity = false;
 
     for (let attempt = 0; attempt < availableDays.length; attempt++) {
-      const candidateDay = availableDays[(dayIndex + attempt) % availableDays.length];
+      const candidateDay = availableDays[(dayPointer + attempt) % availableDays.length];
       const currentLoad = dayMinutes[candidateDay] || 0;
       if (currentLoad + task.minutes <= dailyTargetCapacity) {
         bestDay = candidateDay;
-        dayIndex = (dayIndex + attempt + 1) % availableDays.length;
+        dayPointer = (dayPointer + attempt + 1) % availableDays.length;
         foundUnderCapacity = true;
         break;
       }
@@ -183,16 +218,22 @@ export function distributePlanTasksToCalendar(
       bestDay = availableDays.reduce((minDay, d) => {
         return (dayMinutes[d] || 0) < (dayMinutes[minDay] || 0) ? d : minDay;
       }, availableDays[0]);
-      dayIndex = (dayIndex + 1) % availableDays.length;
+      dayPointer = (dayPointer + 1) % availableDays.length;
     }
 
     dayMinutes[bestDay] = (dayMinutes[bestDay] || 0) + task.minutes;
+    assignedMap.set(task.id, bestDay);
+  }
 
-    return {
-      ...task,
-      date: bestDay,
-      week: currentWeek,
-    };
+  return tasks.map(task => {
+    if (assignedMap.has(task.id)) {
+      return {
+        ...task,
+        date: assignedMap.get(task.id)!,
+        week: currentWeek,
+      };
+    }
+    return task;
   });
 }
 

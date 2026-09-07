@@ -100,6 +100,18 @@ export function NorthWeek() {
   const [searchQuery, setSearchQuery] = useState("");
   const [notification, setNotification] = useState<string | null>(null);
 
+  // Selected Day state (default today if within week, else Monday)
+  const defaultSelectedDay = useMemo(() => {
+    const today = dayKey();
+    const endOfWeek = shiftDay(week, 6);
+    if (today >= week && today <= endOfWeek) {
+      return today;
+    }
+    return week;
+  }, [week]);
+
+  const [selectedDay, setSelectedDay] = useState<string>(defaultSelectedDay);
+
   // Dialog states
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<NorthTask | null>(null);
@@ -111,33 +123,72 @@ export function NorthWeek() {
   const activeAreas = useMemo(() => state.areas.filter(isAreaActive), [state.areas]);
   const isCurrentWeek = week === weekKey();
 
+  // AUTOMATIC INITIAL DISTRIBUTION ON ENTER:
+  // When user enters the plan page, if there are tasks for this week that don't have dates,
+  // distribute them immediately across Monday to Friday with area interleaving!
+  const hasAutoPlannedRef = useRef(false);
+  useEffect(() => {
+    const unassignedTasks = state.tasks.filter(
+      (t) => (t.week === week || !t.week) && !t.date && t.status !== "cancelled" && t.status !== "done"
+    );
+    if (unassignedTasks.length > 0 && !hasAutoPlannedRef.current) {
+      hasAutoPlannedRef.current = true;
+      update((curr) => {
+        const distributed = distributePlanTasksToCalendar(curr.tasks, {
+          weeklyHours: curr.weeklyHours,
+          events: curr.events,
+          week,
+          forceRedistribute: false,
+        });
+        return {
+          ...curr,
+          tasks: distributed,
+        };
+      });
+    }
+  }, [week, state.tasks, update]);
+
   // 7 Days of the selected week (Mon -> Sun)
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
       const d = shiftDay(week, i);
       const dateObj = new Date(`${d}T12:00:00`);
       const dayName = dateObj.toLocaleDateString("tr-TR", { weekday: "short" });
+      const dayFullName = dateObj.toLocaleDateString("tr-TR", { weekday: "long" });
       const dayNum = dateObj.getDate();
       const monthName = dateObj.toLocaleDateString("tr-TR", { month: "short" });
       const isToday = d === dayKey();
       const tasksForDay = state.tasks.filter((t) => t.date === d && t.status !== "cancelled");
       const dayMinutes = tasksForDay.reduce((acc, t) => acc + t.minutes, 0);
+
+      // Distinct areas for this day
+      const dayAreas = Array.from(new Set(tasksForDay.map((t) => t.areaId)))
+        .map((aid) => state.areas.find((a) => a.id === aid))
+        .filter(Boolean) as Area[];
+
       return {
         date: d,
         dayName,
+        dayFullName,
         dayNum: String(dayNum).padStart(2, "0"),
         monthName,
         isToday,
         tasks: tasksForDay,
         dayMinutes,
+        dayAreas,
         dayIndex: i, // 0 = Mon, 4 = Fri, 5 = Sat, 6 = Sun
       };
     });
-  }, [week, state.tasks]);
+  }, [week, state.tasks, state.areas]);
 
   const weekStartDate = new Date(`${week}T12:00:00`);
   const weekEndDate = new Date(`${shiftDay(week, 6)}T12:00:00`);
   const weekLabel = `${weekStartDate.getDate()} ${weekStartDate.toLocaleDateString("tr-TR", { month: "short" })} – ${weekEndDate.getDate()} ${weekEndDate.toLocaleDateString("tr-TR", { month: "short" })}`;
+
+  // Selected Day Details Object
+  const currentSelectedDayObj = useMemo(() => {
+    return weekDays.find((d) => d.date === selectedDay) || weekDays[0];
+  }, [weekDays, selectedDay]);
 
   // Tasks filtering
   const allTasksInScope = useMemo(() => {
@@ -242,21 +293,24 @@ export function NorthWeek() {
   };
 
   // Actions
-  const handleAutoPlan = () => {
+  const handleAutoPlan = (force = false) => {
     update((curr) => {
-      // Distribute tasks to weekdays
       const updated = distributePlanTasksToCalendar(curr.tasks, {
         weeklyHours: curr.weeklyHours,
         events: curr.events,
         week,
-        forceRedistribute: false,
+        forceRedistribute: force,
       });
       return {
         ...curr,
         tasks: updated,
       };
     });
-    showToast("✨ North görev havuzundaki işleri haftanın günlerine dengeli şekilde dağıttı.");
+    showToast(
+      force
+        ? "⚡ Tüm hafta görevleri alanlara göre günlere sıfırdan dengeli dağıtıldı."
+        : "✨ North görev havuzundaki işleri haftanın günlerine dengeli şekilde dağıttı."
+    );
   };
 
   const handleToggleTask = (task: NorthTask) => {
@@ -321,7 +375,7 @@ export function NorthWeek() {
       intensity: "normal",
       mandatory: true,
       status: "pending",
-      date: targetDate || "",
+      date: targetDate || selectedDay || "",
       deadline: "",
       resource: "",
       why: "Kendi hedefin için planlanan odak adımı.",
@@ -465,10 +519,10 @@ export function NorthWeek() {
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
             {/* North'a Planlat Button */}
             <button
-              onClick={handleAutoPlan}
+              onClick={() => handleAutoPlan(false)}
               type="button"
               className="inline-flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#111827]/90 hover:bg-[#1A2333] border border-slate-700/60 text-slate-200 hover:text-white text-xs sm:text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.35)] hover:border-slate-600 active:scale-[0.98] group"
-              title="Görev havuzundaki işleri haftanın günlerine dengeli şekilde dağıtır"
+              title="Görevleri alanlara göre haftanın günlerine dengeli şekilde paylaştırır"
             >
               <span className="p-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 group-hover:text-blue-300">
                 <Sparkles className="w-3.5 h-3.5" />
@@ -763,8 +817,8 @@ export function NorthWeek() {
         {/* END: StatsSplitRow */}
 
         {/* BEGIN: WeeklyDayFlowSection (7 Günlük Blok) */}
-        <section className="bg-[#111827]/85 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)]">
-          <div className="flex items-center justify-between mb-5">
+        <section className="bg-[#111827]/85 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 Haftalık Gün Akışı
@@ -772,136 +826,271 @@ export function NorthWeek() {
                   7 Günlük Blok
                 </span>
               </h2>
-              <p className="text-xs text-slate-400">Haftanın günlerine dağılmış görevler ve takvim blokları</p>
+              <p className="text-xs text-slate-400">
+                Haftanın her gününde hangi alanlara ve görevlere odaklanacağını tek bakışta gör.
+              </p>
             </div>
-            <Link
-              href="/calendar"
-              className="text-xs font-semibold text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 transition group"
-            >
-              Tam Takvim Görünümü <span className="group-hover:translate-x-0.5 transition-transform">→</span>
-            </Link>
+            <div className="flex items-center gap-3 text-xs">
+              <button
+                onClick={() => handleAutoPlan(true)}
+                className="font-medium text-slate-400 hover:text-white transition flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60"
+                title="Haftayı günlere dengeli biçimde yeniden dağıt"
+              >
+                <RotateCcw className="w-3 h-3 text-blue-400" />
+                Haftayı Yeniden Dağıt
+              </button>
+              <Link
+                href="/calendar"
+                className="font-semibold text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 transition group"
+              >
+                Tam Takvim <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+              </Link>
+            </div>
           </div>
 
-          {/* 7 Days Grid */}
+          {/* HAFTALIK ODAK HARİTASI (Pzt: x, y • Sal: y, z • Çar: x, z ...) */}
+          <div className="flex flex-wrap items-center gap-2 py-2.5 px-3.5 rounded-xl bg-[#0B101D]/90 border border-slate-800/90 text-xs">
+            <span className="font-bold text-slate-300 flex items-center gap-1.5 shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              Haftalık Odak Haritası:
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {weekDays.slice(0, 5).map((d) => {
+                const areaNames = d.dayAreas.map((a) => a.name);
+                return (
+                  <button
+                    key={d.date}
+                    onClick={() => setSelectedDay(d.date)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg transition text-[11px]",
+                      selectedDay === d.date
+                        ? "bg-blue-600/25 border border-blue-500/40 text-white font-bold"
+                        : "hover:bg-slate-800 text-slate-300"
+                    )}
+                  >
+                    <span className="font-bold text-slate-200">{d.dayName}:</span>
+                    {areaNames.length > 0 ? (
+                      <span className="text-blue-300 font-medium">{areaNames.join(", ")}</span>
+                    ) : (
+                      <span className="text-slate-500 italic">Serbest</span>
+                    )}
+                    {d.dayIndex < 4 && <span className="text-slate-700 ml-1">•</span>}
+                  </button>
+                );
+              })}
+              <span className="text-slate-600">|</span>
+              <span className="text-[11px] text-slate-400">
+                Cmt: <span className="text-slate-500">Dinlenme</span> • Paz: <span className="text-slate-500">Retrospektif</span>
+              </span>
+            </div>
+          </div>
+
+          {/* 7 Days Interactive Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             {weekDays.map((day) => {
               const hasTasks = day.tasks.length > 0;
+              const isSelected = selectedDay === day.date;
               const isWeekend = day.dayIndex >= 5;
               const isSaturday = day.dayIndex === 5;
               const isSunday = day.dayIndex === 6;
 
-              if (day.isToday) {
-                return (
-                  <div
-                    key={day.date}
-                    className="relative bg-gradient-to-b from-[#16233B] to-[#101726] border-2 border-blue-500/80 rounded-xl p-3.5 flex flex-col justify-between min-h-[170px] shadow-[0_0_20px_-3px_rgba(37,99,235,0.25)] group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-extrabold text-blue-400">{day.dayName}</span>
-                        <span className="px-1.5 py-0.2 bg-blue-500/20 text-blue-300 rounded text-[9px] font-bold uppercase">
-                          BUGÜN
-                        </span>
-                      </div>
-                      <span className="text-[11px] font-semibold text-slate-300 font-mono">{day.dayNum} {day.monthName}</span>
-                    </div>
-
-                    <div className="flex-1 flex flex-col items-center justify-center my-3 text-center space-y-1">
-                      {hasTasks ? (
-                        <>
-                          <span className="text-xs font-bold text-white group-hover:text-blue-200 transition">
-                            {day.tasks.length} Görev Planlandı
-                          </span>
-                          <span className="text-[10px] text-blue-300 font-mono font-medium">
-                            {day.dayMinutes} dk ayrıldı
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-xs font-medium text-slate-400 group-hover:text-slate-300 transition">
-                            Görev atanmadı
-                          </span>
-                          <span className="text-[10px] text-slate-500">0 dk</span>
-                        </>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => setAssignDayTarget(day.date)}
-                      type="button"
-                      className="w-full py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition text-center shadow-xs"
-                    >
-                      + Görev Ata
-                    </button>
-                  </div>
-                );
-              }
-
               return (
                 <div
                   key={day.date}
-                  className="bg-[#111827]/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between min-h-[170px] hover:border-slate-700 hover:bg-[#141E2F]/70 transition group"
+                  onClick={() => setSelectedDay(day.date)}
+                  className={cn(
+                    "relative rounded-xl p-3.5 flex flex-col justify-between min-h-[220px] transition-all duration-200 cursor-pointer group",
+                    day.isToday
+                      ? "bg-gradient-to-b from-[#16233B] to-[#101726] border-2 border-blue-500/80 shadow-[0_0_20px_-3px_rgba(37,99,235,0.3)] ring-1 ring-blue-500/30"
+                      : isSelected
+                      ? "bg-[#142036] border-2 border-blue-400/70 shadow-lg"
+                      : "bg-[#111827]/70 border border-slate-800/80 hover:border-slate-700 hover:bg-[#141E2F]/70"
+                  )}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-300 group-hover:text-white transition">
-                      {day.dayName}
-                    </span>
-                    <span className="text-[11px] font-medium text-slate-500 font-mono">{day.dayNum} {day.monthName}</span>
+                  {/* Day Header */}
+                  <div>
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn("text-xs font-extrabold", day.isToday ? "text-blue-400" : "text-slate-200")}>
+                          {day.dayName}
+                        </span>
+                        {day.isToday && (
+                          <span className="px-1.5 py-0.2 bg-blue-500/25 text-blue-300 rounded text-[9px] font-bold uppercase">
+                            BUGÜN
+                          </span>
+                        )}
+                        {isSelected && !day.isToday && (
+                          <span className="px-1.5 py-0.2 bg-slate-800 text-slate-300 rounded text-[9px] font-semibold">
+                            SEÇİLİ
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-semibold text-slate-400 font-mono">
+                        {day.dayNum} {day.monthName}
+                      </span>
+                    </div>
+
+                    {/* Active Areas for this Day (x, y, z) */}
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {day.dayAreas.length > 0 ? (
+                        day.dayAreas.map((area) => {
+                          const styling = getAreaStyling(area.id, area.name);
+                          return (
+                            <span
+                              key={area.id}
+                              className={cn(
+                                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border",
+                                styling.bg,
+                                styling.border,
+                                styling.text
+                              )}
+                              title={area.name}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: styling.color }} />
+                              <span className="truncate max-w-[70px]">{area.name}</span>
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <span className="text-[10px] text-slate-500 italic">
+                          {isSaturday ? "Serbest Zaman" : isSunday ? "Haftalık Kapanış" : "Atanmış alan yok"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Tasks List inside Day Card */}
+                    <div className="space-y-1.5 mt-2.5">
+                      {hasTasks ? (
+                        day.tasks.slice(0, 3).map((t) => {
+                          const isDone = t.status === "done";
+                          return (
+                            <div
+                              key={t.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditTaskModal(t);
+                              }}
+                              className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-[#0A0F1D]/80 hover:bg-slate-800/90 border border-slate-800/80 hover:border-slate-700 transition cursor-pointer group/task"
+                              title={`${t.title} (${t.minutes} dk)`}
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleTask(t);
+                                  }}
+                                  className={cn(
+                                    "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition",
+                                    isDone ? "bg-blue-600 border-blue-500 text-white" : "border-slate-600 hover:border-slate-400"
+                                  )}
+                                >
+                                  {isDone && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                </button>
+                                <span
+                                  className={cn(
+                                    "truncate text-[11px] font-medium text-slate-200 group-hover/task:text-blue-300 transition",
+                                    isDone && "line-through text-slate-500"
+                                  )}
+                                >
+                                  {t.title}
+                                </span>
+                              </div>
+                              <span className="text-[9px] font-mono text-slate-400 shrink-0">{t.minutes}m</span>
+                            </div>
+                          );
+                        })
+                      ) : isSaturday ? (
+                        <div className="py-4 text-center text-slate-500">
+                          <p className="text-xs font-medium">Hafta Sonu Dinlenme</p>
+                          <p className="text-[10px] text-slate-600 mt-0.5">Yenilenme Günü</p>
+                        </div>
+                      ) : isSunday ? (
+                        <div className="py-4 text-center text-slate-500">
+                          <p className="text-xs font-medium">Haftalık İnceleme</p>
+                          <p className="text-[10px] text-slate-600 mt-0.5">17:00 Retrospektif</p>
+                        </div>
+                      ) : (
+                        <div className="py-4 text-center text-slate-500">
+                          <p className="text-xs">Görev yok</p>
+                          <p className="text-[10px] text-slate-600 mt-0.5">+ Görev Ata ile ekle</p>
+                        </div>
+                      )}
+
+                      {day.tasks.length > 3 && (
+                        <div className="text-[10px] text-slate-400 text-center font-medium">
+                          +{day.tasks.length - 3} görev daha
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex-1 flex flex-col items-center justify-center my-3 text-center space-y-1">
-                    {hasTasks ? (
-                      <>
-                        <span className="text-xs font-bold text-slate-200 group-hover:text-white transition">
-                          {day.tasks.length} Görev Planlandı
-                        </span>
-                        <span className="text-[10px] text-cyan-400 font-mono font-medium">
-                          {day.dayMinutes} dk ayrıldı
-                        </span>
-                      </>
-                    ) : isSaturday ? (
-                      <>
-                        <span className="text-xs font-medium text-slate-400">Hafta Sonu Dinlenme</span>
-                        <span className="text-[10px] text-slate-600">Serbest Zaman</span>
-                      </>
-                    ) : isSunday ? (
-                      <>
-                        <span className="text-xs font-medium text-slate-400">Haftalık İnceleme</span>
-                        <span className="text-[10px] text-slate-600">Sprint Kapanışı</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-xs text-slate-500 group-hover:text-slate-400 transition">
-                          Sürükleyin veya atayın
-                        </span>
-                        <span className="text-[10px] text-slate-600 font-mono">0 dk</span>
-                      </>
-                    )}
-                  </div>
+                  {/* Day Footer */}
+                  <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1 font-mono">
+                      <Clock className="w-3 h-3 text-slate-400" />
+                      <span className={cn("font-bold", day.dayMinutes > 0 ? "text-slate-200" : "text-slate-500")}>
+                        {day.dayMinutes} dk
+                      </span>
+                    </div>
 
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 font-medium">
-                    {isSaturday ? (
-                      <span className="text-slate-500 mx-auto">Yenilenme Günü</span>
-                    ) : isSunday ? (
-                      <span className="text-slate-500 mx-auto">17:00 Retrospektif</span>
-                    ) : (
-                      <>
-                        <span>Kapasite</span>
-                        <span className="font-mono text-slate-400">{day.dayMinutes} / {dailyTargetCap} dk</span>
-                      </>
-                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAssignDayTarget(day.date);
+                      }}
+                      className="px-2 py-0.5 rounded bg-slate-800/70 hover:bg-blue-600 text-slate-300 hover:text-white text-[10px] font-semibold transition"
+                    >
+                      + Görev
+                    </button>
                   </div>
-
-                  {/* Day quick assign button on hover */}
-                  <button
-                    onClick={() => setAssignDayTarget(day.date)}
-                    className="mt-1 w-full py-1 rounded bg-slate-800/50 hover:bg-slate-800 text-[10px] font-medium text-slate-400 hover:text-slate-200 transition opacity-0 group-hover:opacity-100"
-                  >
-                    + Görev Ata
-                  </button>
                 </div>
               );
             })}
+          </div>
+
+          {/* DAY SPOTLIGHT DETAIL PANEL */}
+          <div className="rounded-xl bg-[#0C1220]/95 border border-slate-800/90 p-4 shadow-inner flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+                <h3 className="text-sm font-bold text-white">
+                  {currentSelectedDayObj.dayFullName} ({currentSelectedDayObj.dayNum} {currentSelectedDayObj.monthName}) Odak Planı
+                </h3>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                  {currentSelectedDayObj.tasks.length} Görev • {currentSelectedDayObj.dayMinutes} dk
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                {currentSelectedDayObj.dayAreas.length > 0 ? (
+                  <>
+                    Bu günün odak alanları:{" "}
+                    <strong className="text-blue-300">
+                      {currentSelectedDayObj.dayAreas.map((a) => a.name).join(", ")}
+                    </strong>
+                  </>
+                ) : (
+                  <>Bu gün için henüz spesifik bir odak alanı veya görev planlanmadı.</>
+                )}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => openCreateTaskModal(currentSelectedDayObj.date)}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Bu Güne Görev Ekle
+              </button>
+              <button
+                onClick={() => setAssignDayTarget(currentSelectedDayObj.date)}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition"
+              >
+                Havuzdan Görev Ata
+              </button>
+            </div>
           </div>
         </section>
         {/* END: WeeklyDayFlowSection */}
