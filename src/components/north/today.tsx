@@ -37,6 +37,8 @@ export function NorthToday() {
       </div>
     </section>}
 
+    <section className="north-ai-nudge" aria-label="North önerisi"><Sparkles size={17}/><div><p>North&apos;un bugünkü önerisi</p><span>{current ? `${current.title} ile başla; ardından planını gerçek enerjine göre güncelleyelim.` : "Takviminde net bir başlangıç yok. Bir sonraki küçük adımı birlikte seçelim."}</span></div><Button asChild size="sm" variant="outline"><Link href="/north-ai">North&apos;a sor</Link></Button></section>
+
     {current ? <section className="north-now-card">
       <div className="north-now-label"><span>ŞİMDİ</span><span>{currentArea?.icon} {currentArea?.name}</span></div>
       <div className="north-now-content"><div><h2>{current.title}</h2><p className="north-now-goal">{current.goal}</p><p className="north-now-reason">{current.why || "Bu görev, haftalık yönündeki en etkili sonraki adım."}</p></div><div className="north-now-time"><strong>{current.minutes}</strong><span>dakika</span></div></div>
