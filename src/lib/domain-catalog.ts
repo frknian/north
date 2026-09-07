@@ -1,3 +1,5 @@
+import { supportedLanguages } from "./language-learning";
+
 export type DomainQuestion = {
   id: string;
   prompt: string;
@@ -386,9 +388,104 @@ export const domainCatalog: DomainDefinition[] = [
     ],
   },
   {
+    id: "english",
+    name: "İngilizce",
+    aliases: ["ingilizce", "english", "ing", "ielts", "toefl", "yds", "ingilizce öğrenme"],
+    kind: "reading",
+    icon: "🇬🇧",
+    metric: "Aktif kelime, dinleme ve konuşma",
+    defaultProofType: "Sesli konuşma kaydı veya seviye deneme özeti",
+    resources: [
+      "BBC Learning English — https://www.bbc.co.uk/learningenglish",
+      "Cambridge Dictionary — https://dictionary.cambridge.org/",
+      "British Council LearnEnglish — https://learnenglish.britishcouncil.org/",
+    ],
+    starterTasks: [
+      { title: "İngilizce aktif kelime ve flashcard seti oluştur", goal: "Seviyene uygun 20 yeni kelimeyi örnek cümleleriyle kaydet.", minutes: 30, taskType: "practice" },
+      { title: "Shadowing ve dinleme pratiği yap", goal: "5 dakikalık BBC ses kaydını dinle ve sesli taklit ederek kaydet.", minutes: 35, taskType: "reading" },
+    ],
+    questions: supportedLanguages.english.questions.beginner,
+  },
+  {
+    id: "german",
+    name: "Almanca",
+    aliases: ["almanca", "german", "deutsch", "goethe", "testdaf"],
+    kind: "reading",
+    icon: "🇩🇪",
+    metric: "Aktif kelime ve artikel çalışması",
+    defaultProofType: "Sesli konuşma kaydı veya cümle kütüğü",
+    resources: [
+      "Deutsche Welle Deutsch Lernen — https://learngerman.dw.com/",
+      "Duden Online Wörterbuch — https://www.duden.de/",
+      "Goethe-Institut Übungen — https://www.goethe.de/",
+    ],
+    starterTasks: [
+      { title: "Almanca artikel (der/die/das) ve kelime seti oluştur", goal: "Seviyene uygun 20 ismi artikelleri ve çoğullarıyla kaydet.", minutes: 30, taskType: "practice" },
+      { title: "DW Deutsch diyalog dinleme ve sesli tekrar", goal: "Kısa bir Nicos Weg bölümünü izleyip diyalogları sesli oku.", minutes: 35, taskType: "reading" },
+    ],
+    questions: supportedLanguages.german.questions.beginner,
+  },
+  {
+    id: "french",
+    name: "Fransızca",
+    aliases: ["fransızca", "french", "français", "delf", "dalf"],
+    kind: "reading",
+    icon: "🇫🇷",
+    metric: "Aktif kelime ve telaffuz pratiği",
+    defaultProofType: "Sesli kayıt transkripti veya kısa kompozisyon",
+    resources: [
+      "TV5Monde Apprendre le français — https://apprendre.tv5monde.com/",
+      "Le Robert Dictionnaire — https://www.lerobert.com/",
+      "RFI Savoirs (Journal en français facile) — https://francaisfacile.rfi.fr/",
+    ],
+    starterTasks: [
+      { title: "Fransızca fonetik ve temel kelime seti oluştur", goal: "20 temel kelimeyi burundan okunuş kurallarıyla sesli kaydet.", minutes: 30, taskType: "practice" },
+      { title: "Journal en français facile dinle ve özetle", goal: "Günün haber bültenini dinleyip 3 ana başlığı not al.", minutes: 35, taskType: "reading" },
+    ],
+    questions: supportedLanguages.french.questions.beginner,
+  },
+  {
+    id: "japanese",
+    name: "Japonca",
+    aliases: ["japonca", "japanese", "nihongo", "jlpt", "kanji"],
+    kind: "reading",
+    icon: "🇯🇵",
+    metric: "Kanji, kana ve dinleme oturumu",
+    defaultProofType: "Yazılı kanji/cümle kartı veya sesli diyalog kaydı",
+    resources: [
+      "NHK World Easy Japanese — https://www.nhk.or.jp/lesson/english/",
+      "Jisho Japanese Dictionary — https://jisho.org/",
+      "Tae Kim's Japanese Grammar Guide — https://guidetojapanese.org/",
+    ],
+    starterTasks: [
+      { title: "Japonca alfabe ve temel kalıp seti oluştur", goal: "Hiragana/Katakana veya seviyene uygun 10 Kanji ve kelimeyi kaydet.", minutes: 30, taskType: "practice" },
+      { title: "NHK Easy Japanese diyalog dinleme", goal: "Temel günlük diyaloğu dinle ve sesli tekrar (shadowing) yap.", minutes: 35, taskType: "reading" },
+    ],
+    questions: supportedLanguages.japanese.questions.beginner,
+  },
+  {
+    id: "arabic",
+    name: "Arapça",
+    aliases: ["arapça", "arabic", "arabca", "fasih arapça", "sarf", "nahiv"],
+    kind: "reading",
+    icon: "🇸🇦",
+    metric: "Sarf, nahiv ve aktif kelime",
+    defaultProofType: "İ'rab analizi veya sesli okuma kaydı",
+    resources: [
+      "Al-Jazeera Learning Arabic — https://learning.aljazeera.net/",
+      "Almaany Arabic-Turkish Dictionary — https://www.almaany.com/",
+      "Madinah Arabic Course — https://www.madinaharabic.com/",
+    ],
+    starterTasks: [
+      { title: "Arapça temel kelime ve vezin haritası çıkar", goal: "Seviyene uygun 20 kök kelimeyi ve çekim kalıplarını kaydet.", minutes: 30, taskType: "practice" },
+      { title: "Fasih Arapça metin okuma ve sesli kayıt", goal: "Harekeli kısa bir metni sesli oku ve i'rab özelliklerini incele.", minutes: 35, taskType: "reading" },
+    ],
+    questions: supportedLanguages.arabic.questions.beginner,
+  },
+  {
     id: "language",
     name: "Yabancı Dil",
-    aliases: ["ingilizce", "yabancı dil", "english", "almanca", "fransızca", "dil öğrenme", "spanish"],
+    aliases: ["yabancı dil", "dil öğrenme", "spanish", "ispanyolca", "italyanca", "rusça"],
     kind: "reading",
     icon: "A",
     metric: "Aktif kelime ve üretim",

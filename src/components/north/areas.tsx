@@ -23,6 +23,13 @@ import {
 import { AreaModules } from "./area-modules";
 import { findDomain } from "@/lib/domain-catalog";
 import {
+  detectLanguage,
+  getLanguageGoalSuggestions,
+  getLanguageLevelLabel,
+  supportedLanguages,
+  type LanguageLevel,
+} from "@/lib/language-learning";
+import {
   allocation,
   areaAccents,
   areaStatus,
@@ -40,7 +47,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-const icons = ["◎", "∑", "⌘", "▤", "♞", "◇", "✦", "◌", "△", "□"];
+const icons = ["◎", "∑", "⌘", "▤", "♞", "◇", "✦", "🇬🇧", "🇩🇪", "🇫🇷", "🇯🇵", "🇸🇦", "◌", "△", "□"];
 const priorityLabels: Record<number, string> = { 3: "Yüksek", 2: "Orta", 1: "Düşük", 0: "Bakım" };
 
 export function NorthAreas({ id }: { id?: string }) {
@@ -304,9 +311,16 @@ function AreaCard({ area }: { area: Area }) {
               {area.icon}
             </span>
             <div>
-              <Link href={`/areas/${area.id}`} className="text-base font-semibold text-foreground hover:text-primary transition-colors">
-                {area.name}
-              </Link>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Link href={`/areas/${area.id}`} className="text-base font-semibold text-foreground hover:text-primary transition-colors">
+                  {area.name}
+                </Link>
+                {area.level && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">
+                    {area.level === "beginner" ? "Başlangıç (A1-A2)" : area.level === "intermediate" ? "Orta (B1-B2)" : area.level === "advanced" ? "İleri (C1-C2)" : area.level}
+                  </Badge>
+                )}
+              </div>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {status === "paused" ? "Duraklatıldı" : status === "archived" ? "Arşivlendi" : `${priorityLabels[area.priority] ?? "Orta"} öncelik`}
               </p>
@@ -374,7 +388,110 @@ function AreaEditor({
   return (
     <section className="rounded-2xl border border-primary/30 bg-card p-5 shadow-xs space-y-4">
       <h3 className="text-sm font-semibold text-foreground">Alan Detayları &amp; Hedef Ayarları</h3>
+
+      {/* Dil Seçimi Kısayolları */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-muted-foreground font-medium">Hızlı Yabancı Dil Seçimi</Label>
+          <span className="text-[10px] text-muted-foreground">Tıkladığında alan adı, simge, kaynaklar ve seviye hazır gelir</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.values(supportedLanguages).map((lang) => {
+            const isSelected = draft.name.toLocaleLowerCase("tr").trim() === lang.name.toLocaleLowerCase("tr").trim();
+            return (
+              <button
+                type="button"
+                key={lang.code}
+                onClick={() => {
+                  const currentLvl: LanguageLevel = (draft.level as LanguageLevel) || "beginner";
+                  const goals = getLanguageGoalSuggestions(lang.name, currentLvl);
+                  setDraft({
+                    ...draft,
+                    name: lang.name,
+                    kind: "reading",
+                    icon: lang.flag,
+                    metric: "Aktif kelime, dinleme ve konuşma",
+                    level: currentLvl,
+                    domainId: lang.id,
+                    goal: goals[0] ?? draft.goal,
+                    resources: lang.resources.map((r) => `${r.title} — ${r.url}`).join("\n"),
+                  });
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs transition-all",
+                  isSelected
+                    ? "border-primary bg-primary/10 text-primary font-semibold shadow-xs ring-1 ring-primary"
+                    : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                )}
+              >
+                <span>{lang.flag}</span>
+                <span>{lang.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 text-xs">
+        {(() => {
+          const lang = detectLanguage(draft.name);
+          if (!lang) return null;
+          const currentLevel = (draft.level as LanguageLevel) || "beginner";
+          return (
+            <div className="space-y-2 sm:col-span-2 rounded-xl border bg-muted/20 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-foreground">Dil Seviyesi</Label>
+                <span className="text-[10px] text-muted-foreground">Bu seviyeye göre 3-4 soruluk teşhis testi ve görevler sunulur</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {(["beginner", "intermediate", "advanced"] as LanguageLevel[]).map((lvl) => {
+                  const meta = lang.levels[lvl];
+                  const isSelected = currentLevel === lvl;
+                  return (
+                    <button
+                      type="button"
+                      key={lvl}
+                      onClick={() => {
+                        const goals = getLanguageGoalSuggestions(draft.name, lvl);
+                        setDraft({
+                          ...draft,
+                          level: lvl,
+                          goal: goals[0] ?? draft.goal,
+                        });
+                      }}
+                      className={cn(
+                        "rounded-xl border p-2 text-left transition-all",
+                        isSelected
+                          ? "border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary"
+                          : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                      )}
+                    >
+                      <div className="text-xs font-semibold">{meta.label}</div>
+                      <div className="mt-0.5 text-[10px] leading-tight opacity-80">{meta.description}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-2 space-y-1">
+                <Label className="text-[11px] text-muted-foreground">Önerilen Seviye Hedefleri (Tıkla ve seç):</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {getLanguageGoalSuggestions(draft.name, currentLevel).map((g) => (
+                    <button
+                      type="button"
+                      key={g}
+                      onClick={() => setDraft({ ...draft, goal: g })}
+                      className="rounded-full border bg-background px-2.5 py-0.5 text-[11px] text-muted-foreground hover:border-primary/40 hover:text-primary"
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="space-y-1">
           <Label className="text-xs">Alan Adı</Label>
           <input

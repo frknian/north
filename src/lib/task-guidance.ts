@@ -1,5 +1,6 @@
 import type { Area, NorthTask } from "./north";
 import { domainCatalog } from "./domain-catalog";
+import { detectLanguage, supportedLanguages } from "./language-learning";
 
 export interface TaskStep {
   id: string;
@@ -1131,7 +1132,88 @@ export function getTaskGuidance(task: NorthTask, area?: Area): TaskGuidance {
     };
   }
 
-  // 17. GENEL / DİĞER ALANLAR (AKILLI VARSAYILAN)
+  // 17. YABANCI DİL ÖĞRENME (İngilizce, Almanca, Fransızca, Japonca, Arapça)
+  const detectedLang = detectLanguage(areaName) || detectLanguage(areaGoal) || detectLanguage(t);
+  const isLanguageDomain = domainId === "language" || ["english", "german", "french", "japanese", "arabic"].includes(domainId) || Boolean(detectedLang);
+
+  if (isLanguageDomain) {
+    const langInfo = detectedLang || (domainId in supportedLanguages ? supportedLanguages[domainId as keyof typeof supportedLanguages] : undefined);
+    const langName = langInfo?.name || "Yabancı Dil";
+    const resources: TaskResourceLink[] = langInfo ? [
+      ...langInfo.resources.map(r => ({
+        title: r.title,
+        url: r.url,
+        badge: r.badge,
+        description: r.description,
+      })),
+      ...langInfo.dictionaries.map(d => ({
+        title: d.name,
+        url: d.url,
+        badge: "Döküman" as const,
+        description: `${langName} için güvenilir tek dilli/iki dilli sözlük ve telaffuz kaynağı.`,
+      })),
+    ] : [
+      {
+        title: "Cambridge Dictionary",
+        url: "https://dictionary.cambridge.org/",
+        badge: "Döküman",
+        description: "Kelime anlamları, örnek cümleler ve fonetik telaffuzlar.",
+      },
+      {
+        title: "BBC Learning English",
+        url: "https://www.bbc.co.uk/learningenglish",
+        badge: "Platform",
+        description: "Sesli kayıtlar, dinleme serileri ve seviye pratikleri.",
+      },
+    ];
+
+    return {
+      summary: `Bu seansta ${langName} aktif kelime dağarcığını geliştirecek, bağlam içinde cümle kuracak, dinleme-tekrar (shadowing) veya telaffuz pratiği yapacak ve konuşma/yazma kaslarını güçlendireceksin.`,
+      steps: [
+        {
+          id: "step-1",
+          title: "1. Dinleme ve Telaffuz Ortamını Aç",
+          detail: "Kulaklıklarını tak, hedef dildeki güvenilir sözlük veya ses kaynağını aç. Dikkat dağıtıcıları kaldır.",
+        },
+        {
+          id: "step-2",
+          title: "2. Bağlamsal Kelime & Kalıp Taraması",
+          detail: "Yeni kelimeleri tek başına ezberlemek yerine örnek cümle içinde incele. Eşdizimlilikleri (collocations) ve edatları not al.",
+        },
+        {
+          id: "step-3",
+          title: "3. Shadowing / Sesli Telaffuz Egzersizi",
+          detail: "Duyduğun veya okuduğun cümleyi aynı tonlama, vurgu ve ritimle en az 3 kez sesli tekrar et. Dil ve ağız kas hafızanı çalıştır.",
+        },
+        {
+          id: "step-4",
+          title: "4. Aktif Cümle Üretimi (Feynman Tekniği)",
+          detail: "Öğrendiğin yeni gramer yapısı veya kelimelerle kendi hayatından en az 3 özgün cümle kur ve sesli telaffuz et.",
+        },
+        {
+          id: "step-5",
+          title: "5. Aralıklı Tekrar Kartına Ekle ve Kaydet",
+          detail: "Seans sonunda çalıştığın cümleleri flashcard sistemine veya çalışma günlüğüne ekleyerek oturumu tamamla.",
+        },
+      ],
+      resources,
+      commands: [
+        {
+          title: "Shadowing (Gölgeleme) Tekniği",
+          command: "Dinle -> 0.5s gecikmeyle aynı anda sesli tekrar et",
+          explanation: "Konuşma akıcılığını, tonlamayı ve yabancı dilde düşünme refleksini en hızlı geliştiren bilimsel yöntemdir.",
+        },
+        {
+          title: "SRS Aralıklı Tekrar Kuralı",
+          command: "1. Gün -> 3. Gün -> 7. Gün -> 21. Gün",
+          explanation: "Yeni öğrenilen bir kelime unutma eğrisine girmeden önce bu aralıklarla tekrar edildiğinde kalıcı belleğe aktarılır.",
+        },
+      ],
+      aiPrompt: `${langName} öğrenme seansındayım ('${task.title} - ${task.goal}'). Benimle bu dilde seviyeme uygun karşılıklı bir diyalog pratiği başlatır mısın? Yaptığım cümle hatalarını nazikçe düzeltip yerli konuşurların (native speaker) tercih ettiği doğal alternatifleri göster.`,
+    };
+  }
+
+  // 18. GENEL / DİĞER ALANLAR (AKILLI VARSAYILAN)
   const matchedDomain = domainCatalog.find((d) => d.id === area?.domainId || d.kind === area?.kind);
   const catalogResources: TaskResourceLink[] = (matchedDomain?.resources || []).map((r) => {
     const parts = r.split("—");

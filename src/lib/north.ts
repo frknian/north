@@ -8,6 +8,7 @@ export interface Area {
   weeklyMinutes: number; minimumMinutes: number; archived: boolean; metric: string;
   target: number; notes: string; resources: string;
   description?: string; preferredSessionMinutes?: number; accent?: string; domainId?: string;
+  level?: string;
   status?: "active" | "paused" | "archived";
 }
 export interface NorthTask {
@@ -289,6 +290,19 @@ export function initializeNorth(workspace: WorkspaceState): NorthState {
     area.resources = domain?.resources.join("\n") ?? starterResourcesFor(kind);
     area.weeklyMinutes = index === 0 ? workspace.profile.weeklyCapacityHours * 60 : 0;
     area.priority = index === 0 ? 3 : 2;
+
+    const lang = detectLangQuick(name);
+    if (lang) {
+      area.kind = "reading";
+      area.domainId = lang.id;
+      area.icon = lang.flag;
+      area.metric = "Aktif kelime, dinleme ve konuşma";
+      area.level = configuredGoal?.level ?? "beginner";
+      area.resources = lang.resources.join("\n");
+    } else if (configuredGoal?.level) {
+      area.level = configuredGoal.level;
+    }
+
     return area;
   });
   const primary = areas[0] ?? createArea("custom", "primary-goal");
@@ -346,6 +360,15 @@ export function initializeNorth(workspace: WorkspaceState): NorthState {
   };
 }
 function basicDomainProfile(name:string){const value=name.toLocaleLowerCase("tr-TR");if(/robotik|arduino|raspberry|embedded|gömülü|mikrodenetleyici|elektronik/.test(value))return {id:"robotics",kind:"projects" as const,icon:"⚙",metric:"Çalışan prototip",resources:["Arduino Documentation — https://docs.arduino.cc/","Raspberry Pi Documentation — https://www.raspberrypi.com/documentation/"]};if(/borsa|yatırım|finans|hisse|trading|kripto|portföy/.test(value))return {id:"finance",kind:"custom" as const,icon:"↗",metric:"Analiz edilen şirket",resources:["Borsa İstanbul Akademi — https://www.borsaistanbul.com/","SPK Yatırımcı Bilgilendirme — https://spk.gov.tr/"]};if(/inşaat|betonarme|şantiye|statik|zemin|metraj/.test(value))return {id:"civil-engineering",kind:"custom" as const,icon:"▰",metric:"Tamamlanan teknik çalışma",resources:["Türkiye Bina Deprem Yönetmeliği — https://www.afad.gov.tr/","MIT OpenCourseWare Civil Engineering — https://ocw.mit.edu/"]};if(/matematik|calculus|istatistik|lineer cebir|geometri/.test(value))return {id:"mathematics",kind:"math" as const,icon:"∑",metric:"Çözülen problem",resources:["Khan Academy — https://www.khanacademy.org/math","MIT OpenCourseWare — https://ocw.mit.edu/"]};if(/satranç|satranc|chess/.test(value))return {id:"chess",kind:"chess" as const,icon:"♞",metric:"Çözülen taktik",resources:["Lichess Studies — https://lichess.org/study","Chess.com Lessons — https://www.chess.com/lessons"]};if(/yazılım|uygulama|programlama|kodlama|web geliştirme|mobil geliştirme|frontend|backend/.test(value))return {id:"software",kind:"projects" as const,icon:"◇",metric:"Tamamlanan çıktı",resources:["MDN Web Docs — https://developer.mozilla.org/","The Odin Project — https://www.theodinproject.com/"]};return undefined;}
+function detectLangQuick(name: string) {
+  const norm = name.toLocaleLowerCase("tr").replace(/\u0307/g, "").trim();
+  if (/ingilizce|english|ielts|toefl/i.test(norm)) return { id: "english", name: "İngilizce", flag: "🇬🇧", resources: ["BBC Learning English — https://www.bbc.co.uk/learningenglish", "Cambridge Dictionary — https://dictionary.cambridge.org/"] };
+  if (/almanca|german|deutsch|goethe/i.test(norm)) return { id: "german", name: "Almanca", flag: "🇩🇪", resources: ["Deutsche Welle Deutsch Lernen — https://learngerman.dw.com/", "Duden Online Wörterbuch — https://www.duden.de/"] };
+  if (/fransızca|french|français|delf/i.test(norm)) return { id: "french", name: "Fransızca", flag: "🇫🇷", resources: ["TV5Monde Apprendre le français — https://apprendre.tv5monde.com/", "Le Robert Dictionnaire — https://www.lerobert.com/"] };
+  if (/japonca|japanese|nihongo|jlpt/i.test(norm)) return { id: "japanese", name: "Japonca", flag: "🇯🇵", resources: ["NHK World Easy Japanese — https://www.nhk.or.jp/lesson/english/", "Jisho Japanese Dictionary — https://jisho.org/"] };
+  if (/arapça|arabic|arabca|fasih arapça/i.test(norm)) return { id: "arabic", name: "Arapça", flag: "🇸🇦", resources: ["Al-Jazeera Learning Arabic — https://learning.aljazeera.net/", "Almaany Arabic-Turkish Dictionary — https://www.almaany.com/"] };
+  return undefined;
+}
 function starterResourcesFor(kind: AreaKind) {
   if (kind === "cyber") return "OWASP Web Security Testing Guide — https://owasp.org/www-project-web-security-testing-guide/\nPortSwigger Web Security Academy — https://portswigger.net/web-security";
   if (kind === "math") return "Khan Academy Matematik — https://www.khanacademy.org/math\nMIT OpenCourseWare — https://ocw.mit.edu/";
@@ -469,9 +492,65 @@ export function generatePeriodPlan(targetWeeks: number, primaryGoal: string): im
   const d4 = Math.max(d3 + 7, Math.round(totalDays * 0.85));
   const d5 = totalDays;
 
-  const g = primaryGoal.toLowerCase();
+  const g = primaryGoal.toLocaleLowerCase("tr").replace(/\u0307/g, "").trim();
   const isChess = /satranç|chess|elo/i.test(g);
   const isExam = /yks|tyt|ayt|kpss|ales|dgs|banka|müfettiş/i.test(g);
+  const isLanguage = Boolean(detectLangQuick(g)) || /ingilizce|almanca|fransızca|japonca|arapça|english|german|french|japanese|arabic|yabancı dil|dil öğren|toefl|ielts|jlpt/i.test(g);
+
+  if (isLanguage) {
+    return [
+      {
+        id: "phase-starter",
+        title: "1. Aşama: Fonetik, Temel Kelime & Gramer Haritası",
+        horizonDays: d1,
+        targetWeek: Math.max(1, Math.round(d1 / 7)),
+        phase: "starter",
+        description: `${primaryGoal} için temel telaffuz/alfabe kurallarını, ilk 300-500 aktif kelimeyi ve temel zaman yapılarını çalış.`,
+        successCriteria: ["İlk aktif kelime flashcard seti oluşturuldu", "Temel dinleme kaynağı ve telaffuz rutini belirlendi", "En az 5 odaklı dil oturumu tamamlandı"],
+        status: "active",
+      },
+      {
+        id: "phase-mid-check",
+        title: "2. Aşama: Aktif Cümle Kurma ve Dinleme Pratiği",
+        horizonDays: d2,
+        targetWeek: Math.max(2, Math.round(d2 / 7)),
+        phase: "mid_check",
+        description: "Kısa diyaloglar, bağlaçlar ve dinleme-tekrar (shadowing) egzersizleri ile anlama hızını artır.",
+        successCriteria: ["İlk sesli telaffuz/diyalog kaydı alındı", "Shadowing dinleme serisi tamamlandı", "Yeni kelimeler bağlam içinde kullanıldı"],
+        status: "upcoming",
+      },
+      {
+        id: "phase-application",
+        title: "3. Aşama: Yoğun Üretim ve Akıcılık Odaklanması",
+        horizonDays: d3,
+        targetWeek: Math.max(3, Math.round(d3 / 7)),
+        phase: "application",
+        description: "Kısa deneme metinleri yazma, konuşma pratiği, podcast dinleme ve karmaşık cümle yapıları kurma.",
+        successCriteria: ["Haftalık serbest yazım veya konuşma kaydı yapıldı", "Hedef dilde podcast/haber özeti çıkarıldı", "Deyimler ve kalıp ifadeler uygulandı"],
+        status: "upcoming",
+      },
+      {
+        id: "phase-review",
+        title: "4. Aşama: Aralıklı Tekrar ve İleri Seviye Düzeltme",
+        horizonDays: d4,
+        targetWeek: Math.max(4, Math.round(d4 / 7)),
+        phase: "review",
+        description: "Zorlanılan gramer yapılarını ve unutulan kelimeleri aralıklı tekrarla pekiştir; hata günlüğünü incele.",
+        successCriteria: ["Zorlanılan kalıplar ve yanlış telaffuzlar tekrar edildi", "Aralıklı tekrar seti %90+ başarıyla tamamlandı", "Hızlı anlama testleri yapıldı"],
+        status: "upcoming",
+      },
+      {
+        id: "phase-final-proof",
+        title: "5. Aşama: Seviye Kanıtı ve Akıcı Portföy",
+        horizonDays: d5,
+        targetWeek: weeks,
+        phase: "final_proof",
+        description: `${primaryGoal} hedefini sesli konuşma kaydı, seviye tespit sınavı sonucu veya yazılı makale ile somutlaştır.`,
+        successCriteria: ["Doğrulanabilir seviye test sonucu veya sesli sunum kaydedildi", "Dönem kazanımları değerlendirildi", "Bir sonraki seviye rotası belirlendi"],
+        status: "upcoming",
+      },
+    ];
+  }
 
   if (isChess) {
     return [

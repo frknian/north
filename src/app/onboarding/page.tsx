@@ -14,10 +14,21 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAssessmentQuestions } from "@/lib/onboarding";
 import { evaluateAdaptiveAssessment } from "@/lib/domain-catalog";
+import {
+  detectLanguage,
+  getLanguageGoalSuggestions,
+  getLanguageLevelLabel,
+  type LanguageLevel,
+} from "@/lib/language-learning";
 import type { AgeRange, InitialSetupInput, LifeSituation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const suggestions = [
+  "İngilizce",
+  "Almanca",
+  "Fransızca",
+  "Japonca",
+  "Arapça",
   "Siber Güvenlik",
   "Veri Analizi",
   "AI/LLM",
@@ -35,6 +46,11 @@ const suggestions = [
 ];
 
 const areaAliases: Record<string, string[]> = {
+  "İngilizce": ["ingilizce", "english", "ing", "ielts", "toefl", "yds"],
+  "Almanca": ["almanca", "german", "deutsch", "goethe", "testdaf"],
+  "Fransızca": ["fransızca", "french", "français", "delf", "dalf"],
+  "Japonca": ["japonca", "japanese", "nihongo", "jlpt"],
+  "Arapça": ["arapça", "arabic", "arabca", "fasih arapça"],
   "Siber Güvenlik": ["siber", "cyber", "güvenlik", "pentest", "soc"],
   "Veri Analizi": ["veri", "data", "data analyst", "veri analisti", "bi", "pandas"],
   "AI/LLM": ["ai", "llm", "yapay zeka", "machine learning", "makine öğrenmesi", "deep learning"],
@@ -89,7 +105,13 @@ export default function OnboardingPage() {
   const [draft, setDraft] = useState("");
 
   const questions = useMemo(
-    () => getAssessmentQuestions(form.interests.map((area) => `${area}::${form.areaGoals[area]?.goal ?? ""}`)),
+    () =>
+      getAssessmentQuestions(
+        form.interests.map(
+          (area) =>
+            `${area}::${form.areaGoals[area]?.goal ?? ""}::${form.areaGoals[area]?.level ?? "beginner"}`
+        )
+      ),
     [form.areaGoals, form.interests]
   );
 
@@ -106,11 +128,17 @@ export default function OnboardingPage() {
   function addInterest(value = draft) {
     const clean = value.trim().replace(/\s+/g, " ");
     if (!clean || form.interests.some((item) => item.localeCompare(clean, "tr", { sensitivity: "accent" }) === 0)) return;
+    const lang = detectLanguage(clean);
+    const initialLevel = lang ? "beginner" : undefined;
+    const initialGoal = lang ? getLanguageGoalSuggestions(clean, "beginner")[0] ?? "" : "";
     setForm((current) => ({
       ...current,
       interests: [...current.interests, clean],
       primaryFocus: current.primaryFocus || clean,
-      areaGoals: { ...current.areaGoals, [clean]: { goal: "", targetWeeks: 12 } },
+      areaGoals: {
+        ...current.areaGoals,
+        [clean]: { goal: initialGoal, targetWeeks: 12, level: initialLevel },
+      },
       assessmentAnswers: {},
     }));
     setDraft("");
@@ -144,6 +172,7 @@ export default function OnboardingPage() {
         {
           goal: form.areaGoals[area]?.goal.trim() || `${area} için düzenli ve ölçülebilir bir çalışma planı kurmak`,
           targetWeeks: form.areaGoals[area]?.targetWeeks ?? 12,
+          level: form.areaGoals[area]?.level,
         },
       ])
     );
@@ -163,6 +192,7 @@ export default function OnboardingPage() {
         {
           goal: form.areaGoals[area]?.goal.trim() || `${area} için düzenli bir çalışma düzeni kurmak`,
           targetWeeks: form.areaGoals[area]?.targetWeeks ?? 12,
+          level: form.areaGoals[area]?.level,
         },
       ])
     );
@@ -293,72 +323,150 @@ export default function OnboardingPage() {
                 </div>
               </Field>
 
-              {form.interests.map((area) => (
-                <div key={area} className="rounded-xl border bg-muted/20 p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium">{area}</p>
-                    <span className="text-xs text-muted-foreground">Hedef Dönemi</span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {goalSuggestions(area).map((goal) => (
-                      <button
-                        type="button"
-                        key={goal}
-                        className="rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary"
-                        onClick={() =>
+              {form.interests.map((area) => {
+                const lang = detectLanguage(area);
+                const currentLevel = (form.areaGoals[area]?.level as LanguageLevel) || "beginner";
+                return (
+                  <div key={area} className="rounded-xl border bg-muted/20 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {lang && <span className="text-xl" role="img" aria-label={lang.name}>{lang.flag}</span>}
+                        <p className="font-medium">{area}</p>
+                        {lang && (
+                          <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                            {lang.nativeName}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">Hedef Dönemi</span>
+                    </div>
+
+                    {lang && (
+                      <div className="mt-3 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-foreground">Mevcut Dil Seviyeniz</Label>
+                          <span className="text-[11px] text-muted-foreground">Bu seviyeye göre 3-4 soruluk teşhis testi sunulur</span>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          {(["beginner", "intermediate", "advanced"] as LanguageLevel[]).map((lvl) => {
+                            const meta = lang.levels[lvl];
+                            const isSelected = currentLevel === lvl;
+                            return (
+                              <button
+                                type="button"
+                                key={lvl}
+                                className={cn(
+                                  "rounded-xl border p-2.5 text-left transition-all",
+                                  isSelected
+                                    ? "border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary"
+                                    : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                                )}
+                                onClick={() => {
+                                  const newGoals = getLanguageGoalSuggestions(area, lvl);
+                                  const shouldUpdateGoal =
+                                    !form.areaGoals[area]?.goal ||
+                                    getLanguageGoalSuggestions(area, currentLevel).includes(form.areaGoals[area]?.goal);
+                                  setForm((current) => ({
+                                    ...current,
+                                    areaGoals: {
+                                      ...current.areaGoals,
+                                      [area]: {
+                                        ...current.areaGoals[area],
+                                        goal: shouldUpdateGoal ? (newGoals[0] ?? current.areaGoals[area]?.goal) : current.areaGoals[area]?.goal,
+                                        targetWeeks: current.areaGoals[area]?.targetWeeks ?? 12,
+                                        level: lvl,
+                                      },
+                                    },
+                                    goal: current.interests[0] === area && shouldUpdateGoal ? (newGoals[0] ?? current.goal) : current.goal,
+                                    assessmentAnswers: {},
+                                  }));
+                                }}
+                              >
+                                <div className="text-xs font-semibold">{meta.label}</div>
+                                <div className="mt-0.5 text-[10px] leading-tight opacity-80">{meta.description}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {goalSuggestions(area, currentLevel).map((goal) => (
+                        <button
+                          type="button"
+                          key={goal}
+                          className="rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary"
+                          onClick={() =>
+                            setForm((current) => ({
+                              ...current,
+                              areaGoals: {
+                                ...current.areaGoals,
+                                [area]: {
+                                  ...current.areaGoals[area],
+                                  goal,
+                                  targetWeeks: current.areaGoals[area]?.targetWeeks ?? 12,
+                                  level: current.areaGoals[area]?.level ?? (lang ? "beginner" : undefined),
+                                },
+                              },
+                              goal: current.interests[0] === area ? goal : current.goal,
+                            }))
+                          }
+                        >
+                          {goal}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_190px]">
+                      <Input
+                        value={form.areaGoals[area]?.goal ?? ""}
+                        onChange={(event) =>
                           setForm((current) => ({
                             ...current,
                             areaGoals: {
                               ...current.areaGoals,
-                              [area]: { goal, targetWeeks: current.areaGoals[area]?.targetWeeks ?? 12 },
+                              [area]: {
+                                ...current.areaGoals[area],
+                                goal: event.target.value,
+                                targetWeeks: current.areaGoals[area]?.targetWeeks ?? 12,
+                                level: current.areaGoals[area]?.level ?? (lang ? "beginner" : undefined),
+                              },
                             },
-                            goal: current.interests[0] === area ? goal : current.goal,
+                            goal: current.interests[0] === area ? event.target.value : current.goal,
+                          }))
+                        }
+                        placeholder={`${area} alanında hangi somut sonuca ulaşmak istiyorsun?`}
+                      />
+                      <Select
+                        value={String(form.areaGoals[area]?.targetWeeks ?? 12)}
+                        onValueChange={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            areaGoals: {
+                              ...current.areaGoals,
+                              [area]: {
+                                ...current.areaGoals[area],
+                                goal: current.areaGoals[area]?.goal ?? "",
+                                targetWeeks: Number(value),
+                                level: current.areaGoals[area]?.level ?? (lang ? "beginner" : undefined),
+                              },
+                            },
                           }))
                         }
                       >
-                        {goal}
-                      </button>
-                    ))}
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="4">4 hafta (Hızlı döngü)</SelectItem>
+                          <SelectItem value="8">8 hafta (2 aylık odak)</SelectItem>
+                          <SelectItem value="12">12 hafta (Dönem planı)</SelectItem>
+                          <SelectItem value="16">16 hafta (4 aylık program)</SelectItem>
+                          <SelectItem value="24">24 hafta (Kapsamlı hazırlık)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_190px]">
-                    <Input
-                      value={form.areaGoals[area]?.goal ?? ""}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          areaGoals: {
-                            ...current.areaGoals,
-                            [area]: { goal: event.target.value, targetWeeks: current.areaGoals[area]?.targetWeeks ?? 12 },
-                          },
-                          goal: current.interests[0] === area ? event.target.value : current.goal,
-                        }))
-                      }
-                      placeholder={`${area} alanında hangi somut sonuca ulaşmak istiyorsun?`}
-                    />
-                    <Select
-                      value={String(form.areaGoals[area]?.targetWeeks ?? 12)}
-                      onValueChange={(value) =>
-                        setForm((current) => ({
-                          ...current,
-                          areaGoals: {
-                            ...current.areaGoals,
-                            [area]: { goal: current.areaGoals[area]?.goal ?? "", targetWeeks: Number(value) },
-                          },
-                        }))
-                      }
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="4">4 hafta (Hızlı döngü)</SelectItem>
-                        <SelectItem value="8">8 hafta (2 aylık odak)</SelectItem>
-                        <SelectItem value="12">12 hafta (Dönem planı)</SelectItem>
-                        <SelectItem value="16">16 hafta (4 aylık program)</SelectItem>
-                        <SelectItem value="24">24 hafta (Kapsamlı hazırlık)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         )}
@@ -769,7 +877,9 @@ function Summary({ label, value, detail }: { label: string; value: string; detai
   );
 }
 
-function goalSuggestions(area: string) {
+function goalSuggestions(area: string, level: LanguageLevel = "beginner") {
+  const lang = detectLanguage(area);
+  if (lang) return getLanguageGoalSuggestions(area, level);
   if (/siber|güvenlik/i.test(area)) return ["Network temellerini öğrenmek", "Web güvenliği lablarını çözmek", "SOC analizi öğrenmek"];
   if (/veri/i.test(area)) return ["SQL ve veri temizleme öğrenmek", "Keşifsel veri analizi notebook'u hazırlamak", "İlk dashboard'u yayınlamak"];
   if (/ai|llm/i.test(area)) return ["Prompt mühendisliği ve eval kurmak", "RAG prototipi geliştirmek", "LLM deneyi tamamlamak"];

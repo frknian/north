@@ -33,7 +33,7 @@ export interface Profile {
   lifeSituation?: LifeSituation;
   learningPreferences?: LearningPreferences;
   interests?: string[];
-  areaGoals?: Record<string, { goal: string; targetWeeks: number }>;
+  areaGoals?: Record<string, { goal: string; targetWeeks: number; level?: string }>;
   university?: {
     isStudent: boolean;
     school?: string;
@@ -247,7 +247,7 @@ export interface InitialSetupInput {
   track: string;
   primaryFocus: string;
   interests: string[];
-  areaGoals: Record<string, { goal: string; targetWeeks: number }>;
+  areaGoals: Record<string, { goal: string; targetWeeks: number; level?: string }>;
   isUniversityStudent: boolean;
   universitySchool: string;
   universityDepartment: string;

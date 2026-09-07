@@ -1,6 +1,7 @@
 import { initialResources, initialSourceLocks } from "@/lib/resource-data";
 import { dayKey, generatePeriodPlan, initializeNorth, shiftDay, weekKey } from "@/lib/north";
 import { findDomain, genericDomainQuestions } from "@/lib/domain-catalog";
+import { detectLanguage, getLanguageQuestions, type LanguageLevel } from "@/lib/language-learning";
 import type { InitialSetupInput, Skill, Task, WorkspaceState } from "@/lib/types";
 
 export interface AssessmentQuestion {
@@ -9,6 +10,9 @@ export interface AssessmentQuestion {
   prompt: string;
   options: { value: string; label: string }[];
   correct: string;
+  subTopic?: string;
+  explanation?: string;
+  recommendedReview?: string;
 }
 
 const fundamentalsQuestions: AssessmentQuestion[] = [
@@ -128,9 +132,33 @@ export const assessmentQuestions = fundamentalsQuestions;
 
 export function getAssessmentQuestions(primaryFocus: string | string[]): AssessmentQuestion[] {
   if (Array.isArray(primaryFocus)) {
-    return primaryFocus.flatMap((focus, focusIndex) => { const [areaName] = focus.split("::"); return getAssessmentQuestions(focus).slice(0, 3).map(question => ({ ...question, id: `area-${focusIndex}-${question.id}`, prompt: `${areaName} · ${question.prompt}` })); });
+    return primaryFocus.flatMap((focus, focusIndex) => {
+      const [areaName] = focus.split("::");
+      return getAssessmentQuestions(focus).slice(0, 4).map(question => ({
+        ...question,
+        id: `area-${focusIndex}-${question.id}`,
+        prompt: `${areaName} · ${question.prompt}`
+      }));
+    });
   }
-  const [areaName, goal = ""] = primaryFocus.split("::");
+  const [areaName, goal = "", rawLevel = "beginner"] = primaryFocus.split("::");
+  const lang = detectLanguage(areaName);
+  if (lang) {
+    const validLevel: LanguageLevel = (rawLevel === "intermediate" || rawLevel === "advanced") ? rawLevel : "beginner";
+    const langQuestions = getLanguageQuestions(areaName, validLevel);
+    if (langQuestions.length > 0) {
+      return langQuestions.map((q) => ({
+        id: q.id,
+        skill: areaName,
+        prompt: q.prompt,
+        options: q.options,
+        correct: q.correct,
+        subTopic: q.subTopic,
+        explanation: q.explanation,
+        recommendedReview: q.recommendedReview,
+      }));
+    }
+  }
   const domain = findDomain(areaName);
   if (domain) return domain.questions.map(question => ({ ...question, skill: areaName }));
   if (/siber|güvenlik|pentest|soc/i.test(areaName) && /network|ağ|networking/i.test(goal)) return assessmentQuestionSets["Ağ ve iç ağ güvenliği"].slice(0, 3).map(question => ({ ...question, skill: areaName }));
@@ -235,8 +263,34 @@ function courseDates(day: string, weeks: number) {
 function starterTasks(input: InitialSetupInput): Task[] {
   const planId = "current-week";
   const focus = input.primaryFocus;
+  const lang = detectLanguage(focus);
   const domain = findDomain(focus);
-  const templates = domain ? [
+  const templates = lang ? [
+    {
+      title: `${lang.name} aktif kelime ve flashcard seti oluştur`,
+      description: `${lang.name} seviyene uygun 20 yeni kelimeyi örnek cümleleriyle kaydet.`,
+      category: focus,
+      duration: 30,
+      outputRequirement: "20 kelimelik aktif çalışma listesi ve örnek cümleler.",
+      taskType: "practice" as const,
+    },
+    {
+      title: `${lang.name} dinleme ve telaffuz (shadowing) pratiği`,
+      description: "Seviyene uygun bir ses kaydını dinle ve sesli taklit ederek kaydet.",
+      category: focus,
+      duration: 35,
+      outputRequirement: "Sesli kayıt veya dinleme özet notu.",
+      taskType: "reading" as const,
+    },
+    {
+      title: `${lang.name} için ilk seviye kanıtını ekle`,
+      description: "Tamamladığın sesli okuma kaydını, seviye test karnesini veya kısa paragrafını North kanıtlarına ekle.",
+      category: "Kanıt ve portföy",
+      duration: 30,
+      outputRequirement: "Bağlantısı veya içeriği doğrulanabilir dil kanıtı.",
+      taskType: "review" as const,
+    },
+  ] : domain ? [
     ...domain.starterTasks.map(item => ({ title: item.title, description: item.goal, category: focus, duration: item.minutes, outputRequirement: item.goal, taskType: item.taskType })),
     { title: `${focus} için ilk kanıtını ekle`, description: "Tamamladığın çalışmayı tekrar edilebilir bir not, çizim, analiz veya depo çıktısına dönüştür.", category: "Kanıt ve portföy", duration: 35, outputRequirement: "Bağlantısı veya içeriği doğrulanabilir ilk öğrenme kanıtı.", taskType: "review" as const },
   ] : [
@@ -269,12 +323,49 @@ function starterTasks(input: InitialSetupInput): Task[] {
     difficulty: "easy" as const,
     objectives: ["Hedefin sınırları içinde çalış", "Kendi kararlarını not et", "Somut çıktı üret"],
     successCriteria: [template.outputRequirement, "Çalışmanın sonunda kısa bir öz değerlendirme yaz"],
-    recommendedResources: ["North kaynak kütüphanesi", "Resmî dokümantasyon"],
+    recommendedResources: lang ? lang.resources.map((r) => `${r.title} — ${r.url}`) : ["North kaynak kütüphanesi", "Resmî dokümantasyon"],
     aiHelpLimit: 2 as const,
     status: "pending" as const,
     isDailyMission: index === 0,
   }));
   const otherAreas = input.interests.slice(1).flatMap((area, areaIndex) => {
+    const areaLang = detectLanguage(area);
+    if (areaLang) {
+      return [
+        {
+          id: `starter-area-${areaIndex + 1}-1`,
+          weeklyPlanId: planId,
+          title: `${areaLang.name} seviyene uygun kelime seti`,
+          description: "20 temel kelimeyi örnek cümleleriyle kaydet.",
+          category: area,
+          duration: 30,
+          difficulty: "easy" as const,
+          objectives: ["Hedefin sınırları içinde çalış", "Somut çıktı üret"],
+          successCriteria: ["20 kelime ve cümle kaydedildi"],
+          recommendedResources: areaLang.resources.map((r) => `${r.title} — ${r.url}`),
+          aiHelpLimit: 2 as const,
+          status: "pending" as const,
+          isDailyMission: false,
+          outputRequirement: "20 kelimelik aktif çalışma listesi.",
+        },
+        {
+          id: `starter-area-${areaIndex + 1}-2`,
+          weeklyPlanId: planId,
+          title: `${areaLang.name} dinleme ve sesli tekrar pratiği`,
+          description: "Sesli diyalog dinle ve telaffuz tekrarı yap.",
+          category: area,
+          duration: 35,
+          difficulty: "easy" as const,
+          objectives: ["Telaffuz ve dinleme kasını geliştir"],
+          successCriteria: ["Diyalog dinlendi ve sesli tekrar edildi"],
+          recommendedResources: areaLang.resources.map((r) => `${r.title} — ${r.url}`),
+          aiHelpLimit: 2 as const,
+          status: "pending" as const,
+          isDailyMission: false,
+          outputRequirement: "Dinleme notu veya sesli kayıt.",
+        },
+      ];
+    }
     const areaDomain = findDomain(area);
     if (!areaDomain) return [{
       id: `starter-area-${areaIndex + 1}`, weeklyPlanId: planId, title: `${area} için başlangıç haritasını çıkar`, description: `${area} hedefini, mevcut seviyeni ve ilk güvenilir kaynağını netleştir.`, category: area, duration: input.preferredSessionMinutes, difficulty: "easy" as const, objectives: ["Hedefi somutlaştır", "İlk kaynağı seç"], successCriteria: ["Hedef ve ilk küçük çıktı yazıldı"], recommendedResources: ["Alan kaynakları"], aiHelpLimit: 2 as const, status: "pending" as const, isDailyMission: false, outputRequirement: "Öğrenme hedefi ve ilk küçük çalışma adımı."

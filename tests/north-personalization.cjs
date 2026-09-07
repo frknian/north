@@ -16,6 +16,7 @@ function load(path) {
   function localRequire(id) {
     if (id === './north' || id.endsWith('/north')) return load('src/lib/north.ts');
     if (id === './domain-catalog' || id.endsWith('/domain-catalog')) return load('src/lib/domain-catalog.ts');
+    if (id === './language-learning' || id.endsWith('/language-learning')) return load('src/lib/language-learning.ts');
     if (id === './exam-system' || id.endsWith('/exam-system')) return load('src/lib/exam-system.ts');
     if (id === './types' || id.endsWith('/types')) return {};
     return require(id);
@@ -185,4 +186,77 @@ const busyState = {
 };
 assert.equal(dailySelection(busyState, '2026-09-05').length, 0);
 
-console.log('North personalization checks passed: exam calculations, 16 domain catalog & synonyms, adaptive assessment, unknown domain adaptation, 5-phase period plan, resilient task rescheduling, calendar clash avoidance.');
+// 4. LANGUAGE LEARNING (İNGİLİZCE, ALMANCA, FRANSIZCA, JAPONCA, ARAPÇA) TESTS
+const langModule = load('src/lib/language-learning.ts');
+const { detectLanguage, getLanguageQuestions, getLanguageGoalSuggestions, supportedLanguages } = langModule;
+
+const langKeys = ['english', 'german', 'french', 'japanese', 'arabic'];
+assert.equal(Object.keys(supportedLanguages).length, 5);
+
+// Detection
+assert.equal(detectLanguage('İngilizce').code, 'english');
+assert.equal(detectLanguage('english').code, 'english');
+assert.equal(detectLanguage('IELTS Hazırlık').code, 'english');
+assert.equal(detectLanguage('Almanca').code, 'german');
+assert.equal(detectLanguage('Goethe B2').code, 'german');
+assert.equal(detectLanguage('Fransızca').code, 'french');
+assert.equal(detectLanguage('DELF B1').code, 'french');
+assert.equal(detectLanguage('Japonca').code, 'japanese');
+assert.equal(detectLanguage('JLPT N3').code, 'japanese');
+assert.equal(detectLanguage('Arapça').code, 'arabic');
+assert.equal(detectLanguage('Fasih Arapça').code, 'arabic');
+
+// Level questions: 3-5 questions per level for all languages
+const levels = ['beginner', 'intermediate', 'advanced'];
+for (const langCode of langKeys) {
+  const lang = supportedLanguages[langCode];
+  assert.ok(lang.name);
+  assert.ok(lang.flag);
+  assert.ok(lang.resources.length >= 2);
+  assert.ok(lang.dictionaries.length >= 1);
+
+  for (const lvl of levels) {
+    const qList = getLanguageQuestions(lang.name, lvl);
+    assert.ok(qList.length >= 3 && qList.length <= 5, `${lang.name} ${lvl} should have 3-5 questions`);
+    for (const q of qList) {
+      assert.ok(q.id);
+      assert.ok(q.prompt);
+      assert.equal(q.options.length, 3);
+      assert.ok(q.correct);
+      assert.ok(q.subTopic);
+      assert.ok(q.explanation);
+      assert.ok(q.recommendedReview);
+    }
+    const goals = getLanguageGoalSuggestions(lang.name, lvl);
+    assert.ok(goals.length >= 2);
+  }
+}
+
+// Adaptive diagnostic test on language
+const jpIntermediateQuestions = getLanguageQuestions('Japonca', 'intermediate');
+const sampleAnswers = {};
+sampleAnswers[jpIntermediateQuestions[0].id] = jpIntermediateQuestions[0].correct;
+sampleAnswers[jpIntermediateQuestions[1].id] = 'x'; // wrong
+const evalResult = evaluateAdaptiveAssessment(sampleAnswers, jpIntermediateQuestions);
+assert.equal(evalResult.total, jpIntermediateQuestions.length);
+assert.equal(evalResult.score, 1);
+assert.ok(evalResult.subTopicDeficiencies.length >= 1);
+assert.ok(evalResult.reviewTasks.length >= 1);
+
+// 5-Phase Language Period Plan
+const enPlan = generatePeriodPlan(12, 'İngilizce B2 Akıcılık');
+assert.equal(enPlan.length, 5);
+assert.ok(enPlan[0].title.includes('Fonetik'));
+assert.ok(enPlan[1].title.includes('Aktif Cümle'));
+assert.ok(enPlan[2].title.includes('Yoğun Üretim'));
+assert.ok(enPlan[3].title.includes('Aralıklı Tekrar'));
+assert.ok(enPlan[4].title.includes('Seviye Kanıtı'));
+
+// Domain catalog integration
+assert.equal(findDomain('İngilizce').id, 'english');
+assert.equal(findDomain('Almanca').id, 'german');
+assert.equal(findDomain('Fransızca').id, 'french');
+assert.equal(findDomain('Japonca').id, 'japanese');
+assert.equal(findDomain('Arapça').id, 'arabic');
+
+console.log('North personalization checks passed: exam calculations, 16 domain catalog & synonyms, adaptive assessment, unknown domain adaptation, 5-phase period plan, resilient task rescheduling, calendar clash avoidance, 5-language learning engine (A1-C2 level diagnostic tests, customized period plans, resources).');

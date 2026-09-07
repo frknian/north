@@ -16,6 +16,7 @@ function load(path) {
   function localRequire(id) {
     if (id === './north' || id.endsWith('/north')) return load('src/lib/north.ts');
     if (id === './domain-catalog' || id.endsWith('/domain-catalog')) return load('src/lib/domain-catalog.ts');
+    if (id === './language-learning' || id.endsWith('/language-learning')) return load('src/lib/language-learning.ts');
     if (id === './exam-system' || id.endsWith('/exam-system')) return load('src/lib/exam-system.ts');
     if (id === './types' || id.endsWith('/types')) return {};
     return require(id);

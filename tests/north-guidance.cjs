@@ -16,8 +16,10 @@ function loadModule(path, context = {}) {
       module: mod,
       exports: mod.exports,
       require: (req) => {
-        if (req === './domain-catalog') return loadModule('src/lib/domain-catalog.ts', context);
-        if (req === './north') return loadModule('src/lib/north.ts', context);
+        if (req === './domain-catalog' || req.endsWith('/domain-catalog')) return loadModule('src/lib/domain-catalog.ts', context);
+        if (req === './north' || req.endsWith('/north')) return loadModule('src/lib/north.ts', context);
+        if (req === './language-learning' || req.endsWith('/language-learning')) return loadModule('src/lib/language-learning.ts', context);
+        if (req === './types' || req.endsWith('/types')) return {};
         return {};
       },
       ...context,
