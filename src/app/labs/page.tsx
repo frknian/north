@@ -1,30 +1,335 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bot, Filter, FlaskConical, Plus, ShieldCheck } from "lucide-react";
-import { PageHeader } from "@/components/layout/page-header";
+import { Bot, Filter, FlaskConical, Plus, ShieldCheck, Sparkles } from "lucide-react";
 import { LabJournalDialog } from "@/components/features/lab-journal-dialog";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Difficulty, Lab } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-const labLabels: Record<string,string> = { planned: "Planlandı", attempted: "Deneniyor", completed: "Tamamlandı", easy: "Kolay", medium: "Orta", hard: "Zor", independent: "Bağımsız", assisted: "Yardımlı" };
-const emptyLab = (): Lab => ({ id: crypto.randomUUID(), name: "", platform: "Local Lab", difficulty: "easy", category: "Network", date: new Date().toISOString().slice(0,10), duration: 0, status: "planned", target: "", recon: "", enumeration: "", attackSurface: "", attempts: "", exploitation: "", privilegeEscalation: "", result: "", stuck: "", learned: "", aiAssistanceLevel: 0, walkthroughUsed: false, notes: "", keyLearnings: [] });
+const labLabels: Record<string, string> = {
+  planned: "Planlandı",
+  attempted: "Deneniyor",
+  completed: "Tamamlandı",
+  easy: "Kolay",
+  medium: "Orta",
+  hard: "Zor",
+  independent: "Bağımsız",
+  assisted: "Yardımlı",
+};
+
+const emptyLab = (): Lab => ({
+  id: crypto.randomUUID(),
+  name: "",
+  platform: "Local Lab",
+  difficulty: "easy",
+  category: "Network",
+  date: new Date().toISOString().slice(0, 10),
+  duration: 0,
+  status: "planned",
+  target: "",
+  recon: "",
+  enumeration: "",
+  attackSurface: "",
+  attempts: "",
+  exploitation: "",
+  privilegeEscalation: "",
+  result: "",
+  stuck: "",
+  learned: "",
+  aiAssistanceLevel: 0,
+  walkthroughUsed: false,
+  notes: "",
+  keyLearnings: [],
+});
 
 export default function LabsPage() {
-  const { labs, addLab } = useWorkspace(); const [category, setCategory] = useState("all"); const [status, setStatus] = useState("all"); const [difficulty, setDifficulty] = useState("all"); const [independence, setIndependence] = useState("all"); const [newLab, setNewLab] = useState<Lab | null>(null);
-  const completed = labs.filter((lab) => lab.status === "completed"); const independent = completed.filter((lab) => lab.aiAssistanceLevel <= 1 && !lab.walkthroughUsed).length; const rate = completed.length ? Math.round(independent / completed.length * 100) : 0;
-  const visible = useMemo(() => labs.filter((lab) => (category === "all" || lab.category === category) && (status === "all" || lab.status === status) && (difficulty === "all" || lab.difficulty === difficulty) && (independence === "all" || (independence === "independent" ? lab.aiAssistanceLevel <= 1 && !lab.walkthroughUsed : lab.aiAssistanceLevel > 1 || lab.walkthroughUsed))), [category, difficulty, independence, labs, status]);
-  function saveNewLab() { if (!newLab?.name.trim()) return; addLab(newLab); setNewLab(null); }
-  return <><PageHeader eyebrow="Pratik ve kanıt" title="Lab günlüğü" description="Pratiklerini, takıldığın noktaları ve bağımsız çözüm gelişimini takip et." action={<Dialog open={Boolean(newLab)} onOpenChange={(open) => setNewLab(open ? emptyLab() : null)}><DialogTrigger asChild><Button><Plus />Yeni lab</Button></DialogTrigger>{newLab ? <DialogContent><DialogHeader><DialogTitle>Lab günlüğü oluştur</DialogTitle><DialogDescription>Kapsamı ve temel bilgileri belirle; çalışırken kanıtlarını ekle.</DialogDescription></DialogHeader><div className="grid gap-4 sm:grid-cols-2"><Field label="Lab adı"><Input value={newLab.name} onChange={(event) => setNewLab({ ...newLab, name: event.target.value })} /></Field><Field label="Platform"><Input value={newLab.platform} onChange={(event) => setNewLab({ ...newLab, platform: event.target.value })} /></Field><Field label="Kategori"><Input value={newLab.category} onChange={(event) => setNewLab({ ...newLab, category: event.target.value })} /></Field><Field label="Zorluk"><Select value={newLab.difficulty} onValueChange={(value) => setNewLab({ ...newLab, difficulty: value as Difficulty })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="easy">Kolay</SelectItem><SelectItem value="medium">Orta</SelectItem><SelectItem value="hard">Zor</SelectItem></SelectContent></Select></Field></div><Button onClick={saveNewLab} disabled={!newLab.name.trim()}>Günlüğü oluştur</Button></DialogContent> : null}</Dialog>} /><div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6 lg:p-8"><div className="grid gap-4 sm:grid-cols-3"><Summary label="Tamamlanan lablar" value={String(completed.length)} icon={FlaskConical} /><Summary label="Bağımsız çözümler" value={String(independent)} icon={ShieldCheck} /><Summary label="Bağımsız çözüm oranı" value={`${rate}%`} icon={Bot} /></div><Card><CardContent className="grid gap-3 pt-5 sm:grid-cols-2 lg:grid-cols-5"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Filter className="size-4" />Filtreler</div><FilterSelect value={category} setValue={setCategory} label="Kategori" items={[...new Set(labs.map(l => l.category))]} /><FilterSelect value={status} setValue={setStatus} label="Durum" items={["planned","attempted","completed"]} /><FilterSelect value={difficulty} setValue={setDifficulty} label="Zorluk" items={["easy","medium","hard"]} /><FilterSelect value={independence} setValue={setIndependence} label="Yardım" items={["independent","assisted"]} /></CardContent></Card><div className="space-y-3">{visible.map((lab) => <Card key={lab.id} className="gap-3 py-4 lg:grid lg:grid-cols-[1fr_1fr]"><CardHeader><div className="flex items-start justify-between gap-3"><div><div className="mb-2 flex flex-wrap gap-2"><Badge variant={lab.status === "completed" ? "default" : "secondary"}>{labLabels[lab.status] || lab.status}</Badge><Badge variant="outline">{labLabels[lab.difficulty] || lab.difficulty}</Badge><Badge variant="outline">{lab.category}</Badge></div><CardTitle>{lab.name}</CardTitle><CardDescription>{lab.platform} · {lab.duration} dk</CardDescription></div><div className="metric-number rounded-lg border px-2 py-1 text-xs">L{lab.aiAssistanceLevel}</div></div></CardHeader><CardContent><p className="line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">{lab.learned || lab.stuck || "İlk gözlemini günlüğe kaydet."}</p><div className="mt-4 flex items-center justify-between"><span className="text-xs text-muted-foreground">{lab.walkthroughUsed ? "Çözüm rehberi kullanıldı" : lab.aiAssistanceLevel <= 1 ? "Bağımsız" : "AI yardımlı"}</span><LabJournalDialog lab={lab} trigger={<Button variant="outline" size="sm">Günlüğü aç</Button>} /></div></CardContent></Card>)}</div>{visible.length === 0 ? <Card className="border-dashed"><CardContent className="py-10 text-center"><p className="font-medium">Bu filtrelere uygun lab yok</p><p className="mt-1 text-sm text-muted-foreground">Filtreleri değiştir veya yeni bir lab ekle.</p></CardContent></Card> : null}</div></>;
-}
+  const { labs, addLab } = useWorkspace();
+  const [category, setCategory] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [difficulty, setDifficulty] = useState("all");
+  const [independence, setIndependence] = useState("all");
+  const [newLab, setNewLab] = useState<Lab | null>(null);
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <div className="space-y-2"><Label>{label}</Label>{children}</div>; }
-function Summary({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Bot }) { return <Card><CardContent className="flex items-center justify-between pt-5"><div><p className="text-xs text-muted-foreground">{label}</p><p className="metric-number mt-1 text-2xl font-semibold">{value}</p></div><Icon className="size-5 text-primary" /></CardContent></Card>; }
-function FilterSelect({ value, setValue, label, items }: { value: string; setValue: (value: string) => void; label: string; items: string[] }) { return <Select value={value} onValueChange={setValue}><SelectTrigger aria-label={label}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tümü · {label}</SelectItem>{items.map((item) => <SelectItem key={item} value={item}>{labLabels[item] || item}</SelectItem>)}</SelectContent></Select>; }
+  const completed = labs.filter((lab) => lab.status === "completed");
+  const independent = completed.filter((lab) => lab.aiAssistanceLevel <= 1 && !lab.walkthroughUsed).length;
+  const rate = completed.length ? Math.round((independent / completed.length) * 100) : 0;
+
+  const categories = useMemo(() => ["all", ...new Set(labs.map((l) => l.category))], [labs]);
+
+  const visible = useMemo(
+    () =>
+      labs.filter(
+        (lab) =>
+          (category === "all" || lab.category === category) &&
+          (status === "all" || lab.status === status) &&
+          (difficulty === "all" || lab.difficulty === difficulty) &&
+          (independence === "all" ||
+            (independence === "independent"
+              ? lab.aiAssistanceLevel <= 1 && !lab.walkthroughUsed
+              : lab.aiAssistanceLevel > 1 || lab.walkthroughUsed))
+      ),
+    [category, difficulty, independence, labs, status]
+  );
+
+  function saveNewLab() {
+    if (!newLab?.name.trim()) return;
+    addLab(newLab);
+    setNewLab(null);
+  }
+
+  return (
+    <div className="page-content space-y-6 pb-20">
+      {/* HEADER */}
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">Pratik &amp; Lab Günlüğü</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Zorlu problemleri, çözümleri, takıldığın yerleri ve bağımsızlık gelişimini kaydet.
+          </p>
+        </div>
+
+        <Dialog open={Boolean(newLab)} onOpenChange={(open) => setNewLab(open ? emptyLab() : null)}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="rounded-xl text-xs shadow-xs">
+              <Plus className="size-3.5 mr-1.5" /> Yeni Lab Ekle
+            </Button>
+          </DialogTrigger>
+          {newLab && (
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-base font-semibold">Yeni Lab Kaydı Oluştur</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Çalıştığın ortamın veya platformun temel bilgilerini belirle.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 py-2 text-xs">
+                <div className="space-y-1">
+                  <Label className="text-xs">Lab / Problem Adı</Label>
+                  <Input
+                    value={newLab.name}
+                    onChange={(e) => setNewLab({ ...newLab, name: e.target.value })}
+                    placeholder="Örn: PortSwigger SQLi Lab #2"
+                    className="rounded-xl text-xs"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Platform</Label>
+                    <Input
+                      value={newLab.platform}
+                      onChange={(e) => setNewLab({ ...newLab, platform: e.target.value })}
+                      placeholder="TryHackMe, PortSwigger vb."
+                      className="rounded-xl text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Kategori</Label>
+                    <Input
+                      value={newLab.category}
+                      onChange={(e) => setNewLab({ ...newLab, category: e.target.value })}
+                      placeholder="Web, Network, SQL"
+                      className="rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Zorluk Seviyesi</Label>
+                  <Select
+                    value={newLab.difficulty}
+                    onValueChange={(val) => setNewLab({ ...newLab, difficulty: val as Difficulty })}
+                  >
+                    <SelectTrigger className="rounded-xl text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Kolay</SelectItem>
+                      <SelectItem value="medium">Orta</SelectItem>
+                      <SelectItem value="hard">Zor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter className="flex items-center justify-end gap-2 pt-2">
+                <Button variant="ghost" size="sm" onClick={() => setNewLab(null)} className="rounded-xl text-xs">
+                  Vazgeç
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={saveNewLab}
+                  disabled={!newLab.name.trim()}
+                  className="rounded-xl text-xs"
+                >
+                  Oluştur
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          )}
+        </Dialog>
+      </header>
+
+      {/* KPI STATS */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border bg-card/60 p-4 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-medium text-muted-foreground">Tamamlanan Lablar</span>
+            <p className="mt-1 text-2xl font-bold font-mono tracking-tight text-foreground">
+              {completed.length} <span className="text-xs font-normal text-muted-foreground">/ {labs.length} toplam</span>
+            </p>
+          </div>
+          <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+            <FlaskConical className="size-5" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border bg-card/60 p-4 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-medium text-muted-foreground">Bağımsız Çözümler</span>
+            <p className="mt-1 text-2xl font-bold font-mono tracking-tight text-foreground">
+              {independent} <span className="text-xs font-normal text-muted-foreground">lab</span>
+            </p>
+          </div>
+          <div className="grid size-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500">
+            <ShieldCheck className="size-5" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border bg-card/60 p-4 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-medium text-muted-foreground">Bağımsızlık Oranı</span>
+            <p className="mt-1 text-2xl font-bold font-mono tracking-tight text-foreground">
+              %{rate}
+            </p>
+          </div>
+          <div className="grid size-10 place-items-center rounded-xl bg-indigo-500/10 text-indigo-400">
+            <Bot className="size-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* FILTER PILLS */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card/40 p-3 shadow-xs text-xs">
+        {/* Categories */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-medium text-muted-foreground mr-1">Kategori:</span>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategory(cat)}
+              className={cn(
+                "rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors",
+                category === cat
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {cat === "all" ? "Tümü" : cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Status / Independence */}
+        <div className="flex items-center gap-2">
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="rounded-xl border bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="all">Tüm Durumlar</option>
+            <option value="planned">Planlandı</option>
+            <option value="attempted">Deneniyor</option>
+            <option value="completed">Tamamlandı</option>
+          </select>
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            className="rounded-xl border bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="all">Tüm Zorluklar</option>
+            <option value="easy">Kolay</option>
+            <option value="medium">Orta</option>
+            <option value="hard">Zor</option>
+          </select>
+        </div>
+      </div>
+
+      {/* LAB CARDS LIST */}
+      <div className="space-y-3">
+        {visible.map((lab) => {
+          const isDone = lab.status === "completed";
+          return (
+            <div
+              key={lab.id}
+              className="rounded-2xl border bg-card/60 p-4 shadow-xs transition-all hover:border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            >
+              <div className="space-y-1.5 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant={isDone ? "default" : "secondary"}
+                    className="text-[10px] px-2 py-0.5 rounded-md"
+                  >
+                    {labLabels[lab.status] || lab.status}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px] px-2 py-0.5 rounded-md">
+                    {labLabels[lab.difficulty] || lab.difficulty}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px] px-2 py-0.5 rounded-md text-muted-foreground">
+                    {lab.category}
+                  </Badge>
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    {lab.platform} · {lab.duration} dk
+                  </span>
+                </div>
+
+                <h3 className="text-sm font-semibold text-foreground">{lab.name}</h3>
+
+                <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
+                  {lab.learned || lab.stuck || "İlk gözlem veya writeup notunu kaydetmek için günlüğü aç."}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                <span
+                  className={cn(
+                    "text-[10px] font-medium px-2 py-1 rounded-lg border",
+                    lab.walkthroughUsed
+                      ? "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      : lab.aiAssistanceLevel <= 1
+                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "border-indigo-500/20 bg-indigo-500/10 text-indigo-400"
+                  )}
+                >
+                  {lab.walkthroughUsed ? "Walkthrough" : lab.aiAssistanceLevel <= 1 ? "Bağımsız" : `AI L${lab.aiAssistanceLevel}`}
+                </span>
+
+                <LabJournalDialog lab={lab} trigger={<Button variant="outline" size="sm" className="rounded-xl text-xs">Günlüğü Aç</Button>} />
+              </div>
+            </div>
+          );
+        })}
+
+        {visible.length === 0 && (
+          <div className="rounded-2xl border border-dashed p-10 text-center space-y-2">
+            <p className="text-sm font-medium text-foreground">Filtrelere uygun lab bulunamadı</p>
+            <p className="text-xs text-muted-foreground">Filtreleri sıfırlayabilir veya yeni bir lab ekleyebilirsin.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
