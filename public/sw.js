@@ -1,11 +1,11 @@
-const CACHE = "north-brand-v5";
+const CACHE = "north-brand-v6";
 const CORE = ["/offline.html", "/north-192.png", "/north-512.png", "/north-180.png", "/favicon.ico"];
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)));
 });
 self.addEventListener("activate", event => event.waitUntil(Promise.all([
- caches.keys().then(keys => Promise.all(keys.filter(key => /^(north-|cybercoach-)/.test(key) && key !== CACHE).map(key => caches.delete(key)))),
+ caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))),
  self.clients.claim(),
 ])));
 self.addEventListener("fetch", event => {

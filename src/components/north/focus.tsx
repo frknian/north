@@ -514,7 +514,7 @@ export function NorthFocus({ id }: { id: string }) {
   }
 
   return (
-    <main className="w-full max-w-none px-2 sm:px-3 py-2 min-h-screen xl:h-screen flex flex-col gap-2 overflow-y-auto xl:overflow-hidden">
+    <main className="w-full max-w-none px-2 sm:px-3 py-2 min-h-screen lg:h-screen flex flex-col gap-2 overflow-y-auto lg:overflow-hidden">
       {/* 1. COMPACT TOP CONTROL BAR (Unified Navigation, Area, Task, Zen Timer, Controls) */}
       <header className="shrink-0 rounded-2xl border bg-card/90 backdrop-blur-md px-3 py-2 shadow-xs flex flex-wrap items-center justify-between gap-3 min-h-[58px]">
         {/* Left: Back, Area, Task Title & Goal */}
@@ -688,7 +688,7 @@ export function NorthFocus({ id }: { id: string }) {
 
       {/* 2. MAIN BENTO COCKPIT: ALL 4 PANELS SIDE-BY-SIDE (YANYANA) */}
       {!finishing ? (
-        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
           {/* COLUMN 1: NE YAPACAKSIN? (CHECKLIST & STEPS) */}
           <div className="h-full flex flex-col rounded-2xl border bg-card p-3 shadow-xs overflow-hidden min-h-0">
             <div className="flex items-center justify-between border-b pb-2 shrink-0">
