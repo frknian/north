@@ -29,8 +29,8 @@ export function NorthChatPopover({
     <div className="fixed bottom-20 right-4 z-40 sm:bottom-7 sm:right-7">
       {open ? (
         <section
-          className="mb-3 w-[calc(100vw-2rem)] max-w-[28rem] h-[620px] max-h-[82dvh] overflow-hidden rounded-[26px] border border-zinc-800 bg-[#0B101D] shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200 flex flex-col"
-          aria-label="North sohbeti"
+          className="mb-3 w-[calc(100vw-2rem)] max-w-[380px] sm:max-w-[390px] h-[860px] max-h-[92dvh] overflow-hidden rounded-[30px] border border-[#141E33] bg-[#070C16] shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200 flex flex-col p-3 sm:p-3.5"
+          aria-label="North Koç sohbeti"
         >
           <NorthAI embedded taskId={taskId} onClose={() => setOpen(false)} />
         </section>

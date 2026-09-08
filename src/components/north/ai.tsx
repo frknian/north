@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Bot,
@@ -50,8 +51,17 @@ export function NorthAI({
   onClose?: () => void;
 } = {}) {
   const { state, update, workspace } = useNorth();
+  const router = useRouter();
   const role = taskId ? "coach" : "planner";
   const [question, setQuestion] = useState("");
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      router.push("/dashboard");
+    }
+  };
   const [answer, setAnswer] = useState<NorthSuggestion | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -196,140 +206,273 @@ export function NorthAI({
 
   const currentTimeStr = new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 
-  return (
-    <div className={focusDocked ? "h-full flex flex-col min-h-0 overflow-hidden" : embedded ? "north-ai-embedded h-full flex flex-col min-h-0" : "page-content max-w-2xl mx-auto space-y-5"}>
-      {/* CONVERSATION CONTAINER */}
-      <div className={cn(
-        "flex flex-col overflow-hidden bg-[#0B101D] text-zinc-100",
-        focusDocked ? "h-full min-h-0 border-0 shadow-none" : "rounded-3xl border border-zinc-800/80 shadow-2xl h-[640px] max-h-[85vh]"
-      )}>
-        {/* HEADER matching user's uploaded reference */}
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-4 sm:px-5 py-3.5 bg-[#0B101D] shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-md">
-              <Bot className="size-5.5" />
-            </span>
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold text-white tracking-tight truncate">North Koç</h3>
-              <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                Sade, kişiye özel ve eyleme dönüştürülebilir koçluk.
-              </p>
-            </div>
+  const cardContent = (
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden text-zinc-100 bg-[#070C16]",
+        focusDocked
+          ? "h-full w-full min-h-0 p-2.5 sm:p-3"
+          : embedded
+          ? "h-full w-full"
+          : "w-full max-w-[380px] sm:max-w-[390px] h-[860px] max-h-[92dvh] rounded-[30px] border border-[#141E33] shadow-2xl p-3 sm:p-3.5"
+      )}
+    >
+      {/* HEADER matching user's uploaded reference */}
+      <div className="flex items-start justify-between gap-2 px-1 pt-1 pb-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white shadow-md">
+            <Bot className="size-6" />
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Limit Badge matching user's image */}
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-[#0E1A33] px-3 py-1 text-xs text-blue-400 font-medium">
-              <Sparkles className="size-3 text-blue-400" />
-              <span>Limit: <strong className="text-white font-bold">{usageCount}</strong> <span className="text-zinc-500">/</span> <span className="text-blue-400">{dailyLimit}</span></span>
-            </span>
-
-            {/* Options Menu & Close Button in top right */}
-            <div className="flex flex-col items-end gap-0.5">
-              {onClose && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="text-zinc-400 hover:text-white transition p-1 rounded-md hover:bg-zinc-800/60"
-                  title="Kapat"
-                >
-                  <X className="size-4" />
-                </button>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="text-zinc-400 hover:text-white transition p-1 rounded-md hover:bg-zinc-800/60"
-                    title="Seçenekler"
-                  >
-                    <MoreHorizontal className="size-4.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44 bg-[#0E1526] border-zinc-800 text-zinc-200">
-                  <DropdownMenuItem
-                    onClick={handleStartNewChat}
-                    disabled={workspace.coachMessages.length === 0}
-                    className="gap-2 text-xs cursor-pointer hover:bg-blue-600 hover:text-white"
-                  >
-                    <RotateCcw className="size-3.5" />
-                    <span>Yeni Sohbet Başlat</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer hover:bg-blue-600 hover:text-white">
-                    <Link href="/profile?tab=memory">
-                      <History className="size-3.5" />
-                      <span>Sohbet Geçmişi</span>
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+          <div className="flex flex-col justify-center min-w-0">
+            <h3 className="text-base font-bold text-white tracking-tight leading-tight">North Koç</h3>
+            <p className="text-[11px] text-zinc-400 leading-tight mt-0.5 max-w-[170px]">
+              Sade, kişiye özel ve eyleme dönüştürülebilir koçluk.
+            </p>
           </div>
         </div>
 
+        <div className="flex flex-col items-end justify-between h-11 shrink-0">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="text-zinc-400 hover:text-white transition p-0.5 rounded-md hover:bg-zinc-800/60"
+            title="Kapat"
+            aria-label="Kapat"
+          >
+            <X className="size-4" />
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            {/* Limit Badge matching user's image */}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-[#0C152B] px-2.5 py-0.5 text-[11px] text-blue-400 font-medium tracking-tight shadow-xs">
+              <Sparkles className="size-3 text-blue-400 shrink-0" />
+              <span>Limit: <strong className="text-white font-bold">{usageCount}</strong> <span className="text-zinc-500">/</span> <span className="text-blue-400">{dailyLimit}</span></span>
+            </span>
+
+            {/* Options Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="text-zinc-400 hover:text-white transition p-0.5 rounded-md hover:bg-zinc-800/60"
+                  title="Seçenekler"
+                  aria-label="Seçenekler"
+                >
+                  <MoreHorizontal className="size-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-[#0E1526] border-zinc-800 text-zinc-200 shadow-xl">
+                <DropdownMenuItem
+                  onClick={handleStartNewChat}
+                  disabled={workspace.coachMessages.length === 0}
+                  className="gap-2 text-xs cursor-pointer hover:bg-blue-600 hover:text-white focus:bg-blue-600 focus:text-white"
+                >
+                  <RotateCcw className="size-3.5" />
+                  <span>Yeni Sohbet Başlat</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer hover:bg-blue-600 hover:text-white focus:bg-blue-600 focus:text-white">
+                  <Link href="/profile?tab=memory">
+                    <History className="size-3.5" />
+                    <span>Sohbet Geçmişi</span>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+
+      {/* INNER CARD ENCLOSING CONVERSATION AND INPUT */}
+      <div className="flex-1 min-h-0 rounded-[22px] border border-[#141E33] bg-[#070C16] flex flex-col overflow-hidden">
         {/* CONVERSATION MESSAGES */}
-        <Conversation className="flex-1 min-h-0 overflow-y-auto bg-[#0B101D]">
-          <ConversationContent className="gap-4 p-4">
+        <Conversation className="flex-1 min-h-0 overflow-y-auto bg-[#070C16]">
+          <ConversationContent className="gap-3.5 p-3.5 sm:p-4">
             {workspace.coachMessages.length ? (
               workspace.coachMessages.slice(-30).map((message) => {
                 const isAssistant = message.role === "assistant";
                 return isAssistant ? (
-                  <div key={message.id} className="flex items-start gap-3">
-                    <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
-                      <Bot className="size-5" />
+                  <div key={message.id} className="flex items-start gap-2.5">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
+                      <Bot className="size-4.5" />
                     </span>
-                    <div className="max-w-[85%] space-y-1">
-                      <div className="rounded-2xl rounded-tl-xs bg-[#131B2E] border border-blue-950/70 p-4 text-xs sm:text-sm leading-relaxed text-zinc-200 shadow-xs">
+                    <div className="max-w-[86%] space-y-1">
+                      <div className="rounded-2xl rounded-tl-xs bg-[#10192A] border border-[#17233B] p-3.5 text-xs sm:text-sm leading-relaxed text-zinc-200 shadow-xs">
                         <MessageResponse>{message.content}</MessageResponse>
                       </div>
-                      <span className="text-[10px] text-zinc-500 ml-1 block">{currentTimeStr}</span>
+                      <span className="text-[10px] text-zinc-500 ml-1 block font-mono">
+                        {new Date(message.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
                     </div>
                   </div>
                 ) : (
                   <div key={message.id} className="flex flex-col items-end space-y-1">
-                    <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-blue-600 text-white px-4 py-2.5 text-xs sm:text-sm shadow-sm">
+                    <div className="max-w-[86%] rounded-2xl rounded-tr-xs bg-blue-600 text-white px-3.5 py-2.5 text-xs sm:text-sm shadow-sm">
                       <p className="whitespace-pre-wrap">{message.content}</p>
                     </div>
-                    <span className="text-[10px] text-zinc-500 mr-1 block">{currentTimeStr}</span>
+                    <span className="text-[10px] text-zinc-500 mr-1 block font-mono text-right">
+                      {new Date(message.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
                   </div>
                 );
               })
             ) : (
-              /* Initial Greeting Bubble matching the user's uploaded image */
-              <div className="flex items-start gap-3">
-                <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
-                  <Bot className="size-5" />
+              /* Initial Greeting matching reference image */
+              <div className="flex items-start gap-2.5">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
+                  <Bot className="size-4.5" />
                 </span>
-                <div className="max-w-[85%] space-y-1">
-                  <div className="rounded-2xl rounded-tl-xs bg-[#131B2E] border border-blue-950/70 p-4 shadow-xs">
-                    <h4 className="text-sm font-bold text-white mb-1">Merhaba!</h4>
+                <div className="max-w-[86%] space-y-1">
+                  <div className="rounded-2xl rounded-tl-xs bg-[#10192A] border border-[#17233B] p-3.5 shadow-xs">
+                    <h4 className="text-sm font-bold text-white mb-1 tracking-tight">Merhaba!</h4>
                     <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">{greeting}</p>
                   </div>
-                  <span className="text-[10px] text-zinc-500 ml-1 block">{currentTimeStr}</span>
+                  <span className="text-[10px] text-zinc-500 ml-1 block font-mono">{currentTimeStr}</span>
                 </div>
               </div>
             )}
 
             {busy && (
-              <div className="flex items-start gap-3">
-                <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
-                  <Bot className="size-5" />
+              <div className="flex items-start gap-2.5">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
+                  <Bot className="size-4.5" />
                 </span>
-                <div className="inline-flex items-center gap-2 rounded-2xl bg-[#131B2E] border border-blue-950/70 px-4 py-3 text-xs text-zinc-300">
+                <div className="inline-flex items-center gap-2 rounded-2xl bg-[#10192A] border border-[#17233B] px-3.5 py-2.5 text-xs text-zinc-300 shadow-xs">
                   <LoaderCircle className="size-3.5 animate-spin text-blue-500" />
-                  North durumunu ve hedeflerini değerlendiriyor…
+                  North düşünüyor…
                 </div>
               </div>
+            )}
+
+            {/* ACTIONABLE CHANGE PROPOSALS INSIDE CONVERSATION */}
+            {answer && answer.changes && answer.changes.length > 0 && (
+              <section className="space-y-2.5 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-3.5 my-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-blue-400">
+                  <Lightbulb className="size-3.5" />
+                  <span>North Plan Önerisi ({answer.changes.length} Adım)</span>
+                </div>
+                <p className="text-[11px] text-zinc-400">
+                  Onay verdiğin değişiklikler takvimine ve havuzuna aktarılır.
+                </p>
+
+                <div className="space-y-2 pt-1">
+                  {answer.changes.map((change, i) => {
+                    const area = state.areas.find((a) => a.id === change.areaId && isAreaActive(a));
+                    const task = state.tasks.find((t) => t.id === change.taskId);
+                    const valid =
+                      !!area &&
+                      (change.action === "create" ||
+                        (!!task && task.areaId === area.id && !["done", "cancelled"].includes(task.status)));
+
+                    const actionBadges: Record<string, { label: string; icon: typeof Plus }> = {
+                      create: { label: "Yeni Görev", icon: Plus },
+                      complete: { label: "Tamamla", icon: Check },
+                      skip: { label: "Atla", icon: ArrowRight },
+                      reduce: { label: "Küçült", icon: Minimize2 },
+                      pool: { label: "Havuza Al", icon: Calendar },
+                      cancel: { label: "İptal Et", icon: HelpCircle },
+                    };
+
+                    const meta = actionBadges[change.action] || { label: "Düzenle", icon: Sparkles };
+                    const IconComp = meta.icon;
+
+                    return (
+                      <div
+                        key={i}
+                        className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-[#10192A] p-2.5 shadow-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-blue-950/60 border border-blue-800/40 px-1.5 py-0.5 text-[10px] font-semibold text-blue-300">
+                              <IconComp className="size-3 text-blue-400" />
+                              {meta.label}
+                            </span>
+                            <span className="text-xs font-semibold text-white truncate">
+                              {task?.title || change.title}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-zinc-400">
+                            {change.why} {!["complete", "skip"].includes(change.action) ? `· ${change.minutes} dk` : ""}
+                          </p>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant={applied.includes(i) ? "secondary" : "default"}
+                          disabled={!valid || applied.includes(i)}
+                          className="w-full text-xs h-7"
+                          onClick={() => {
+                            const planned = state.tasks
+                              .filter((t) => t.week === weekKey() && !["done", "cancelled"].includes(t.status))
+                              .reduce((n, t) => n + t.minutes, 0);
+                            if (change.action === "create" && planned + change.minutes > capacity(state)) {
+                              setError("Öneri haftalık kapasiteyi aşıyor. Önce esnek havuzda yer aç.");
+                              return;
+                            }
+                            update((s) => ({
+                              ...s,
+                              tasks:
+                                change.action === "create"
+                                  ? [
+                                      ...s.tasks,
+                                      {
+                                        id: crypto.randomUUID(),
+                                        areaId: change.areaId,
+                                        title: change.title,
+                                        goal: change.goal,
+                                        minutes: change.minutes,
+                                        intensity: "normal",
+                                        mandatory: false,
+                                        status: "pending",
+                                        date: "",
+                                        deadline: "",
+                                        resource: "",
+                                        why: change.why,
+                                        week: weekKey(),
+                                      },
+                                    ]
+                                  : s.tasks.map((t) =>
+                                      t.id === change.taskId
+                                        ? {
+                                            ...t,
+                                            status:
+                                              change.action === "complete"
+                                                ? "done"
+                                                : change.action === "skip"
+                                                ? "skipped"
+                                                : change.action === "cancel"
+                                                ? "cancelled"
+                                                : "pending",
+                                            minutes:
+                                              change.action === "reduce"
+                                                ? Math.min(t.minutes, change.minutes)
+                                                : t.minutes,
+                                            date: ["pool", "reduce"].includes(change.action) ? "" : t.date,
+                                            week: weekKey(),
+                                            why: change.why,
+                                          }
+                                        : t
+                                    ),
+                            }));
+                            setApplied((a) => [...a, i]);
+                          }}
+                        >
+                          {applied.includes(i) ? "Uygulandı ✓" : valid ? "Bu Öneriyi Uygula" : "Eşleşmedi"}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             )}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
 
-        {/* COMPOSER matching user's image */}
-        <div className="p-3 sm:p-4 border-t border-zinc-800/80 bg-[#0B101D] shrink-0">
-          <div className="flex items-center gap-2.5 rounded-2xl border border-zinc-800/90 bg-[#0E1526] px-3.5 py-2 shadow-inner focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
+        {/* COMPOSER FOOTER matching user's image */}
+        <div className="p-3 border-t border-[#141E33] bg-[#070C16] shrink-0">
+          <div className="flex items-center gap-2 rounded-2xl border border-[#18243E] bg-[#0A101D] px-3.5 py-2 shadow-inner focus-within:border-blue-500/50 transition-all">
             <label className="cursor-pointer text-zinc-400 hover:text-white transition p-1 shrink-0" title="Ek veya görsel ekle">
-              <Paperclip className="size-4.5" />
+              <Paperclip className="size-4.5 rotate-45" />
               <input
                 type="file"
                 className="hidden"
@@ -359,130 +502,27 @@ export function NorthAI({
 
             <Button
               size="icon"
-              className="size-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 transition shadow-sm shrink-0 disabled:opacity-40"
+              className="size-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 transition shadow-sm shrink-0 disabled:opacity-40"
               disabled={busy || !question.trim()}
               onClick={() => void ask()}
               aria-label={busy ? "North düşünüyor" : "Gönder"}
             >
-              <Send className="size-4" />
+              <Send className="size-3.5 translate-x-[-0.5px] translate-y-[-0.5px]" />
             </Button>
           </div>
           {error && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive px-1">{error}</p>}
         </div>
       </div>
+    </div>
+  );
 
-      {/* ACTIONABLE CHANGE PROPOSALS */}
-      {answer && answer.changes && answer.changes.length > 0 && (
-        <section className="space-y-3 rounded-2xl border border-primary/30 bg-primary/5 p-5">
-          <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-            <Lightbulb className="size-4" />
-            North Plan Değişikliği Önerisi ({answer.changes.length} Adım)
-          </div>
-          <p className="text-xs text-muted-foreground">
-            North planını doğrudan değiştirmez; onay verdiğin değişiklikler takvimine ve haftalık havuzuna eklenir.
-          </p>
+  if (focusDocked || embedded) {
+    return cardContent;
+  }
 
-          <div className="mt-3 space-y-2.5">
-            {answer.changes.map((change, i) => {
-              const area = state.areas.find((a) => a.id === change.areaId && isAreaActive(a));
-              const task = state.tasks.find((t) => t.id === change.taskId);
-              const valid = !!area && (change.action === "create" || (!!task && task.areaId === area.id && !["done", "cancelled"].includes(task.status)));
-
-              const actionBadges: Record<string, { label: string; icon: typeof Plus }> = {
-                create: { label: "Yeni Görev", icon: Plus },
-                complete: { label: "Tamamla", icon: Check },
-                skip: { label: "Atla", icon: ArrowRight },
-                reduce: { label: "Küçült", icon: Minimize2 },
-                pool: { label: "Havuza Al", icon: Calendar },
-                cancel: { label: "İptal Et", icon: HelpCircle },
-              };
-
-              const meta = actionBadges[change.action] || { label: "Düzenle", icon: Sparkles };
-              const IconComp = meta.icon;
-
-              return (
-                <div
-                  key={i}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3.5 shadow-sm"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-foreground">
-                        <IconComp className="size-3 text-primary" />
-                        {meta.label}
-                      </span>
-                      <span className="text-xs font-semibold text-foreground">{task?.title || change.title}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {change.why} {!["complete", "skip"].includes(change.action) ? `· ${change.minutes} dk` : ""}
-                    </p>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    variant={applied.includes(i) ? "secondary" : "default"}
-                    disabled={!valid || applied.includes(i)}
-                    onClick={() => {
-                      const planned = state.tasks
-                        .filter((t) => t.week === weekKey() && !["done", "cancelled"].includes(t.status))
-                        .reduce((n, t) => n + t.minutes, 0);
-                      if (change.action === "create" && planned + change.minutes > capacity(state)) {
-                        setError("Öneri haftalık kapasiteyi aşıyor. Önce esnek havuzda yer aç.");
-                        return;
-                      }
-                      update((s) => ({
-                        ...s,
-                        tasks:
-                          change.action === "create"
-                            ? [
-                                ...s.tasks,
-                                {
-                                  id: crypto.randomUUID(),
-                                  areaId: change.areaId,
-                                  title: change.title,
-                                  goal: change.goal,
-                                  minutes: change.minutes,
-                                  intensity: "normal",
-                                  mandatory: false,
-                                  status: "pending",
-                                  date: "",
-                                  deadline: "",
-                                  resource: "",
-                                  why: change.why,
-                                  week: weekKey(),
-                                },
-                              ]
-                            : s.tasks.map((t) =>
-                                t.id === change.taskId
-                                  ? {
-                                      ...t,
-                                      status:
-                                        change.action === "complete"
-                                          ? "done"
-                                          : change.action === "skip"
-                                          ? "skipped"
-                                          : change.action === "cancel"
-                                          ? "cancelled"
-                                          : "pending",
-                                      minutes: change.action === "reduce" ? Math.min(t.minutes, change.minutes) : t.minutes,
-                                      date: ["pool", "reduce"].includes(change.action) ? "" : t.date,
-                                      week: weekKey(),
-                                      why: change.why,
-                                    }
-                                  : t
-                              ),
-                      }));
-                      setApplied((a) => [...a, i]);
-                    }}
-                  >
-                    {applied.includes(i) ? "Uygulandı ✓" : valid ? "Bu Öneriyi Uygula" : "Eşleşmedi"}
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+  return (
+    <div className="w-full min-h-[calc(100dvh-5rem)] flex items-center justify-center p-3 sm:p-6">
+      {cardContent}
     </div>
   );
 }
