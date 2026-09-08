@@ -15,6 +15,7 @@ import { NorthLogo } from "@/components/layout/north-logo";
 import { isCurrentTabLocked, FOCUS_LOCK_KEY, BROADCAST_CHANNEL_NAME, type ActiveFocusLock } from "@/lib/focus-lock";
 import { FocusLockBarrier } from "@/components/features/focus-lock-barrier";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
@@ -40,11 +41,16 @@ function activeTab(path: string) {
   return navigation.find(n=>n.href!=="/"&&path.startsWith(n.href))?.href ?? (path==="/" ? "/" : "");
 }
 export function AppFrame({children}:{children:React.ReactNode}) {
-  const pathname=usePathname(); const router=useRouter(); const workspace=useWorkspace(); const {syncMode,north}=workspace;const [scrolled,setScrolled]=useState(false);
+  const pathname=usePathname(); const router=useRouter(); const workspace=useWorkspace(); const {syncMode,north}=workspace;  const [scrolled,setScrolled]=useState(false);
+  const [loadingTooLong, setLoadingTooLong] = useState(false);
   const area=pathname.startsWith("/areas/")?north?.areas.find(a=>a.id===pathname.split("/")[2]):undefined;
   const primaryArea=north?.areas.find(a=>a.id==="primary-goal")??north?.areas.find(a=>a.id==="cyber");
   const pageTitle=area?.name??titles[pathname]??(pathname.startsWith("/focus/")?"Odak":pathname.startsWith("/areas/")?"Alan": "North");
   useEffect(()=>{document.title=pageTitle==="North"?"North":pageTitle+" — North";},[pageTitle]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLoadingTooLong(true), 4500);
+    return () => window.clearTimeout(timer);
+  }, []);
   useEffect(() => {
     let ticking = false;
     const onScroll = () => {
@@ -116,8 +122,35 @@ export function AppFrame({children}:{children:React.ReactNode}) {
     );
   }
 
-  if(pathname.startsWith("/login")||pathname.startsWith("/auth")||pathname.startsWith("/account-reset")||pathname.startsWith("/kvkk")||pathname==="/onboarding"||pathname.startsWith("/focus/"))return <div className="north-route">{children}</div>;
-  if(isFirebaseConfigured()&&(!workspace.ready||workspace.authStatus!=="signed_in"||!workspace.coaching.onboarding))return <main className="grid min-h-dvh place-items-center px-6 text-center"><div><NorthLogo size={48} className="mx-auto mb-4"/><p className="text-sm text-muted-foreground">North hazırlanıyor…</p></div></main>;
+  if (pathname.startsWith("/login") || pathname.startsWith("/auth") || pathname.startsWith("/account-reset") || pathname.startsWith("/kvkk") || pathname === "/onboarding" || pathname.startsWith("/focus/")) {
+    return <div className="north-route">{children}</div>;
+  }
+
+  if (isFirebaseConfigured() && (!workspace.ready || workspace.authStatus !== "signed_in" || !workspace.coaching.onboarding)) {
+    return (
+      <main className="grid min-h-dvh place-items-center px-6 text-center">
+        <div className="max-w-sm space-y-4">
+          <NorthLogo size={48} className="mx-auto mb-2" />
+          <p className="text-sm font-medium text-foreground">North hazırlanıyor…</p>
+          {loadingTooLong && (
+            <div className="space-y-3 pt-2">
+              <p className="text-xs text-muted-foreground">
+                Bağlantı veya veri senkronizasyonu beklenenden uzun sürdü.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                  Sayfayı Yenile
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => router.replace("/onboarding")}>
+                  Onboarding&apos;e Git
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
   return <div className="north-shell min-h-dvh">
     <a className="skip-link" href="#north-content">İçeriğe geç</a>
     <header className={cn("north-topbar",scrolled&&"is-scrolled")}>

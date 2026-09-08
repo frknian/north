@@ -18,13 +18,14 @@ export function NorthToday() {
   const sequence = dailySelection(state, today);
   const current = sequence[0];
   const next = sequence.slice(1, 3);
-  const currentArea = state.areas.find(area => area.id === current?.areaId);
-  const completed = new Set(state.activities.filter(activity => activity.date === today && activity.outcome === "done").map(activity => activity.taskId)).size;
+  const areas = state?.areas ?? [];
+  const currentArea = areas.find(area => area.id === current?.areaId);
+  const completed = new Set((state?.activities ?? []).filter(activity => activity.date === today && activity.outcome === "done").map(activity => activity.taskId)).size;
   const plannedMinutes = sequence.reduce((total, task) => total + task.minutes, 0);
-  const adaptation = state.dailyAdaptation?.date === today ? state.dailyAdaptation : undefined;
+  const adaptation = state?.dailyAdaptation?.date === today ? state.dailyAdaptation : undefined;
   const dateLabel = new Date(`${today}T12:00:00`).toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
   const direction = currentArea
-    ? `Bugünün ana önceliği ${currentArea.name}. ${next[0] ? `${state.areas.find(area => area.id === next[0].areaId)?.name ?? "Sonraki görev"} ikinci sırada.` : "Tek bir anlamlı adım yeterli."}`
+    ? `Bugünün ana önceliği ${currentArea.name}. ${next[0] ? `${areas.find(area => area.id === next[0].areaId)?.name ?? "Sonraki görev"} ikinci sırada.` : "Tek bir anlamlı adım yeterli."}`
     : "North, sıradaki anlamlı adımını bulmaya hazır.";
 
   const wisdom = getTodayWisdom();

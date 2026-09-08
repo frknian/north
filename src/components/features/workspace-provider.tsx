@@ -41,7 +41,7 @@ interface WorkspaceContextValue extends WorkspaceState {
   dismissPendingActions: (pendingActionId: string) => void;
   undoActionBatch: (historyId: string) => void;
   completeOnboarding: (onboarding: Omit<CoachingOnboarding, "completedAt">) => void;
-  completeInitialSetup: (input: InitialSetupInput) => void;
+  completeInitialSetup: (input: InitialSetupInput) => Promise<void> | void;
   saveCheckin: (checkin: Omit<DailyCheckin, "id" | "date">) => void;
   updateCoachingPreferences: (patch: Partial<WorkspaceState["coaching"]["preferences"]>) => void;
   updateMilestone: (id: string, status: WorkspaceState["coaching"]["milestones"][number]["status"]) => void;
@@ -72,31 +72,35 @@ interface WorkspaceContextValue extends WorkspaceState {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
-function normalizeState(saved: Partial<WorkspaceState>): WorkspaceState {
+function normalizeState(saved?: Partial<WorkspaceState> | null): WorkspaceState {
+  if (!saved || typeof saved !== "object") return createEmptyWorkspaceState();
   return {
     ...demoState,
     ...saved,
-    certifications: saved.certifications ?? [],
-    coachMessages: saved.coachMessages ?? [],
-    coachSessionArchives: saved.coachSessionArchives ?? [],
-    resources: saved.resources ?? demoState.resources,
-    resourceHistory: saved.resourceHistory ?? [],
+    certifications: Array.isArray(saved.certifications) ? saved.certifications : [],
+    coachMessages: Array.isArray(saved.coachMessages) ? saved.coachMessages : [],
+    coachSessionArchives: Array.isArray(saved.coachSessionArchives) ? saved.coachSessionArchives : [],
+    resources: Array.isArray(saved.resources) && saved.resources.length ? saved.resources : demoState.resources,
+    resourceHistory: Array.isArray(saved.resourceHistory) ? saved.resourceHistory : [],
     sourceLocks: saved.sourceLocks ?? demoState.sourceLocks,
     coaching: {
       ...demoState.coaching,
-      ...saved.coaching,
-      milestones: saved.coaching?.milestones ?? demoState.coaching.milestones,
-      checkins: saved.coaching?.checkins ?? [],
-      pendingActions: saved.coaching?.pendingActions ?? [],
-      actionHistory: saved.coaching?.actionHistory ?? [],
-      archives: saved.coaching?.archives ?? [],
-      preferences: { clearChatOnClose: true, ...demoState.coaching.preferences, ...saved.coaching?.preferences },
+      ...(saved.coaching || {}),
+      milestones: Array.isArray(saved.coaching?.milestones) ? saved.coaching.milestones : demoState.coaching.milestones,
+      checkins: Array.isArray(saved.coaching?.checkins) ? saved.coaching.checkins : [],
+      pendingActions: Array.isArray(saved.coaching?.pendingActions) ? saved.coaching.pendingActions : [],
+      actionHistory: Array.isArray(saved.coaching?.actionHistory) ? saved.coaching.actionHistory : [],
+      archives: Array.isArray(saved.coaching?.archives) ? saved.coaching.archives : [],
+      preferences: { clearChatOnClose: true, ...demoState.coaching.preferences, ...(saved.coaching?.preferences || {}) },
     },
-    portfolio: saved.portfolio ?? [], jobs: saved.jobs ?? [], applications: saved.applications ?? [], interviews: saved.interviews ?? [],
-    feedbackMemory: saved.feedbackMemory ?? [],
-    domainProofs: saved.domainProofs ?? [],
-    examProfiles: saved.examProfiles ?? [],
-    customMetricEntries: saved.customMetricEntries ?? [],
+    portfolio: Array.isArray(saved.portfolio) ? saved.portfolio : [],
+    jobs: Array.isArray(saved.jobs) ? saved.jobs : [],
+    applications: Array.isArray(saved.applications) ? saved.applications : [],
+    interviews: Array.isArray(saved.interviews) ? saved.interviews : [],
+    feedbackMemory: Array.isArray(saved.feedbackMemory) ? saved.feedbackMemory : [],
+    domainProofs: Array.isArray(saved.domainProofs) ? saved.domainProofs : [],
+    examProfiles: Array.isArray(saved.examProfiles) ? saved.examProfiles : [],
+    customMetricEntries: Array.isArray(saved.customMetricEntries) ? saved.customMetricEntries : [],
     companionSettings: saved.companionSettings ?? { name: "Yol Arkadaşı", color: "blue" },
   };
 }
@@ -183,23 +187,44 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setUserEmail(user.email);
         setAuthStatus("signed_in");
         setSyncMode("firebase");
-        const ref = doc(firebase.db, "users", user.uid, "workspaces", WORKSPACE_ID);
-        let snapshot = await getDoc(ref);
-        if (!snapshot.exists()) {
-          const legacy = await getDoc(doc(firebase.db, "users", user.uid, "workspaces", LEGACY_WORKSPACE_ID));
-          if (legacy.exists()) {
-            await setDoc(ref, legacy.data());
-            snapshot = await getDoc(ref);
+        try {
+          const ref = doc(firebase.db, "users", user.uid, "workspaces", WORKSPACE_ID);
+          let snapshot = await getDoc(ref);
+          if (!snapshot.exists()) {
+            const legacy = await getDoc(doc(firebase.db, "users", user.uid, "workspaces", LEGACY_WORKSPACE_ID)).catch(() => null);
+            if (legacy && legacy.exists()) {
+              await setDoc(ref, legacy.data(), { merge: true }).catch(() => {});
+              snapshot = await getDoc(ref);
+            }
           }
+          if (!active) return;
+          const data = snapshot.exists() ? snapshot.data() : null;
+          if (data && data.state) {
+            const normalized = normalizeState(data.state as Partial<WorkspaceState>);
+            setState(normalized);
+            try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); } catch {}
+          } else {
+            let candidateState: WorkspaceState | null = null;
+            const stored = window.localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+              try {
+                const parsed = JSON.parse(stored);
+                if (parsed && typeof parsed === "object") candidateState = normalizeState(parsed);
+              } catch {}
+            }
+            const finalState = candidateState ?? createEmptyWorkspaceState();
+            setState(finalState);
+            await setDoc(ref, { state: JSON.parse(JSON.stringify(finalState)), updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+          }
+        } catch (error) {
+          console.error("Firebase workspace hydration error:", error);
+          const stored = window.localStorage.getItem(STORAGE_KEY);
+          if (stored) {
+            try { setState(normalizeState(JSON.parse(stored))); } catch {}
+          }
+        } finally {
+          if (active) setReady(true);
         }
-        if (!active) return;
-        if (snapshot.exists()) setState(normalizeState(snapshot.data().state as Partial<WorkspaceState>));
-        else {
-          const emptyState = createEmptyWorkspaceState();
-          setState(emptyState);
-          await setDoc(ref, { state: JSON.parse(JSON.stringify(emptyState)), updatedAt: new Date().toISOString() }, { merge: true });
-        }
-        setReady(true);
       });
     };
     void hydrate();
@@ -208,14 +233,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-    if (!firebase || !userIdRef.current) {
+    try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      return;
-    }
+    } catch {}
+
+    if (!firebase || !userIdRef.current) return;
+
     const timeout = window.setTimeout(() => {
       if (firebase && userIdRef.current) {
         setDoc(doc(firebase.db, "users", userIdRef.current, "workspaces", WORKSPACE_ID), { state: JSON.parse(JSON.stringify(state)), updatedAt: new Date().toISOString() }, { merge: true }).catch(() => toast.error("Firebase eşitlemesi başarısız oldu. Mevcut ekranın değişmedi."));
-      } else window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
     }, 500);
     return () => window.clearTimeout(timeout);
   }, [firebase, ready, state]);
@@ -266,7 +293,24 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       return { ...current, tasks: history.before.tasks, weeklyPlan: history.before.weeklyPlan, coaching: { ...current.coaching, actionHistory: current.coaching.actionHistory.map((item) => item.id === historyId ? { ...item, revertedAt: new Date().toISOString() } : item) } };
     }),
     completeOnboarding: (onboarding) => mutate((current) => ({ ...current, coaching: { ...current.coaching, onboarding: { ...onboarding, completedAt: new Date().toISOString() } } })),
-    completeInitialSetup: (input) => setState(createPersonalizedWorkspace(input)),
+    completeInitialSetup: async (input) => {
+      const nextState = createPersonalizedWorkspace(input);
+      setState(nextState);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+      } catch {}
+      if (firebase && userIdRef.current) {
+        try {
+          await setDoc(
+            doc(firebase.db, "users", userIdRef.current, "workspaces", WORKSPACE_ID),
+            { state: JSON.parse(JSON.stringify(nextState)), updatedAt: new Date().toISOString() },
+            { merge: true }
+          );
+        } catch (e) {
+          console.error("completeInitialSetup Firestore sync error:", e);
+        }
+      }
+    },
     saveCheckin: (checkin) => mutate((current) => {
       const date = dayKey();
       const item: DailyCheckin = { ...checkin, id: crypto.randomUUID(), date };

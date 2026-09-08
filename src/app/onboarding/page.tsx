@@ -22,6 +22,7 @@ import {
 } from "@/lib/language-learning";
 import type { AgeRange, InitialSetupInput, LifeSituation } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const suggestions = [
   "İngilizce",
@@ -103,6 +104,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialForm);
   const [draft, setDraft] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const questions = useMemo(
     () =>
@@ -165,46 +167,62 @@ export default function OnboardingPage() {
     .filter(([name, aliases]) => !form.interests.includes(name) && [name, ...aliases].some((term) => term.toLocaleLowerCase("tr").includes(draft.trim().toLocaleLowerCase("tr"))))
     .map(([name]) => name);
 
-  function finish() {
-    const areaGoals = Object.fromEntries(
-      form.interests.map((area) => [
-        area,
-        {
-          goal: form.areaGoals[area]?.goal.trim() || `${area} için düzenli ve ölçülebilir bir çalışma planı kurmak`,
-          targetWeeks: form.areaGoals[area]?.targetWeeks ?? 12,
-          level: form.areaGoals[area]?.level,
-        },
-      ])
-    );
-    workspace.completeInitialSetup({
-      ...form,
-      areaGoals,
-      goal: areaGoals[form.interests[0]]?.goal ?? form.goal,
-      primaryFocus: form.interests[0],
-    });
-    router.replace("/");
+  async function finish() {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const areaGoals = Object.fromEntries(
+        form.interests.map((area) => [
+          area,
+          {
+            goal: form.areaGoals[area]?.goal.trim() || `${area} için düzenli ve ölçülebilir bir çalışma planı kurmak`,
+            targetWeeks: form.areaGoals[area]?.targetWeeks ?? 12,
+            level: form.areaGoals[area]?.level,
+          },
+        ])
+      );
+      await workspace.completeInitialSetup({
+        ...form,
+        areaGoals,
+        goal: areaGoals[form.interests[0]]?.goal ?? form.goal,
+        primaryFocus: form.interests[0],
+      });
+      router.replace("/");
+    } catch (err) {
+      console.error("Onboarding tamamlanırken hata:", err);
+      toast.error("Plan kaydedilirken bir sorun oluştu, lütfen tekrar deneyin.");
+      setSubmitting(false);
+    }
   }
 
-  function quickStart() {
-    const areaGoals = Object.fromEntries(
-      form.interests.map((area) => [
-        area,
-        {
-          goal: form.areaGoals[area]?.goal.trim() || `${area} için düzenli bir çalışma düzeni kurmak`,
-          targetWeeks: form.areaGoals[area]?.targetWeeks ?? 12,
-          level: form.areaGoals[area]?.level,
-        },
-      ])
-    );
-    const firstGoal = areaGoals[form.interests[0]]?.goal ?? "Bugün tek bir anlamlı adım atmak";
-    workspace.completeInitialSetup({
-      ...form,
-      areaGoals,
-      goal: firstGoal,
-      primaryFocus: form.interests[0],
-      assessmentAnswers: {},
-    });
-    router.replace("/");
+  async function quickStart() {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const areaGoals = Object.fromEntries(
+        form.interests.map((area) => [
+          area,
+          {
+            goal: form.areaGoals[area]?.goal.trim() || `${area} için düzenli bir çalışma düzeni kurmak`,
+            targetWeeks: form.areaGoals[area]?.targetWeeks ?? 12,
+            level: form.areaGoals[area]?.level,
+          },
+        ])
+      );
+      const firstGoal = areaGoals[form.interests[0]]?.goal ?? "Bugün tek bir anlamlı adım atmak";
+      await workspace.completeInitialSetup({
+        ...form,
+        areaGoals,
+        goal: firstGoal,
+        primaryFocus: form.interests[0],
+        assessmentAnswers: {},
+      });
+      router.replace("/");
+    } catch (err) {
+      console.error("Hızlı başlatma hatası:", err);
+      toast.error("Hızlı başlatma sırasında bir sorun oluştu.");
+      setSubmitting(false);
+    }
   }
 
   const primaryTargetWeeks = form.areaGoals[form.interests[0]]?.targetWeeks ?? 12;
@@ -832,23 +850,23 @@ export default function OnboardingPage() {
         )}
 
         <div className="mt-6 flex items-center justify-between gap-3">
-          <Button variant="ghost" disabled={step === 0} onClick={() => setStep((current) => current - 1)}>
+          <Button variant="ghost" disabled={step === 0 || submitting} onClick={() => setStep((current) => current - 1)}>
             <ArrowLeft />Geri
           </Button>
           <div className="flex gap-2">
             {step === 0 && (
-              <Button variant="outline" disabled={form.fullName.trim().length < 2 || !form.interests.length} onClick={quickStart}>
-                Hızlı başlat
+              <Button variant="outline" disabled={form.fullName.trim().length < 2 || !form.interests.length || submitting} onClick={quickStart}>
+                {submitting ? "Başlatılıyor..." : "Hızlı başlat"}
               </Button>
             )}
             {step < 3 ? (
-              <Button disabled={!canContinue} onClick={() => setStep((current) => current + 1)}>
+              <Button disabled={!canContinue || submitting} onClick={() => setStep((current) => current + 1)}>
                 {step === 1 && answered < questions.length ? "Değerlendirmeyi sonra yap" : "Devam et"}
                 <ArrowRight />
               </Button>
             ) : (
-              <Button onClick={finish}>
-                North&apos;u başlat <ArrowRight />
+              <Button onClick={finish} disabled={submitting}>
+                {submitting ? "North hazırlanıyor..." : <>North&apos;u başlat <ArrowRight /></>}
               </Button>
             )}
           </div>
