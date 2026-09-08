@@ -137,6 +137,10 @@ export default function LoginPage() {
   }
 
   async function signInWithGoogle() {
+    if (!noticeRead) {
+      toast.error("Google ile giriş yapabilmek için lütfen önce KVKK Aydınlatma Metni'ni onaylayın.");
+      return;
+    }
     const firebase = getFirebase();
     if (!firebase) return;
 
@@ -205,6 +209,11 @@ export default function LoginPage() {
     const firebase = getFirebase();
     if (!firebase) return;
 
+    if (!noticeRead) {
+      toast.error("Lütfen önce KVKK Aydınlatma Metni'ni onaylayın.");
+      return;
+    }
+
     if (mode === "signup") {
       if (password.length < 6) {
         toast.error("Şifre en az 6 karakter olmalı.");
@@ -212,10 +221,6 @@ export default function LoginPage() {
       }
       if (password !== confirmPassword) {
         toast.error("Şifreler eşleşmiyor. Lütfen her iki alana da aynı şifreyi girin.");
-        return;
-      }
-      if (!noticeRead) {
-        toast.error("Lütfen KVKK Aydınlatma Metni'ni onaylayın.");
         return;
       }
     }
@@ -395,29 +400,64 @@ export default function LoginPage() {
                 />
               ) : (
                 <>
-                  {/* GOOGLE İLE GİRİŞ BUTONU */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    className="w-full h-12 border-zinc-800 bg-[#0E1526] hover:bg-[#131B2E] text-white font-medium shadow-sm transition-all flex items-center justify-center gap-3 rounded-2xl hover:border-blue-500/40"
-                    disabled={busy || googleBusy}
-                    onClick={signInWithGoogle}
-                  >
-                    {googleBusy ? (
-                      <span className="inline-flex items-center gap-2 text-xs text-zinc-300">
-                        <LoaderCircle className="size-4 animate-spin text-blue-500" />
-                        Google ile bağlanıyor…
-                      </span>
-                    ) : (
-                      <>
-                        <GoogleMark />
-                        <span className="text-sm font-semibold tracking-wide">
-                          Google ile Devam Et
+                  {/* GOOGLE İLE GİRİŞ BUTONU & KVKK ŞARTI */}
+                  <div className="space-y-2.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      className={cn(
+                        "w-full h-12 border-zinc-800 bg-[#0E1526] text-white font-medium shadow-sm transition-all flex items-center justify-center gap-3 rounded-2xl",
+                        !noticeRead
+                          ? "opacity-45 cursor-not-allowed border-zinc-800/60 bg-[#0E1526]/50 text-zinc-400 hover:bg-[#0E1526]/50"
+                          : "hover:bg-[#131B2E] hover:border-blue-500/40"
+                      )}
+                      disabled={busy || googleBusy || !noticeRead}
+                      onClick={signInWithGoogle}
+                      title={!noticeRead ? "Google ile giriş yapabilmek için lütfen KVKK onayını verin" : undefined}
+                    >
+                      {googleBusy ? (
+                        <span className="inline-flex items-center gap-2 text-xs text-zinc-300">
+                          <LoaderCircle className="size-4 animate-spin text-blue-500" />
+                          Google ile bağlanıyor…
                         </span>
-                      </>
-                    )}
-                  </Button>
+                      ) : (
+                        <>
+                          <GoogleMark />
+                          <span className="text-sm font-semibold tracking-wide">
+                            Google ile Devam Et
+                          </span>
+                        </>
+                      )}
+                    </Button>
+
+                    {/* KVKK ONAY KUTUSU & MİNİMAL BİLGİ */}
+                    <div className="space-y-1.5 pt-0.5">
+                      <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-zinc-800/90 bg-[#0E1526]/80 p-2.5 sm:p-3 text-xs text-zinc-300 select-none transition hover:border-zinc-700">
+                        <Checkbox
+                          checked={noticeRead}
+                          onCheckedChange={(checked) => setNoticeRead(checked === true)}
+                          className="mt-0.5 border-zinc-700 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                        />
+                        <span className="leading-relaxed">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setKvkkOpen(true);
+                            }}
+                            className="font-semibold text-blue-400 hover:text-blue-300 hover:underline inline"
+                          >
+                            KVKK Aydınlatma Metni
+                          </button>
+                          &apos;ni okudum, anladım ve onaylıyorum.
+                        </span>
+                      </label>
+                      <p className="text-[11px] text-zinc-500 px-1 leading-normal">
+                        * Google ile giriş ve hesap oluşturabilmek için KVKK onayını vermen gerekir.
+                      </p>
+                    </div>
+                  </div>
 
                   {/* VEYA E-POSTA AYIRICI */}
                   <div className="relative my-4 flex items-center justify-center">
@@ -550,29 +590,7 @@ export default function LoginPage() {
                       </div>
                     )}
 
-                    {/* KVKK Onayı & Pop-up (Sadece Kayıt Ol modunda) */}
-                    {mode === "signup" && (
-                      <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-zinc-800/90 bg-[#0E1526]/80 p-3 text-xs text-zinc-300 select-none animate-in fade-in duration-200">
-                        <Checkbox
-                          checked={noticeRead}
-                          onCheckedChange={(checked) => setNoticeRead(checked === true)}
-                          className="mt-0.5 border-zinc-700 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                        />
-                        <span className="leading-relaxed">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setKvkkOpen(true);
-                            }}
-                            className="font-medium text-blue-400 hover:underline inline"
-                          >
-                            KVKK Aydınlatma Metni
-                          </button>
-                          &apos;ni okudum ve onaylıyorum.
-                        </span>
-                      </label>
-                    )}
+
 
                     {/* Ana Buton */}
                     <Button
@@ -581,7 +599,8 @@ export default function LoginPage() {
                         busy ||
                         !email ||
                         password.length < 6 ||
-                        (mode === "signup" && (!noticeRead || password !== confirmPassword))
+                        !noticeRead ||
+                        (mode === "signup" && password !== confirmPassword)
                       }
                       onClick={submit}
                     >
