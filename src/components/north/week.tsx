@@ -66,14 +66,14 @@ import { cn } from "@/lib/utils";
 
 // Area color mapping helpers
 const areaColorMap: Record<string, { color: string; bg: string; border: string; dot: string; text: string }> = {
-  cyber: { color: "#06B6D4", bg: "bg-cyan-500/10", border: "border-cyan-500/20", dot: "bg-cyan-400", text: "text-cyan-300" },
-  math: { color: "#A855F7", bg: "bg-purple-500/10", border: "border-purple-500/20", dot: "bg-purple-400", text: "text-purple-300" },
-  chess: { color: "#F59E0B", bg: "bg-amber-500/10", border: "border-amber-500/20", dot: "bg-amber-400", text: "text-amber-300" },
-  english: { color: "#3B82F6", bg: "bg-blue-500/10", border: "border-blue-500/20", dot: "bg-blue-400", text: "text-blue-300" },
-  german: { color: "#10B981", bg: "bg-emerald-500/10", border: "border-emerald-500/20", dot: "bg-emerald-400", text: "text-emerald-300" },
-  french: { color: "#EC4899", bg: "bg-pink-500/10", border: "border-pink-500/20", dot: "bg-pink-400", text: "text-pink-300" },
-  japanese: { color: "#EF4444", bg: "bg-rose-500/10", border: "border-rose-500/20", dot: "bg-rose-400", text: "text-rose-300" },
-  arabic: { color: "#14B8A6", bg: "bg-teal-500/10", border: "border-teal-500/20", dot: "bg-teal-400", text: "text-teal-300" },
+  cyber: { color: "#06B6D4", bg: "bg-cyan-500/10", border: "border-cyan-500/20", dot: "bg-cyan-400", text: "text-cyan-700 dark:text-cyan-300" },
+  math: { color: "#A855F7", bg: "bg-purple-500/10", border: "border-purple-500/20", dot: "bg-purple-400", text: "text-purple-700 dark:text-purple-300" },
+  chess: { color: "#F59E0B", bg: "bg-amber-500/10", border: "border-amber-500/20", dot: "bg-amber-400", text: "text-amber-700 dark:text-amber-300" },
+  english: { color: "#3B82F6", bg: "bg-blue-500/10", border: "border-blue-500/20", dot: "bg-blue-400", text: "text-blue-700 dark:text-blue-300" },
+  german: { color: "#10B981", bg: "bg-emerald-500/10", border: "border-emerald-500/20", dot: "bg-emerald-400", text: "text-emerald-700 dark:text-emerald-300" },
+  french: { color: "#EC4899", bg: "bg-pink-500/10", border: "border-pink-500/20", dot: "bg-pink-400", text: "text-pink-700 dark:text-pink-300" },
+  japanese: { color: "#EF4444", bg: "bg-rose-500/10", border: "border-rose-500/20", dot: "bg-rose-400", text: "text-rose-700 dark:text-rose-300" },
+  arabic: { color: "#14B8A6", bg: "bg-teal-500/10", border: "border-teal-500/20", dot: "bg-teal-400", text: "text-teal-700 dark:text-teal-300" },
 };
 
 function getAreaStyling(areaId?: string, areaName?: string) {
@@ -87,7 +87,7 @@ function getAreaStyling(areaId?: string, areaName?: string) {
   if (nameKey.includes("siber") || nameKey.includes("güvenlik")) return areaColorMap.cyber;
   if (nameKey.includes("matematik") || nameKey.includes("ayt") || nameKey.includes("tyt")) return areaColorMap.math;
   if (nameKey.includes("satranç") || nameKey.includes("chess")) return areaColorMap.chess;
-  return { color: "#3B82F6", bg: "bg-blue-500/10", border: "border-blue-500/20", dot: "bg-blue-400", text: "text-blue-300" };
+  return { color: "#3B82F6", bg: "bg-blue-500/10", border: "border-blue-500/20", dot: "bg-blue-400", text: "text-blue-700 dark:text-blue-300" };
 }
 
 export function NorthWeek() {
@@ -111,6 +111,24 @@ export function NorthWeek() {
   }, [week]);
 
   const [selectedDay, setSelectedDay] = useState<string>(defaultSelectedDay);
+
+  // Active Planning Days (default Monday to Friday [0, 1, 2, 3, 4] - weekend off by default)
+  const [activePlanDays, setActivePlanDays] = useState<number[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("north_active_plan_days");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return [0, 1, 2, 3, 4];
+  });
+
+  const [replanModalOpen, setReplanModalOpen] = useState(false);
+  const [tempPlanDays, setTempPlanDays] = useState<number[]>(activePlanDays);
+  const [replanForceAll, setReplanForceAll] = useState(true);
 
   // Dialog states
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -139,6 +157,7 @@ export function NorthWeek() {
           events: curr.events,
           week,
           forceRedistribute: false,
+          activeDayIndices: activePlanDays,
         });
         return {
           ...curr,
@@ -293,24 +312,38 @@ export function NorthWeek() {
   };
 
   // Actions
-  const handleAutoPlan = (force = false) => {
+  const handleAutoPlan = (force = false, days = activePlanDays) => {
     update((curr) => {
       const updated = distributePlanTasksToCalendar(curr.tasks, {
         weeklyHours: curr.weeklyHours,
         events: curr.events,
         week,
         forceRedistribute: force,
+        activeDayIndices: days,
       });
       return {
         ...curr,
         tasks: updated,
       };
     });
+    const dayLabels = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+    const chosenLabels = days.map((i) => dayLabels[i]).join(", ");
     showToast(
       force
-        ? "⚡ Tüm hafta görevleri alanlara göre günlere sıfırdan dengeli dağıtıldı."
-        : "✨ North görev havuzundaki işleri haftanın günlerine dengeli şekilde dağıttı."
+        ? `⚡ Hafta seçilen günlere (${chosenLabels}) dengeli şekilde sıfırdan dağıtıldı.`
+        : `✨ Görevler seçilen günlere (${chosenLabels}) dengeli şekilde dağıtıldı.`
     );
+  };
+
+  const handleExecuteReplan = (days: number[], force: boolean) => {
+    setActivePlanDays(days);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("north_active_plan_days", JSON.stringify(days));
+      } catch {}
+    }
+    handleAutoPlan(force, days);
+    setReplanModalOpen(false);
   };
 
   const handleToggleTask = (task: NorthTask) => {
@@ -468,22 +501,22 @@ export function NorthWeek() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-[#070B14] text-slate-100 font-sans selection:bg-blue-600/30 selection:text-white pb-24">
+    <div className="relative min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary pb-24">
       {/* Subtle Background Glows */}
-      <div className="fixed top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none -z-0" />
-      <div className="fixed bottom-1/4 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-0" />
+      <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none -z-0" />
+      <div className="fixed bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 dark:bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-0" />
 
       {/* Main Container */}
       <div className="relative z-10 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-7">
         
         {/* TOAST / NOTIFICATION */}
         {notification && (
-          <div className="fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[#111827]/95 border border-blue-500/40 text-xs font-medium text-white shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-card/95 border border-primary/40 text-xs font-medium text-foreground shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-200">
             <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
             <span>{notification}</span>
             <button
               onClick={() => setNotification(null)}
-              className="ml-2 text-slate-400 hover:text-white"
+              className="ml-2 text-muted-foreground hover:text-foreground"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -491,7 +524,7 @@ export function NorthWeek() {
         )}
 
         {/* BEGIN: TopHeader */}
-        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 border-b border-slate-800/60 pb-6">
+        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 border-b border-border pb-6">
           {/* Title and Subtitle Block */}
           <div className="space-y-2">
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -501,36 +534,36 @@ export function NorthWeek() {
               </span>
               <button
                 onClick={() => searchInputRef.current?.focus()}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold text-slate-400 hover:text-slate-200 bg-slate-800/80 border border-slate-700/60 transition"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold text-muted-foreground hover:text-foreground bg-muted border border-border transition"
               >
                 <Zap className="w-3 h-3 text-amber-400" />
                 <span>Hızlı Komut &amp; Arama</span>
               </button>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
               Haftalık Plan &amp; Dönem Çizgisi
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 font-normal">
+            <p className="text-xs sm:text-sm text-muted-foreground font-normal">
               Nereye gittiğini, haftalık kapasiteni ve her gün atacağın somut adımı gör.
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-            {/* North'a Planlat Button */}
+            {/* Haftayı Planla & Günler Button */}
             <button
-              onClick={() => handleAutoPlan(false)}
+              onClick={() => {
+                setTempPlanDays(activePlanDays);
+                setReplanModalOpen(true);
+              }}
               type="button"
-              className="inline-flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#111827]/90 hover:bg-[#1A2333] border border-slate-700/60 text-slate-200 hover:text-white text-xs sm:text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.35)] hover:border-slate-600 active:scale-[0.98] group"
-              title="Görevleri alanlara göre haftanın günlerine dengeli şekilde paylaştırır"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-card hover:bg-muted/80 border border-border text-foreground text-xs sm:text-sm font-medium transition-all shadow-xs active:scale-[0.98] group"
+              title="Görevlerin hangi günlere yerleştirileceğini seç ve haftayı yeniden planla"
             >
-              <span className="p-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 group-hover:text-blue-300">
-                <Sparkles className="w-3.5 h-3.5" />
+              <span className="p-1 rounded-md bg-primary/10 text-primary border border-primary/20">
+                <SlidersHorizontal className="w-3.5 h-3.5" />
               </span>
-              <span>North&apos;a Planlat</span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 font-mono">
-                AI
-              </span>
+              <span>Haftayı Planla</span>
             </button>
 
             {/* + Görev Ekle Button */}
@@ -554,7 +587,7 @@ export function NorthWeek() {
                 <AlertCircle className="size-4" />
               </div>
               <div>
-                <span className="font-bold text-white">Önceki günlerden sarkan {overdueTasks.length} görev var.</span>
+                <span className="font-bold text-foreground">Önceki günlerden sarkan {overdueTasks.length} görev var.</span>
                 <span className="text-amber-200/80 ml-1.5 hidden sm:inline">
                   North&apos;ta borç veya suçluluk birikmez; görevleri haftanın uygun günlerine dağıtabilirsin.
                 </span>
@@ -580,7 +613,7 @@ export function NorthWeek() {
                   }));
                   showToast("📦 Sarkan görevler esnek havuza alındı.");
                 }}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] border border-slate-700 transition"
+                className="px-3 py-1.5 rounded-lg bg-muted hover:bg-muted text-foreground/90 font-medium text-[11px] border border-border transition"
               >
                 Havuza Al
               </button>
@@ -589,7 +622,7 @@ export function NorthWeek() {
         )}
 
         {/* BEGIN: PeriodStagesSection */}
-        <section className="bg-[#111827]/85 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 sm:p-6 relative overflow-hidden shadow-[0_1px_2px_0_rgba(0,0,0,0.35)]">
+        <section className="bg-card border border-border rounded-2xl p-5 sm:p-6 relative overflow-hidden shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-sm">
@@ -597,19 +630,19 @@ export function NorthWeek() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base font-bold text-white">Dönem Planı &amp; Aşamalar</h2>
+                  <h2 className="text-base font-bold text-foreground">Dönem Planı &amp; Aşamalar</h2>
                   <span className="px-2 py-0.5 text-[10px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full">
                     DÖNEM 1
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">5 yapılandırılmış aşamadan oluşan uzun vadeli stratejik yol haritası</p>
+                <p className="text-xs text-muted-foreground">5 yapılandırılmış aşamadan oluşan uzun vadeli stratejik yol haritası</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-semibold text-slate-300">
-              <span className="px-3 py-1 bg-slate-800/80 border border-slate-700/60 rounded-full shadow-inner">
+            <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-semibold text-foreground/90">
+              <span className="px-3 py-1 bg-muted border border-border rounded-full shadow-inner">
                 5 Aşama Toplamı
               </span>
-              <span className="text-slate-600 hidden sm:inline">|</span>
+              <span className="text-muted-foreground/60 hidden sm:inline">|</span>
               <span className="text-blue-400 font-mono">%12 genel ilerleme</span>
             </div>
           </div>
@@ -621,7 +654,7 @@ export function NorthWeek() {
                 return (
                   <div
                     key={m.step}
-                    className="relative bg-gradient-to-b from-[#16233B] to-[#121B2D] border-2 border-blue-500/80 rounded-xl p-4 shadow-[0_0_20px_-3px_rgba(37,99,235,0.25)] flex flex-col justify-between min-h-[142px] group"
+                    className="relative bg-gradient-to-b from-primary/15 to-primary/5 border-2 border-primary/80 rounded-xl p-4 shadow-[0_0_20px_-3px_rgba(37,99,235,0.25)] flex flex-col justify-between min-h-[142px] group"
                   >
                     <div className="absolute -top-2.5 right-3 px-2 py-0.5 bg-blue-600 text-[10px] font-extrabold tracking-wider uppercase rounded-full text-white shadow-sm border border-blue-400/30">
                       Şu Anda
@@ -629,15 +662,15 @@ export function NorthWeek() {
                     <div>
                       <div className="flex justify-between items-center text-xs mb-2">
                         <span className="text-blue-400 font-bold tracking-wider uppercase text-[11px]">{m.phase}</span>
-                        <span className="text-slate-400 font-medium text-[11px]">{m.weekLabel}</span>
+                        <span className="text-muted-foreground font-medium text-[11px]">{m.weekLabel}</span>
                       </div>
-                      <h3 className="text-sm font-bold text-white mb-1 group-hover:text-blue-200 transition">{m.title}</h3>
-                      <p className="text-xs text-slate-300/80 line-clamp-2">{m.desc}</p>
+                      <h3 className="text-sm font-bold text-foreground mb-1 group-hover:text-blue-200 transition">{m.title}</h3>
+                      <p className="text-xs text-foreground/90/80 line-clamp-2">{m.desc}</p>
                     </div>
                     <div className="mt-4 pt-2.5 border-t border-blue-500/20 flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-                        <span className="text-[11px] font-bold text-blue-300">Aktif Aşama</span>
+                        <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300">Aktif Aşama</span>
                       </div>
                       <span className="text-[11px] font-mono text-blue-400/90 font-bold">{m.progressText}</span>
                     </div>
@@ -648,21 +681,21 @@ export function NorthWeek() {
               return (
                 <div
                   key={m.step}
-                  className="bg-[#111827]/70 border border-slate-800/90 rounded-xl p-4 flex flex-col justify-between min-h-[142px] hover:border-slate-700 hover:bg-[#151F32]/80 transition"
+                  className="bg-muted/30 border border-border rounded-xl p-4 flex flex-col justify-between min-h-[142px] hover:border-border hover:bg-muted/50 transition"
                 >
                   <div>
                     <div className="flex justify-between items-center text-xs mb-2">
-                      <span className="text-slate-400 font-semibold tracking-wider uppercase text-[11px]">{m.phase}</span>
-                      <span className="text-slate-500 font-medium text-[11px]">{m.weekLabel}</span>
+                      <span className="text-muted-foreground font-semibold tracking-wider uppercase text-[11px]">{m.phase}</span>
+                      <span className="text-muted-foreground/80 font-medium text-[11px]">{m.weekLabel}</span>
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-200 mb-1">{m.title}</h3>
-                    <p className="text-xs text-slate-400 line-clamp-2">{m.desc}</p>
+                    <h3 className="text-sm font-semibold text-foreground mb-1">{m.title}</h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{m.desc}</p>
                   </div>
-                  <div className="mt-4 pt-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="mt-4 pt-2.5 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground/80">
                     <span className="flex items-center gap-1">
-                      <span className="text-slate-600">🔒</span> Planlandı
+                      <span className="text-muted-foreground/60">🔒</span> Planlandı
                     </span>
-                    <span className="text-slate-600 font-mono">0%</span>
+                    <span className="text-muted-foreground/60 font-mono">0%</span>
                   </div>
                 </div>
               );
@@ -674,45 +707,45 @@ export function NorthWeek() {
         {/* BEGIN: StatsSplitRow */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Weekly Completion Card (Left 60%) */}
-          <div className="lg:col-span-8 bg-[#111827]/85 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)] relative overflow-hidden">
+          <div className="lg:col-span-8 bg-card border border-border rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xs relative overflow-hidden">
             <div className="space-y-3 text-center sm:text-left flex-1">
               <div className="flex items-center justify-center sm:justify-start gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
                   HAFTALIK TAMAMLANMA &amp; İLERLEME
                 </span>
               </div>
-              <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-baseline justify-center sm:justify-start gap-2">
+              <h3 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight flex items-baseline justify-center sm:justify-start gap-2">
                 {completedTasks.length}{" "}
-                <span className="text-xl font-medium text-slate-500">
+                <span className="text-xl font-medium text-muted-foreground/80">
                   / {currentWeekTasks.length} Görev Bitti
                 </span>
               </h3>
 
               {/* 3 Metric Chips */}
               <div className="grid grid-cols-3 gap-2.5 pt-1 max-w-md">
-                <div className="rounded-xl bg-[#0C1220]/70 border border-slate-800/80 p-2 text-center">
-                  <div className="text-[10px] uppercase font-semibold text-slate-400">Planlanan</div>
-                  <div className="text-sm font-bold text-white font-mono">{plannedMinutes} dk</div>
+                <div className="rounded-xl bg-muted/50 border border-border p-2 text-center">
+                  <div className="text-[10px] uppercase font-semibold text-muted-foreground">Planlanan</div>
+                  <div className="text-sm font-bold text-foreground font-mono">{plannedMinutes} dk</div>
                 </div>
-                <div className="rounded-xl bg-[#0C1220]/70 border border-slate-800/80 p-2 text-center">
-                  <div className="text-[10px] uppercase font-semibold text-slate-400">Tamamlanan</div>
+                <div className="rounded-xl bg-muted/50 border border-border p-2 text-center">
+                  <div className="text-[10px] uppercase font-semibold text-muted-foreground">Tamamlanan</div>
                   <div className="text-sm font-bold text-blue-400 font-mono">{completedMinutes} dk</div>
                 </div>
-                <div className="rounded-xl bg-[#0C1220]/70 border border-slate-800/80 p-2 text-center">
-                  <div className="text-[10px] uppercase font-semibold text-slate-400">Kalan</div>
-                  <div className="text-sm font-bold text-slate-300 font-mono">{Math.max(0, plannedMinutes - completedMinutes)} dk</div>
+                <div className="rounded-xl bg-muted/50 border border-border p-2 text-center">
+                  <div className="text-[10px] uppercase font-semibold text-muted-foreground">Kalan</div>
+                  <div className="text-sm font-bold text-foreground/90 font-mono">{Math.max(0, plannedMinutes - completedMinutes)} dk</div>
                 </div>
               </div>
 
-              <p className="text-xs sm:text-sm text-slate-400 font-normal pt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground font-normal pt-1">
                 {completedTasks.length === 0 ? (
                   <>✨ Haftanın ilk görevini tamamlayarak ivme kazan!</>
                 ) : completedTasks.length === currentWeekTasks.length ? (
                   <>🎉 Muhteşem! Haftalık hedeflerinin tamamına ulaştın.</>
                 ) : (
                   <>
-                    Planlanan <span className="text-slate-200 font-semibold">{plannedMinutes} dakikanın</span>{" "}
+                    Planlanan <span className="text-foreground font-semibold">{plannedMinutes} dakikanın</span>{" "}
                     <span className="text-blue-400 font-semibold">{completedMinutes} dakikası</span> başarıyla tamamlandı.
                   </>
                 )}
@@ -720,9 +753,9 @@ export function NorthWeek() {
             </div>
 
             {/* Radial Progress Circle */}
-            <div className="relative flex items-center justify-center shrink-0 p-3 bg-[#0E1524] rounded-2xl border border-slate-800/60 shadow-inner">
+            <div className="relative flex items-center justify-center shrink-0 p-3 bg-muted/40 rounded-2xl border border-border shadow-xs">
               <svg className="w-24 h-24 transform -rotate-90">
-                <circle cx="48" cy="48" fill="transparent" r="38" stroke="#1E293B" strokeWidth="6" />
+                <circle cx="48" cy="48" fill="transparent" r="38" stroke="currentColor" className="text-muted/40 dark:text-slate-800" strokeWidth="6" />
                 <circle
                   cx="48"
                   cy="48"
@@ -737,17 +770,17 @@ export function NorthWeek() {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-lg font-black text-slate-100 font-mono">{completionPct}%</span>
-                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-semibold">Hedef</span>
+                <span className="text-lg font-black text-foreground font-mono">{completionPct}%</span>
+                <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Hedef</span>
               </div>
             </div>
           </div>
 
           {/* Capacity & Focus Card (Right 40%) */}
-          <div className="lg:col-span-4 bg-[#111827]/85 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between shadow-[0_1px_2px_0_rgba(0,0,0,0.35)]">
+          <div className="lg:col-span-4 bg-card border border-border rounded-2xl p-6 flex flex-col justify-between shadow-xs">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">KAPASİTE &amp; ODAK</span>
+                <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">KAPASİTE &amp; ODAK</span>
                 <span
                   className={cn(
                     "px-2 py-0.5 text-[10px] font-bold uppercase rounded-md border",
@@ -760,14 +793,14 @@ export function NorthWeek() {
                 </span>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-black text-white tracking-tight font-mono">
+                <span className="text-3xl sm:text-4xl font-black text-foreground tracking-tight font-mono">
                   {plannedMinutes}
                 </span>
-                <span className="text-slate-400 text-sm font-medium">/ {weeklyCapMinutes} dk planlandı</span>
+                <span className="text-muted-foreground text-sm font-medium">/ {weeklyCapMinutes} dk planlandı</span>
               </div>
 
               {/* Multi-area Stacked Bar */}
-              <div className="w-full bg-slate-800/80 h-2.5 rounded-full overflow-hidden mt-3.5 p-0.5 border border-slate-700/40 flex gap-0.5">
+              <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden mt-3.5 p-0.5 border border-border flex gap-0.5">
                 {areaBreakdown.length === 0 ? (
                   <div className="bg-slate-700 h-full w-full rounded-full" />
                 ) : (
@@ -786,28 +819,28 @@ export function NorthWeek() {
               </div>
 
               {/* Area Breakdown Legend */}
-              <div className="flex flex-wrap items-center gap-3 mt-3 text-[11px] text-slate-300">
+              <div className="flex flex-wrap items-center gap-3 mt-3 text-[11px] text-foreground/90">
                 {areaBreakdown.map((item) => (
                   <span key={item.area.id} className="inline-flex items-center gap-1.5 font-medium">
                     <span
                       className="w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: item.styling.color }}
                     />
-                    <span className="text-slate-300">{item.area.name}</span>
-                    <span className="text-slate-500 font-mono">({item.minutes} dk)</span>
+                    <span className="text-foreground/90">{item.area.name}</span>
+                    <span className="text-muted-foreground/80 font-mono">({item.minutes} dk)</span>
                   </span>
                 ))}
               </div>
             </div>
 
-            <div className="mt-5 pt-3.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-medium flex items-center gap-1.5">
+            <div className="mt-5 pt-3.5 border-t border-border flex items-center justify-between text-xs">
+              <span className="text-muted-foreground font-medium flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Mod: <strong className="text-slate-200">Normal Mod</strong>
+                Mod: <strong className="text-foreground">Normal Mod</strong>
               </span>
               <Link
                 href="/profile"
-                className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1 transition group"
+                className="text-blue-400 hover:text-blue-700 dark:text-blue-300 font-semibold inline-flex items-center gap-1 transition group"
               >
                 Kapasite Ayarları <span className="group-hover:translate-x-0.5 transition-transform">→</span>
               </Link>
@@ -817,31 +850,34 @@ export function NorthWeek() {
         {/* END: StatsSplitRow */}
 
         {/* BEGIN: WeeklyDayFlowSection (7 Günlük Blok) */}
-        <section className="bg-[#111827]/85 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)] space-y-4">
+        <section className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                 Haftalık Gün Akışı
-                <span className="px-2 py-0.5 text-[11px] font-medium text-slate-400 bg-slate-800 rounded-md">
+                <span className="px-2 py-0.5 text-[11px] font-medium text-muted-foreground bg-muted rounded-md">
                   7 Günlük Blok
                 </span>
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Haftanın her gününde hangi alanlara ve görevlere odaklanacağını tek bakışta gör.
               </p>
             </div>
             <div className="flex items-center gap-3 text-xs">
               <button
-                onClick={() => handleAutoPlan(true)}
-                className="font-medium text-slate-400 hover:text-white transition flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60"
-                title="Haftayı günlere dengeli biçimde yeniden dağıt"
+                onClick={() => {
+                  setTempPlanDays(activePlanDays);
+                  setReplanModalOpen(true);
+                }}
+                className="font-medium text-muted-foreground hover:text-foreground transition flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border text-xs"
+                title="Haftalık planlama günlerini düzenle ve günlere yeniden dağıt"
               >
-                <RotateCcw className="w-3 h-3 text-blue-400" />
-                Haftayı Yeniden Dağıt
+                <RotateCcw className="w-3 h-3 text-primary" />
+                Haftayı Yeniden Planla &amp; Günler
               </button>
               <Link
                 href="/calendar"
-                className="font-semibold text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 transition group"
+                className="font-semibold text-blue-400 hover:text-blue-700 dark:text-blue-300 inline-flex items-center gap-1 transition group"
               >
                 Tam Takvim <span className="group-hover:translate-x-0.5 transition-transform">→</span>
               </Link>
@@ -849,8 +885,8 @@ export function NorthWeek() {
           </div>
 
           {/* HAFTALIK ODAK HARİTASI (Pzt: x, y • Sal: y, z • Çar: x, z ...) */}
-          <div className="flex flex-wrap items-center gap-2 py-2.5 px-3.5 rounded-xl bg-[#0B101D]/90 border border-slate-800/90 text-xs">
-            <span className="font-bold text-slate-300 flex items-center gap-1.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 py-2.5 px-3.5 rounded-xl bg-muted/40 border border-border text-xs">
+            <span className="font-bold text-foreground/90 flex items-center gap-1.5 shrink-0">
               <Sparkles className="w-3.5 h-3.5 text-blue-400" />
               Haftalık Odak Haritası:
             </span>
@@ -865,22 +901,22 @@ export function NorthWeek() {
                       "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg transition text-[11px]",
                       selectedDay === d.date
                         ? "bg-blue-600/25 border border-blue-500/40 text-white font-bold"
-                        : "hover:bg-slate-800 text-slate-300"
+                        : "hover:bg-muted text-foreground/90"
                     )}
                   >
-                    <span className="font-bold text-slate-200">{d.dayName}:</span>
+                    <span className="font-bold text-foreground">{d.dayName}:</span>
                     {areaNames.length > 0 ? (
-                      <span className="text-blue-300 font-medium">{areaNames.join(", ")}</span>
+                      <span className="text-blue-700 dark:text-blue-300 font-medium">{areaNames.join(", ")}</span>
                     ) : (
-                      <span className="text-slate-500 italic">Serbest</span>
+                      <span className="text-muted-foreground/80 italic">Serbest</span>
                     )}
                     {d.dayIndex < 4 && <span className="text-slate-700 ml-1">•</span>}
                   </button>
                 );
               })}
-              <span className="text-slate-600">|</span>
-              <span className="text-[11px] text-slate-400">
-                Cmt: <span className="text-slate-500">Dinlenme</span> • Paz: <span className="text-slate-500">Retrospektif</span>
+              <span className="text-muted-foreground/60">|</span>
+              <span className="text-[11px] text-muted-foreground">
+                Cmt: <span className="text-muted-foreground/80">Dinlenme</span> • Paz: <span className="text-muted-foreground/80">Retrospektif</span>
               </span>
             </div>
           </div>
@@ -901,31 +937,36 @@ export function NorthWeek() {
                   className={cn(
                     "relative rounded-xl p-3.5 flex flex-col justify-between min-h-[220px] transition-all duration-200 cursor-pointer group",
                     day.isToday
-                      ? "bg-gradient-to-b from-[#16233B] to-[#101726] border-2 border-blue-500/80 shadow-[0_0_20px_-3px_rgba(37,99,235,0.3)] ring-1 ring-blue-500/30"
+                      ? "bg-gradient-to-b from-primary/15 to-primary/5 border-2 border-primary shadow-sm ring-1 ring-primary/20"
                       : isSelected
-                      ? "bg-[#142036] border-2 border-blue-400/70 shadow-lg"
-                      : "bg-[#111827]/70 border border-slate-800/80 hover:border-slate-700 hover:bg-[#141E2F]/70"
+                      ? "bg-primary/10 border-2 border-primary/70 shadow-sm"
+                      : "bg-card border border-border hover:border-primary/30 hover:bg-muted/40"
                   )}
                 >
                   {/* Day Header */}
                   <div>
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                    <div className="flex items-center justify-between pb-2 border-b border-border">
                       <div className="flex items-center gap-1.5">
-                        <span className={cn("text-xs font-extrabold", day.isToday ? "text-blue-400" : "text-slate-200")}>
+                        <span className={cn("text-xs font-extrabold", day.isToday ? "text-blue-400" : "text-foreground")}>
                           {day.dayName}
                         </span>
                         {day.isToday && (
-                          <span className="px-1.5 py-0.2 bg-blue-500/25 text-blue-300 rounded text-[9px] font-bold uppercase">
+                          <span className="px-1.5 py-0.2 bg-blue-500/25 text-blue-700 dark:text-blue-300 rounded text-[9px] font-bold uppercase">
                             BUGÜN
                           </span>
                         )}
                         {isSelected && !day.isToday && (
-                          <span className="px-1.5 py-0.2 bg-slate-800 text-slate-300 rounded text-[9px] font-semibold">
+                          <span className="px-1.5 py-0.2 bg-muted text-foreground/90 rounded text-[9px] font-semibold">
                             SEÇİLİ
                           </span>
                         )}
+                        {!activePlanDays.includes(day.dayIndex) && (
+                          <span className="px-1.5 py-0.2 bg-muted text-muted-foreground rounded text-[9px] font-semibold tracking-wider" title="Bu gün planlama dışı">
+                            DİNLENME
+                          </span>
+                        )}
                       </div>
-                      <span className="text-[11px] font-semibold text-slate-400 font-mono">
+                      <span className="text-[11px] font-semibold text-muted-foreground font-mono">
                         {day.dayNum} {day.monthName}
                       </span>
                     </div>
@@ -952,8 +993,8 @@ export function NorthWeek() {
                           );
                         })
                       ) : (
-                        <span className="text-[10px] text-slate-500 italic">
-                          {isSaturday ? "Serbest Zaman" : isSunday ? "Haftalık Kapanış" : "Atanmış alan yok"}
+                        <span className="text-[10px] text-muted-foreground/80 italic">
+                          {!activePlanDays.includes(day.dayIndex) ? "Plan Dışı / Dinlenme" : isSaturday ? "Serbest Zaman" : isSunday ? "Haftalık Kapanış" : "Atanmış alan yok"}
                         </span>
                       )}
                     </div>
@@ -970,7 +1011,7 @@ export function NorthWeek() {
                                 e.stopPropagation();
                                 openEditTaskModal(t);
                               }}
-                              className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-[#0A0F1D]/80 hover:bg-slate-800/90 border border-slate-800/80 hover:border-slate-700 transition cursor-pointer group/task"
+                              className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-muted/50 hover:bg-muted border border-border transition cursor-pointer group/task"
                               title={`${t.title} (${t.minutes} dk)`}
                             >
                               <div className="flex items-center gap-1.5 min-w-0">
@@ -989,36 +1030,36 @@ export function NorthWeek() {
                                 </button>
                                 <span
                                   className={cn(
-                                    "truncate text-[11px] font-medium text-slate-200 group-hover/task:text-blue-300 transition",
-                                    isDone && "line-through text-slate-500"
+                                    "truncate text-[11px] font-medium text-foreground group-hover/task:text-blue-700 dark:text-blue-300 transition",
+                                    isDone && "line-through text-muted-foreground/80"
                                   )}
                                 >
                                   {t.title}
                                 </span>
                               </div>
-                              <span className="text-[9px] font-mono text-slate-400 shrink-0">{t.minutes}m</span>
+                              <span className="text-[9px] font-mono text-muted-foreground shrink-0">{t.minutes}m</span>
                             </div>
                           );
                         })
                       ) : isSaturday ? (
-                        <div className="py-4 text-center text-slate-500">
+                        <div className="py-4 text-center text-muted-foreground/80">
                           <p className="text-xs font-medium">Hafta Sonu Dinlenme</p>
-                          <p className="text-[10px] text-slate-600 mt-0.5">Yenilenme Günü</p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">Yenilenme Günü</p>
                         </div>
                       ) : isSunday ? (
-                        <div className="py-4 text-center text-slate-500">
+                        <div className="py-4 text-center text-muted-foreground/80">
                           <p className="text-xs font-medium">Haftalık İnceleme</p>
-                          <p className="text-[10px] text-slate-600 mt-0.5">17:00 Retrospektif</p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">17:00 Retrospektif</p>
                         </div>
                       ) : (
-                        <div className="py-4 text-center text-slate-500">
+                        <div className="py-4 text-center text-muted-foreground/80">
                           <p className="text-xs">Görev yok</p>
-                          <p className="text-[10px] text-slate-600 mt-0.5">+ Görev Ata ile ekle</p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">+ Görev Ata ile ekle</p>
                         </div>
                       )}
 
                       {day.tasks.length > 3 && (
-                        <div className="text-[10px] text-slate-400 text-center font-medium">
+                        <div className="text-[10px] text-muted-foreground text-center font-medium">
                           +{day.tasks.length - 3} görev daha
                         </div>
                       )}
@@ -1026,10 +1067,10 @@ export function NorthWeek() {
                   </div>
 
                   {/* Day Footer */}
-                  <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-[11px]">
                     <div className="flex items-center gap-1 font-mono">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      <span className={cn("font-bold", day.dayMinutes > 0 ? "text-slate-200" : "text-slate-500")}>
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className={cn("font-bold", day.dayMinutes > 0 ? "text-foreground" : "text-muted-foreground/80")}>
                         {day.dayMinutes} dk
                       </span>
                     </div>
@@ -1040,7 +1081,7 @@ export function NorthWeek() {
                         e.stopPropagation();
                         setAssignDayTarget(day.date);
                       }}
-                      className="px-2 py-0.5 rounded bg-slate-800/70 hover:bg-blue-600 text-slate-300 hover:text-white text-[10px] font-semibold transition"
+                      className="px-2 py-0.5 rounded bg-muted hover:bg-blue-600 text-foreground/90 hover:text-foreground text-[10px] font-semibold transition"
                     >
                       + Görev
                     </button>
@@ -1051,22 +1092,22 @@ export function NorthWeek() {
           </div>
 
           {/* DAY SPOTLIGHT DETAIL PANEL */}
-          <div className="rounded-xl bg-[#0C1220]/95 border border-slate-800/90 p-4 shadow-inner flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="rounded-xl bg-muted/40 border border-border p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="w-2 h-2 rounded-full bg-blue-400" />
-                <h3 className="text-sm font-bold text-white">
+                <h3 className="text-sm font-bold text-foreground">
                   {currentSelectedDayObj.dayFullName} ({currentSelectedDayObj.dayNum} {currentSelectedDayObj.monthName}) Odak Planı
                 </h3>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-foreground/90">
                   {currentSelectedDayObj.tasks.length} Görev • {currentSelectedDayObj.dayMinutes} dk
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 {currentSelectedDayObj.dayAreas.length > 0 ? (
                   <>
                     Bu günün odak alanları:{" "}
-                    <strong className="text-blue-300">
+                    <strong className="text-blue-700 dark:text-blue-300">
                       {currentSelectedDayObj.dayAreas.map((a) => a.name).join(", ")}
                     </strong>
                   </>
@@ -1086,7 +1127,7 @@ export function NorthWeek() {
               </button>
               <button
                 onClick={() => setAssignDayTarget(currentSelectedDayObj.date)}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition"
+                className="px-3 py-1.5 rounded-lg bg-muted hover:bg-muted text-foreground/90 text-xs font-medium border border-border transition"
               >
                 Havuzdan Görev Ata
               </button>
@@ -1096,22 +1137,22 @@ export function NorthWeek() {
         {/* END: WeeklyDayFlowSection */}
 
         {/* BEGIN: TaskPoolSection (REDESIGNED SAAS / LINEAR STYLE) */}
-        <section className="bg-[#111827]/85 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 sm:p-7 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)] relative">
+        <section className="bg-card border border-border rounded-2xl p-5 sm:p-7 shadow-xs relative">
           {/* Header Block */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-6 border-b border-slate-800/80">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-6 border-b border-border">
             <div>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
                   <Layers className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
                     Görev Havuzu &amp; Düzenleme
                     <span className="px-2 py-0.5 text-xs font-semibold text-blue-400 bg-blue-500/10 rounded-md border border-blue-500/20 font-mono">
                       {filteredTasks.length} Görev
                     </span>
                   </h2>
-                  <p className="text-xs text-slate-400">Bu haftanın planlanmış ve esnek görevleri • Sürükle, önceliklendir ve çalıştır</p>
+                  <p className="text-xs text-muted-foreground">Bu haftanın planlanmış ve esnek görevleri • Sürükle, önceliklendir ve çalıştır</p>
                 </div>
               </div>
             </div>
@@ -1120,21 +1161,21 @@ export function NorthWeek() {
             <div className="flex flex-wrap items-center gap-2.5">
               {/* Search input (⌘K) */}
               <div className="relative min-w-[200px] flex-1 sm:flex-initial">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
                   <Search className="w-3.5 h-3.5" />
                 </div>
                 <input
                   ref={searchInputRef}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#111927] border border-slate-700/70 rounded-xl py-2 pl-9 pr-8 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+                  className="w-full bg-background border border-input rounded-xl py-2 pl-9 pr-8 text-xs text-foreground placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
                   placeholder="Görev ara... (⌘K)"
                   type="text"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white"
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-muted-foreground hover:text-foreground"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1146,13 +1187,13 @@ export function NorthWeek() {
                 <select
                   value={scopeFilter}
                   onChange={(e) => setScopeFilter(e.target.value as any)}
-                  className="bg-[#111927] border border-slate-700/70 text-xs font-semibold text-slate-200 rounded-xl py-2 pl-3 pr-8 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:bg-slate-800/60 transition"
+                  className="bg-background border border-input text-xs font-semibold text-foreground rounded-xl py-2 pl-3 pr-8 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:bg-muted transition"
                 >
                   <option value="thisWeek">Bu Hafta ({currentWeekTasks.length})</option>
                   <option value="nextWeek">Gelecek Hafta</option>
                   <option value="all">Tüm Dönem ({state.tasks.filter((t) => t.status !== "cancelled").length})</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground">
                   <ChevronDown className="w-3 h-3" />
                 </div>
               </div>
@@ -1162,24 +1203,24 @@ export function NorthWeek() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as any)}
-                  className="bg-[#111927] border border-slate-700/70 text-xs font-semibold text-slate-200 rounded-xl py-2 pl-3 pr-8 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:bg-slate-800/60 transition"
+                  className="bg-background border border-input text-xs font-semibold text-foreground rounded-xl py-2 pl-3 pr-8 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:bg-muted transition"
                 >
                   <option value="active">Aktif ({currentWeekTasks.filter((t) => t.status !== "done").length})</option>
                   <option value="done">Tamamlanan ({completedTasks.length})</option>
                   <option value="all">Tümü</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground">
                   <ChevronDown className="w-3 h-3" />
                 </div>
               </div>
 
               {/* View Switcher */}
-              <div className="flex items-center bg-[#111927] border border-slate-700/70 rounded-xl p-0.5">
+              <div className="flex items-center bg-background border border-input rounded-xl p-0.5">
                 <button
                   onClick={() => setViewMode("list")}
                   className={cn(
                     "px-2.5 py-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1.5 transition",
-                    viewMode === "list" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
+                    viewMode === "list" ? "bg-blue-600 text-white" : "text-muted-foreground hover:text-foreground"
                   )}
                   title="Detaylı Liste Görünümü"
                 >
@@ -1190,7 +1231,7 @@ export function NorthWeek() {
                   onClick={() => setViewMode("kanban")}
                   className={cn(
                     "px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5",
-                    viewMode === "kanban" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
+                    viewMode === "kanban" ? "bg-blue-600 text-white" : "text-muted-foreground hover:text-foreground"
                   )}
                   title="Kart Izgara Görünümü"
                 >
@@ -1209,8 +1250,8 @@ export function NorthWeek() {
                 className={cn(
                   "px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5 transition",
                   activeAreaFilter === "all"
-                    ? "bg-blue-600/20 text-blue-300 border border-blue-500/40"
-                    : "bg-[#111927] hover:bg-slate-800 text-slate-400 border border-slate-700/60"
+                    ? "bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500/40"
+                    : "bg-card hover:bg-muted text-muted-foreground border border-border"
                 )}
               >
                 <span>Tümü</span>
@@ -1231,13 +1272,13 @@ export function NorthWeek() {
                     className={cn(
                       "px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5",
                       isSelected
-                        ? "bg-slate-800 text-white border-blue-500/50 shadow-sm"
-                        : "bg-[#111927] hover:bg-slate-800 text-slate-300 border-slate-700/60"
+                        ? "bg-muted text-white border-blue-500/50 shadow-sm"
+                        : "bg-card hover:bg-muted text-muted-foreground border-border"
                     )}
                   >
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: styling.color }} />
                     <span>{area.name}</span>
-                    <span className="px-1.5 py-0.2 bg-slate-800 rounded-md text-[10px] font-mono text-slate-400">
+                    <span className="px-1.5 py-0.2 bg-muted rounded-md text-[10px] font-mono text-muted-foreground">
                       {count}
                     </span>
                   </button>
@@ -1248,7 +1289,7 @@ export function NorthWeek() {
             {/* Quick Action: Inline Add Hint */}
             <button
               onClick={() => openCreateTaskModal()}
-              className="text-xs font-semibold text-slate-400 hover:text-white inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-800/60 transition border border-dashed border-slate-700/80"
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-muted transition border border-dashed border-border"
             >
               <Plus className="w-3.5 h-3.5 text-blue-400" />
               <span>Hızlı Görev Ekle</span>
@@ -1257,15 +1298,15 @@ export function NorthWeek() {
 
           {/* Modern Task Cards List Container */}
           {filteredTasks.length === 0 ? (
-            <div className="py-12 text-center rounded-xl bg-[#0C1220]/50 border border-slate-800/50">
-              <p className="text-sm text-slate-400">Bu filtreye uygun görev bulunamadı.</p>
+            <div className="py-12 text-center rounded-xl bg-muted/30 border border-border">
+              <p className="text-sm text-muted-foreground">Bu filtreye uygun görev bulunamadı.</p>
               <button
                 onClick={() => {
                   setActiveAreaFilter("all");
                   setStatusFilter("all");
                   setSearchQuery("");
                 }}
-                className="mt-2 text-xs font-semibold text-blue-400 hover:text-blue-300"
+                className="mt-2 text-xs font-semibold text-blue-400 hover:text-blue-700 dark:text-blue-300"
               >
                 Filtreleri Sıfırla
               </button>
@@ -1285,17 +1326,17 @@ export function NorthWeek() {
                   <article
                     key={task.id}
                     className={cn(
-                      "group relative bg-[#111927]/90 hover:bg-[#152033] border rounded-xl p-3.5 sm:p-4 transition-all duration-150 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-4",
+                      "group relative bg-card hover:bg-muted/50 border rounded-xl p-3.5 sm:p-4 transition-all duration-150 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4",
                       isDone
-                        ? "border-slate-800/40 opacity-75"
-                        : "border-slate-800/80 hover:border-blue-500/40 hover:shadow-[0_0_20px_-3px_rgba(37,99,235,0.2)]"
+                        ? "border-border opacity-75"
+                        : "border-border hover:border-blue-500/40 hover:shadow-[0_0_20px_-3px_rgba(37,99,235,0.2)]"
                     )}
                   >
                     {/* Left: Drag Handle, Checkbox, Info */}
                     <div className="flex items-center gap-3.5 min-w-0">
                       {/* Drag Handle */}
                       <button
-                        className="text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing p-1 rounded transition shrink-0"
+                        className="text-muted-foreground/60 hover:text-muted-foreground cursor-grab active:cursor-grabbing p-1 rounded transition shrink-0"
                         title="Sıralamak için sürükle"
                       >
                         <GripVertical className="w-4 h-4" />
@@ -1308,7 +1349,7 @@ export function NorthWeek() {
                           "w-5 h-5 rounded-md border flex items-center justify-center transition shrink-0",
                           isDone
                             ? "bg-blue-600 border-blue-500 text-white"
-                            : "bg-slate-800/90 border-slate-700 hover:border-slate-500 text-transparent"
+                            : "bg-muted border-border hover:border-slate-500 text-transparent"
                         )}
                         title={isDone ? "Görevi geri al" : "Tamamlandı olarak işaretle"}
                       >
@@ -1321,8 +1362,8 @@ export function NorthWeek() {
                           <h3
                             onClick={() => openEditTaskModal(task)}
                             className={cn(
-                              "text-sm font-bold text-white group-hover:text-blue-300 transition truncate cursor-pointer",
-                              isDone && "line-through text-slate-400"
+                              "text-sm font-bold text-foreground group-hover:text-blue-700 dark:text-blue-300 transition truncate cursor-pointer",
+                              isDone && "line-through text-muted-foreground"
                             )}
                           >
                             {task.title}
@@ -1330,19 +1371,19 @@ export function NorthWeek() {
 
                           {/* Priority Badge */}
                           {task.mandatory ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                               Öncelikli
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700/60">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground border border-border">
                               İsteğe Bağlı
                             </span>
                           )}
                         </div>
 
                         {/* Metadata Row */}
-                        <div className="flex items-center gap-2 flex-wrap text-xs text-slate-400">
+                        <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
                           {/* Category Badge */}
                           <span
                             className={cn(
@@ -1360,20 +1401,20 @@ export function NorthWeek() {
                           </span>
 
                           {/* Duration Badge */}
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/60 font-mono">
-                            <Clock className="w-3 h-3 text-slate-400" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted text-foreground/90 border border-border font-mono">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
                             {task.minutes} dk
                           </span>
 
                           {/* Pool / Day Location Badge */}
                           {assignedDayObj ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] text-blue-300 bg-blue-500/10 border border-blue-500/20 font-medium">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] text-blue-700 dark:text-blue-300 bg-blue-500/10 border border-blue-500/20 font-medium">
                               <CalendarIcon className="w-3 h-3 text-blue-400" />
                               {assignedDayObj.dayName} {assignedDayObj.dayNum} {assignedDayObj.monthName}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] text-slate-400 bg-slate-800/50 border border-slate-700/40">
-                              <Layers className="w-3 h-3 text-slate-500" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] text-muted-foreground bg-muted border border-border">
+                              <Layers className="w-3 h-3 text-muted-foreground/80" />
                               Esnek Havuz
                             </span>
                           )}
@@ -1382,24 +1423,24 @@ export function NorthWeek() {
                     </div>
 
                     {/* Right: Modern Action Bar */}
-                    <div className="flex items-center justify-end gap-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800 shrink-0">
+                    <div className="flex items-center justify-end gap-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-border shrink-0">
                       {/* Düzenle */}
                       <button
                         onClick={() => openEditTaskModal(task)}
-                        className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-slate-800/80 hover:bg-blue-600/20 text-slate-300 hover:text-blue-300 border border-slate-700/60 hover:border-blue-500/30 text-xs font-medium transition flex items-center gap-1.5"
+                        className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-muted hover:bg-blue-600/20 text-foreground/90 hover:text-blue-700 dark:text-blue-300 border border-border hover:border-blue-500/30 text-xs font-medium transition flex items-center gap-1.5"
                         title="Görevi Düzenle"
                       >
-                        <Pencil className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400" />
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground group-hover:text-blue-400" />
                         <span className="hidden sm:inline">Düzenle</span>
                       </button>
 
                       {/* Küçült */}
                       <button
                         onClick={() => handleShrinkTask(task)}
-                        className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 text-xs font-medium transition flex items-center gap-1"
+                        className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-muted hover:bg-muted text-foreground/90 hover:text-foreground border border-border text-xs font-medium transition flex items-center gap-1"
                         title="Süreyi yarıya indir"
                       >
-                        <Minus className="w-3.5 h-3.5 text-slate-400" />
+                        <Minus className="w-3.5 h-3.5 text-muted-foreground" />
                         <span className="hidden sm:inline">Küçült</span>
                       </button>
 
@@ -1407,16 +1448,16 @@ export function NorthWeek() {
                       {task.date ? (
                         <button
                           onClick={() => handlePoolTask(task)}
-                          className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 text-xs font-medium transition flex items-center gap-1"
+                          className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-muted hover:bg-muted text-foreground/90 hover:text-foreground border border-border text-xs font-medium transition flex items-center gap-1"
                           title="Havuza Geri Gönder"
                         >
-                          <Layers className="w-3.5 h-3.5 text-slate-400" />
+                          <Layers className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="hidden sm:inline">Havuza</span>
                         </button>
                       ) : (
                         <button
                           onClick={() => setAssignDayTarget(task.id)}
-                          className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/30 text-xs font-medium transition flex items-center gap-1"
+                          className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-700 dark:text-blue-300 hover:text-foreground border border-blue-500/30 text-xs font-medium transition flex items-center gap-1"
                           title="Haftanın bir gününe ata"
                         >
                           <CalendarIcon className="w-3.5 h-3.5 text-blue-400" />
@@ -1427,17 +1468,17 @@ export function NorthWeek() {
                       {/* +1 Gün Ertele */}
                       <button
                         onClick={() => handlePostponeTask(task)}
-                        className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 text-xs font-medium transition flex items-center gap-1"
+                        className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-muted hover:bg-muted text-foreground/90 hover:text-foreground border border-border text-xs font-medium transition flex items-center gap-1"
                         title="Sonraki güne ertele"
                       >
-                        <MoveRight className="w-3.5 h-3.5 text-slate-400" />
+                        <MoveRight className="w-3.5 h-3.5 text-muted-foreground" />
                         <span className="hidden sm:inline">+1 Gün</span>
                       </button>
 
                       {/* Bırak */}
                       <button
                         onClick={() => handleDropTask(task)}
-                        className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 text-xs font-medium transition flex items-center gap-1"
+                        className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-700 dark:text-rose-300 border border-rose-500/20 text-xs font-medium transition flex items-center gap-1"
                         title="Görevi İptal Et / Bırak"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1460,7 +1501,7 @@ export function NorthWeek() {
                 return (
                   <div
                     key={task.id}
-                    className="bg-[#111927]/90 border border-slate-800/80 hover:border-blue-500/40 rounded-xl p-4 flex flex-col justify-between gap-3 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)]"
+                    className="bg-card border border-border hover:border-primary/40 rounded-xl p-4 flex flex-col justify-between gap-3 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)]"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
@@ -1475,29 +1516,29 @@ export function NorthWeek() {
                           <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: styling.color }} />
                           {area?.name}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400">{task.minutes} dk</span>
+                        <span className="text-[10px] font-mono text-muted-foreground">{task.minutes} dk</span>
                       </div>
                       <h4
                         onClick={() => openEditTaskModal(task)}
                         className={cn(
-                          "text-sm font-bold text-white hover:text-blue-300 cursor-pointer",
-                          isDone && "line-through text-slate-400"
+                          "text-sm font-bold text-foreground hover:text-blue-700 dark:text-blue-300 cursor-pointer",
+                          isDone && "line-through text-muted-foreground"
                         )}
                       >
                         {task.title}
                       </h4>
                       {task.why && (
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">{task.why}</p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.why}</p>
                       )}
                     </div>
 
-                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                    <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleToggleTask(task)}
                           className={cn(
                             "px-2 py-0.5 rounded text-[10px] font-semibold transition",
-                            isDone ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                            isDone ? "bg-blue-600 text-white" : "bg-muted text-foreground/90 hover:bg-muted"
                           )}
                         >
                           {isDone ? "Bitti" : "Tamamla"}
@@ -1506,13 +1547,13 @@ export function NorthWeek() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleShrinkTask(task)}
-                          className="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300"
+                          className="px-2 py-0.5 rounded text-[10px] bg-muted hover:bg-muted text-foreground/90"
                         >
                           Küçült
                         </button>
                         <button
                           onClick={() => handlePostponeTask(task)}
-                          className="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300"
+                          className="px-2 py-0.5 rounded text-[10px] bg-muted hover:bg-muted text-foreground/90"
                         >
                           +1G
                         </button>
@@ -1525,23 +1566,23 @@ export function NorthWeek() {
           )}
 
           {/* Bottom Quick Add Strip / Summary */}
-          <div className="mt-6 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+          <div className="mt-6 pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-4 flex-wrap">
               <span>
-                Toplam: <strong className="text-slate-200">{filteredTasks.length} Görev</strong> ({plannedMinutes} dk)
+                Toplam: <strong className="text-foreground">{filteredTasks.length} Görev</strong> ({plannedMinutes} dk)
               </span>
-              <span className="text-slate-600">•</span>
+              <span className="text-muted-foreground/60">•</span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
                 {completedTasks.length} Tamamlandı
               </span>
-              <span className="text-slate-600">•</span>
+              <span className="text-muted-foreground/60">•</span>
               <span className="text-emerald-400 font-semibold">Sprint Yükü Dengeli</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">Klavye Kısayolu:</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-mono text-slate-300">
+              <span className="text-muted-foreground/80">Klavye Kısayolu:</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono text-foreground/90">
                 N
               </kbd>
               <span>ile yeni ekle</span>
@@ -1551,27 +1592,27 @@ export function NorthWeek() {
         {/* END: TaskPoolSection */}
 
         {/* BEGIN: DeadlinesBannerSection */}
-        <section className="bg-[#111827]/85 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)]">
+        <section className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
                 <Clock className="w-3.5 h-3.5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-white">Yaklaşan Kritik Kilometre Taşları &amp; Teslimler</h2>
-                <p className="text-xs text-slate-400">Dönem hedeflerine giden yoldaki kritik kontrol noktaları ve ara teslimler</p>
+                <h2 className="text-base font-bold text-foreground">Yaklaşan Kritik Kilometre Taşları &amp; Teslimler</h2>
+                <p className="text-xs text-muted-foreground">Dönem hedeflerine giden yoldaki kritik kontrol noktaları ve ara teslimler</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => openCreateTaskModal()}
-                className="text-xs font-semibold text-slate-300 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
+                className="text-xs font-semibold text-foreground/90 hover:text-foreground px-2.5 py-1 rounded-lg bg-muted hover:bg-muted border border-border transition"
               >
                 + Tarih Ekle
               </button>
               <Link
                 href="/calendar"
-                className="text-xs font-semibold text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 transition group"
+                className="text-xs font-semibold text-blue-400 hover:text-blue-700 dark:text-blue-300 inline-flex items-center gap-1 transition group"
               >
                 Takvim Görünümü <span className="group-hover:translate-x-0.5 transition-transform">→</span>
               </Link>
@@ -1580,56 +1621,56 @@ export function NorthWeek() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {/* Milestone 1 */}
-            <div className="bg-[#0C1220]/70 border border-slate-800/70 rounded-xl p-4 flex flex-col justify-between min-h-[105px] hover:border-slate-700 transition">
+            <div className="bg-muted/40 border border-border rounded-xl p-4 flex flex-col justify-between min-h-[105px] hover:border-border transition">
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-bold text-white flex items-center gap-1.5">
+                  <span className="font-bold text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                     1. Aşama Temel Harita Onayı
                   </span>
-                  <span className="text-[10px] font-semibold text-slate-500">1. Aşama</span>
+                  <span className="text-[10px] font-semibold text-muted-foreground/80">1. Aşama</span>
                 </div>
-                <p className="text-xs text-slate-400">11 Eylül Cuma • North ile değerlendirme oturumu</p>
+                <p className="text-xs text-muted-foreground">11 Eylül Cuma • North ile değerlendirme oturumu</p>
               </div>
-              <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+              <div className="pt-2 border-t border-border flex items-center justify-between text-[11px]">
                 <span className="text-amber-400/90 font-medium">⏳ 2 gün kaldı</span>
-                <span className="text-slate-500 text-[10px]">Kritik Kontrol</span>
+                <span className="text-muted-foreground/80 text-[10px]">Kritik Kontrol</span>
               </div>
             </div>
 
             {/* Milestone 2 */}
-            <div className="bg-[#0C1220]/70 border border-slate-800/70 rounded-xl p-4 flex flex-col justify-between min-h-[105px] hover:border-slate-700 transition">
+            <div className="bg-muted/40 border border-border rounded-xl p-4 flex flex-col justify-between min-h-[105px] hover:border-border transition">
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-bold text-white flex items-center gap-1.5">
+                  <span className="font-bold text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                     İlk Laboratuvar Raporu Çıktısı
                   </span>
-                  <span className="text-[10px] font-semibold text-slate-500">2. Aşama</span>
+                  <span className="text-[10px] font-semibold text-muted-foreground/80">2. Aşama</span>
                 </div>
-                <p className="text-xs text-slate-400">14 Eylül Pazartesi • Siber güvenlik lab bulguları</p>
+                <p className="text-xs text-muted-foreground">14 Eylül Pazartesi • Siber güvenlik lab bulguları</p>
               </div>
-              <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+              <div className="pt-2 border-t border-border flex items-center justify-between text-[11px]">
                 <span className="text-blue-400/90 font-medium">⏳ 5 gün kaldı</span>
-                <span className="text-slate-500 text-[10px]">İlk Kanıt</span>
+                <span className="text-muted-foreground/80 text-[10px]">İlk Kanıt</span>
               </div>
             </div>
 
             {/* Milestone 3 */}
-            <div className="bg-[#0C1220]/70 border border-slate-800/70 rounded-xl p-4 flex flex-col justify-between min-h-[105px] hover:border-slate-700 transition">
+            <div className="bg-muted/40 border border-border rounded-xl p-4 flex flex-col justify-between min-h-[105px] hover:border-border transition">
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-bold text-white flex items-center gap-1.5">
+                  <span className="font-bold text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                     Dönem 1 Ara Kontrol Validasyonu
                   </span>
-                  <span className="text-[10px] font-semibold text-slate-500">Sprint 1</span>
+                  <span className="text-[10px] font-semibold text-muted-foreground/80">Sprint 1</span>
                 </div>
-                <p className="text-xs text-slate-400">18 Eylül Cuma • Tüm alanlarda ilk sprint çıktısı</p>
+                <p className="text-xs text-muted-foreground">18 Eylül Cuma • Tüm alanlarda ilk sprint çıktısı</p>
               </div>
-              <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+              <div className="pt-2 border-t border-border flex items-center justify-between text-[11px]">
                 <span className="text-indigo-400/90 font-medium">⏳ 10 gün kaldı</span>
-                <span className="text-slate-500 text-[10px]">Sprint İnceleme</span>
+                <span className="text-muted-foreground/80 text-[10px]">Sprint İnceleme</span>
               </div>
             </div>
           </div>
@@ -1637,26 +1678,18 @@ export function NorthWeek() {
         {/* END: DeadlinesBannerSection */}
       </div>
 
-      {/* BEGIN: ChatFloatingButton */}
-      <Link
-        href="/coach"
-        aria-label="Destek Sohbetini Aç"
-        className="fixed bottom-6 right-6 w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-white shadow-[0_0_20px_-3px_rgba(37,99,235,0.4)] border border-blue-400/30 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 z-50 group"
-      >
-        <MessageSquare className="w-5 h-5 group-hover:rotate-12 transition-transform duration-200" />
-      </Link>
-      {/* END: ChatFloatingButton */}
+      
 
       {/* TASK EDIT / CREATE MODAL */}
       <Dialog open={taskModalOpen} onOpenChange={setTaskModalOpen}>
-        <DialogContent className="bg-[#111827] border-slate-800 text-slate-100 sm:max-w-md">
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-white">
+            <DialogTitle className="text-base font-bold text-foreground">
               {editingTask?.id && state.tasks.some((t) => t.id === editingTask.id)
                 ? "Görevi Düzenle"
                 : "Yeni Görev Ekle"}
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogDescription className="text-xs text-muted-foreground">
               Bu sprint için net, odaklı ve ölçülebilir bir çalışma adımı tanımla.
             </DialogDescription>
           </DialogHeader>
@@ -1664,22 +1697,22 @@ export function NorthWeek() {
           {editingTask && (
             <div className="space-y-3.5 py-2">
               <div className="space-y-1">
-                <Label className="text-xs text-slate-300">Görev Başlığı</Label>
+                <Label className="text-xs text-foreground/90">Görev Başlığı</Label>
                 <Input
                   value={editingTask.title}
                   onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
                   placeholder="Örn: Temel ağ ve Linux ortamını doğrula"
-                  className="bg-[#0C1220] border-slate-700 text-xs text-white"
+                  className="bg-background border-input text-xs text-foreground"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs text-slate-300">Alan</Label>
+                  <Label className="text-xs text-foreground/90">Alan</Label>
                   <select
                     value={editingTask.areaId}
                     onChange={(e) => setEditingTask({ ...editingTask, areaId: e.target.value })}
-                    className="w-full bg-[#0C1220] border border-slate-700 rounded-md py-2 px-2.5 text-xs text-white"
+                    className="w-full bg-background border border-input rounded-md py-2 px-2.5 text-xs text-foreground"
                   >
                     {activeAreas.map((a) => (
                       <option key={a.id} value={a.id}>
@@ -1690,7 +1723,7 @@ export function NorthWeek() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs text-slate-300">Süre (Dakika)</Label>
+                  <Label className="text-xs text-foreground/90">Süre (Dakika)</Label>
                   <Input
                     type="number"
                     min={10}
@@ -1698,17 +1731,17 @@ export function NorthWeek() {
                     step={5}
                     value={editingTask.minutes}
                     onChange={(e) => setEditingTask({ ...editingTask, minutes: Number(e.target.value) || 30 })}
-                    className="bg-[#0C1220] border-slate-700 text-xs text-white"
+                    className="bg-background border-input text-xs text-foreground"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-slate-300">Güne Ata (İsteğe Bağlı)</Label>
+                <Label className="text-xs text-foreground/90">Güne Ata (İsteğe Bağlı)</Label>
                 <select
                   value={editingTask.date || ""}
                   onChange={(e) => setEditingTask({ ...editingTask, date: e.target.value })}
-                  className="w-full bg-[#0C1220] border border-slate-700 rounded-md py-2 px-2.5 text-xs text-white"
+                  className="w-full bg-background border border-input rounded-md py-2 px-2.5 text-xs text-foreground"
                 >
                   <option value="">Esnek Havuz (Güne kilitlenmemiş)</option>
                   {weekDays.map((d) => (
@@ -1725,10 +1758,10 @@ export function NorthWeek() {
                   id="mandatoryCheck"
                   checked={editingTask.mandatory}
                   onChange={(e) => setEditingTask({ ...editingTask, mandatory: e.target.checked })}
-                  className="w-4 h-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0"
+                  className="w-4 h-4 rounded bg-muted border-border text-blue-600 focus:ring-0"
                 />
-                <label htmlFor="mandatoryCheck" className="text-xs text-slate-300 cursor-pointer">
-                  Bu görev sprint için <strong className="text-amber-300">Öncelikli</strong> sayılsın
+                <label htmlFor="mandatoryCheck" className="text-xs text-foreground/90 cursor-pointer">
+                  Bu görev sprint için <strong className="text-amber-700 dark:text-amber-300">Öncelikli</strong> sayılsın
                 </label>
               </div>
             </div>
@@ -1739,7 +1772,7 @@ export function NorthWeek() {
               variant="outline"
               size="sm"
               onClick={() => setTaskModalOpen(false)}
-              className="border-slate-700 text-xs text-slate-300"
+              className="border-border text-xs text-foreground/90"
             >
               İptal
             </Button>
@@ -1757,14 +1790,14 @@ export function NorthWeek() {
 
       {/* QUICK DAY ASSIGN POPOVER / DIALOG */}
       <Dialog open={Boolean(assignDayTarget)} onOpenChange={(open) => !open && setAssignDayTarget(null)}>
-        <DialogContent className="bg-[#111827] border-slate-800 text-slate-100 sm:max-w-md">
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-white">
+            <DialogTitle className="text-base font-bold text-foreground">
               {assignDayTarget && assignDayTarget.includes("-") && assignDayTarget.length === 10
                 ? `${weekDays.find((d) => d.date === assignDayTarget)?.dayName || "Seçili Gün"} İçin Görev Ata`
                 : "Görevi Güne Ata"}
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogDescription className="text-xs text-muted-foreground">
               Esnek havuzdaki bir görevi bu güne taşıyabilir veya hızlıca yeni bir görev oluşturabilirsin.
             </DialogDescription>
           </DialogHeader>
@@ -1773,7 +1806,7 @@ export function NorthWeek() {
             {/* If target is a day (YYYY-MM-DD), show pool tasks that can be assigned */}
             {assignDayTarget && assignDayTarget.includes("-") && assignDayTarget.length === 10 ? (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Havuzdaki Atanmamış Görevler:</span>
                   <button
                     onClick={() => {
@@ -1781,14 +1814,14 @@ export function NorthWeek() {
                       setAssignDayTarget(null);
                       openCreateTaskModal(day);
                     }}
-                    className="text-blue-400 hover:text-blue-300 font-semibold"
+                    className="text-blue-400 hover:text-blue-700 dark:text-blue-300 font-semibold"
                   >
                     + Bu Güne Yeni Görev
                   </button>
                 </div>
 
                 {state.tasks.filter((t) => !t.date && t.status !== "cancelled" && t.status !== "done").length === 0 ? (
-                  <p className="text-xs text-slate-500 italic py-3 text-center bg-slate-900/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground/80 italic py-3 text-center bg-muted/60 rounded-lg">
                     Havuzda atanmamış görev yok. Yukarıdan yeni görev ekleyebilirsin.
                   </p>
                 ) : (
@@ -1802,13 +1835,13 @@ export function NorthWeek() {
                           <button
                             key={poolT.id}
                             onClick={() => handleAssignTaskToDay(poolT.id, assignDayTarget)}
-                            className="w-full text-left p-2.5 rounded-lg bg-[#0C1220] hover:bg-slate-800 border border-slate-800 hover:border-slate-700 flex items-center justify-between transition group"
+                            className="w-full text-left p-2.5 rounded-lg bg-muted/40 hover:bg-muted border border-border flex items-center justify-between transition group"
                           >
                             <div>
-                              <div className="text-xs font-semibold text-white group-hover:text-blue-300 transition">
+                              <div className="text-xs font-semibold text-foreground group-hover:text-blue-700 dark:text-blue-300 transition">
                                 {poolT.title}
                               </div>
-                              <div className="text-[10px] text-slate-500 mt-0.5">
+                              <div className="text-[10px] text-muted-foreground/80 mt-0.5">
                                 {area?.name} • {poolT.minutes} dk
                               </div>
                             </div>
@@ -1824,16 +1857,16 @@ export function NorthWeek() {
             ) : (
               /* If target is a taskId, show days to assign to */
               <div className="space-y-2">
-                <span className="text-xs text-slate-400">Hangi güne atamak istersin?</span>
+                <span className="text-xs text-muted-foreground">Hangi güne atamak istersin?</span>
                 <div className="grid grid-cols-2 gap-2">
                   {weekDays.slice(0, 5).map((d) => (
                     <button
                       key={d.date}
                       onClick={() => handleAssignTaskToDay(assignDayTarget!, d.date)}
-                      className="p-2.5 rounded-lg bg-[#0C1220] hover:bg-slate-800 border border-slate-800 text-left transition"
+                      className="p-2.5 rounded-lg bg-muted/40 hover:bg-muted border border-border text-left transition"
                     >
-                      <div className="text-xs font-bold text-white">{d.dayName}</div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-xs font-bold text-foreground">{d.dayName}</div>
+                      <div className="text-[10px] text-muted-foreground">
                         {d.dayNum} {d.monthName} {d.isToday ? "• Bugün" : ""}
                       </div>
                     </button>
@@ -1848,9 +1881,173 @@ export function NorthWeek() {
               variant="outline"
               size="sm"
               onClick={() => setAssignDayTarget(null)}
-              className="border-slate-700 text-xs text-slate-300"
+              className="border-border text-xs text-foreground/90"
             >
               Kapat
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* REPLAN / DAY SELECTION MODAL */}
+      <Dialog open={replanModalOpen} onOpenChange={setReplanModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+              <SlidersHorizontal className="w-4 h-4 text-primary" />
+              Haftalık Planlama &amp; Gün Seçimi
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Görevlerin hangi günlere dağıtılacağını seç. Çalışmadığın günleri (örneğin hafta sonunu) devre dışı bırakabilirsin.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Quick Presets */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setTempPlanDays([0, 1, 2, 3, 4])}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-semibold border transition",
+                  JSON.stringify([...tempPlanDays].sort()) === JSON.stringify([0, 1, 2, 3, 4])
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground hover:text-foreground border-border"
+                )}
+              >
+                Hafta İçi (Haftasonu Kapalı)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTempPlanDays([0, 1, 2, 3, 4, 5, 6])}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-semibold border transition",
+                  tempPlanDays.length === 7
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground hover:text-foreground border-border"
+                )}
+              >
+                Tüm Hafta (7 Gün)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTempPlanDays([0, 2, 4])}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-semibold border transition",
+                  JSON.stringify([...tempPlanDays].sort()) === JSON.stringify([0, 2, 4])
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground hover:text-foreground border-border"
+                )}
+              >
+                Pzt, Çar, Cum (3 Gün)
+              </button>
+            </div>
+
+            {/* Day Toggle Buttons */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground font-semibold">Aktif Dağıtım Günleri</Label>
+              <div className="grid grid-cols-7 gap-1.5">
+                {[
+                  { idx: 0, label: "Pzt", full: "Pazartesi" },
+                  { idx: 1, label: "Sal", full: "Salı" },
+                  { idx: 2, label: "Çar", full: "Çarşamba" },
+                  { idx: 3, label: "Per", full: "Perşembe" },
+                  { idx: 4, label: "Cum", full: "Cuma" },
+                  { idx: 5, label: "Cmt", full: "Cumartesi", weekend: true },
+                  { idx: 6, label: "Paz", full: "Pazar", weekend: true },
+                ].map((d) => {
+                  const isSelected = tempPlanDays.includes(d.idx);
+                  return (
+                    <button
+                      key={d.idx}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          if (tempPlanDays.length > 1) {
+                            setTempPlanDays(tempPlanDays.filter((x) => x !== d.idx));
+                          }
+                        } else {
+                          setTempPlanDays([...tempPlanDays, d.idx].sort((a, b) => a - b));
+                        }
+                      }}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-primary/10 border-primary text-primary font-bold shadow-xs"
+                          : "bg-muted/40 border-border text-muted-foreground hover:border-muted-foreground/30"
+                      )}
+                      title={d.full}
+                    >
+                      <span className="text-xs">{d.label}</span>
+                      <span className="text-[9px] mt-0.5 font-medium">
+                        {isSelected ? "Açık" : "Kapalı"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {!tempPlanDays.includes(5) && !tempPlanDays.includes(6) ? (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1 font-medium">
+                  <Check className="w-3 h-3" />
+                  Hafta sonu (Cumartesi ve Pazar) kapalı — hiçbir görev hafta sonuna yerleştirilmeyecek.
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                  Seçilen gün sayısı: {tempPlanDays.length} gün
+                </p>
+              )}
+            </div>
+
+            {/* Distribution Mode Options */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              <Label className="text-xs text-muted-foreground font-semibold">Dağıtım Modu</Label>
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2.5 p-2 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 cursor-pointer text-xs">
+                  <input
+                    type="radio"
+                    name="replanScope"
+                    checked={replanForceAll}
+                    onChange={() => setReplanForceAll(true)}
+                    className="text-primary accent-primary"
+                  />
+                  <div>
+                    <span className="font-semibold text-foreground">Tüm haftayı sıfırdan dengeli dağıt</span>
+                    <p className="text-[10px] text-muted-foreground">Tüm açık görevler seçilen günlere eşit ve alan dengesiyle paylaştırılır.</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2.5 p-2 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 cursor-pointer text-xs">
+                  <input
+                    type="radio"
+                    name="replanScope"
+                    checked={!replanForceAll}
+                    onChange={() => setReplanForceAll(false)}
+                    className="text-primary accent-primary"
+                  />
+                  <div>
+                    <span className="font-semibold text-foreground">Sadece tarihsiz / havuzdaki görevleri dağıt</span>
+                    <p className="text-[10px] text-muted-foreground">Mevcut atanmış günlerdeki görevler yerinde kalır.</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setReplanModalOpen(false)}
+              className="text-xs"
+            >
+              Vazgeç
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => handleExecuteReplan(tempPlanDays, replanForceAll)}
+              disabled={tempPlanDays.length === 0}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold"
+            >
+              Seçilen Günlere Dağıt ({tempPlanDays.length} Gün)
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -118,13 +118,18 @@ export function distributePlanTasksToCalendar(
     today?: string;
     week?: string;
     forceRedistribute?: boolean;
+    activeDayIndices?: number[];
   } = {}
 ): NorthTask[] {
   const today = options.today || dayKey();
   const currentWeek = options.week || weekKey(today);
   const events = options.events || [];
   const weeklyMinutes = (options.weeklyHours ?? 10) * 60;
-  const dailyTargetCapacity = Math.max(45, Math.round(weeklyMinutes / 5));
+  // Default to Mon-Fri (0, 1, 2, 3, 4) - weekends excluded by default
+  const activeDayIndices = options.activeDayIndices && options.activeDayIndices.length > 0
+    ? options.activeDayIndices
+    : [0, 1, 2, 3, 4];
+  const dailyTargetCapacity = Math.max(45, Math.round(weeklyMinutes / Math.max(1, activeDayIndices.length)));
 
   const dayMinutes: Record<string, number> = {};
 
@@ -133,8 +138,12 @@ export function distributePlanTasksToCalendar(
     daysInCurrentWeek.push(shiftDay(currentWeek, i));
   }
 
+  // Active days mapped to date strings
+  const activeDays = activeDayIndices.map((i) => daysInCurrentWeek[i]).filter(Boolean);
+
   for (const t of tasks) {
-    if (t.date && t.status !== "cancelled" && (!options.forceRedistribute || t.week !== currentWeek || t.status === "done")) {
+    const isTaskOnActiveDay = activeDays.includes(t.date);
+    if (t.date && t.status !== "cancelled" && isTaskOnActiveDay && (!options.forceRedistribute || t.week !== currentWeek || t.status === "done")) {
       dayMinutes[t.date] = (dayMinutes[t.date] || 0) + t.minutes;
     }
   }
@@ -145,10 +154,9 @@ export function distributePlanTasksToCalendar(
     }
   }
 
-  const weekdays = daysInCurrentWeek.slice(0, 5);
-  let availableDays = weekdays;
-  if (!options.week && !options.forceRedistribute && today > weekdays[0]) {
-    const fromToday = daysInCurrentWeek.filter(d => d >= today && d <= weekdays[4]);
+  let availableDays = activeDays.length > 0 ? activeDays : daysInCurrentWeek.slice(0, 5);
+  if (!options.week && !options.forceRedistribute && today > activeDays[0]) {
+    const fromToday = activeDays.filter((d) => d >= today);
     if (fromToday.length > 0) {
       availableDays = fromToday;
     }
@@ -161,10 +169,11 @@ export function distributePlanTasksToCalendar(
     if (task.status === "done" || task.status === "cancelled") {
       continue;
     }
-    if (task.date && !options.forceRedistribute) {
+    const isTaskOnActiveDay = activeDays.includes(task.date);
+    if (task.date && !options.forceRedistribute && isTaskOnActiveDay) {
       continue;
     }
-    if (task.week && task.week !== currentWeek && task.date) {
+    if (task.week && task.week !== currentWeek && task.date && isTaskOnActiveDay) {
       continue;
     }
     tasksToDistribute.push(task);
