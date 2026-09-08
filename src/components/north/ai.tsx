@@ -7,7 +7,6 @@ import {
   Bot,
   Calendar,
   Check,
-  Clock,
   HelpCircle,
   History,
   Lightbulb,
@@ -17,7 +16,6 @@ import {
   RotateCcw,
   Send,
   Sparkles,
-  Target,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
@@ -167,134 +165,37 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
   const todayTasks = state.tasks.filter((task) => task.date === today && ["pending", "partial"].includes(task.status));
   const optionalPool = state.tasks.filter((task) => !task.mandatory && !task.date && ["pending", "partial"].includes(task.status));
   const primaryArea = state.areas.find((a) => isAreaActive(a)) || state.areas[0];
-  const isChess = primaryArea?.kind === "chess" || /satranç|chess/i.test(primaryArea?.name || "");
-  const isCoding = primaryArea?.kind === "projects" || /yazılım|software|web|mobil/i.test(primaryArea?.name || "");
-  const isCyber = primaryArea?.kind === "cyber" || /siber|cyber|güvenlik/i.test(primaryArea?.name || "");
-  const activeExam = workspace.examProfiles?.find((p) => p.trials && p.trials.length > 0);
-
-  const quickPrompts = [
-    { icon: "⚡", text: "Bugünkü planımı enerjime göre düzenle" },
-    { icon: "🎯", text: "Takıldığım konuyu küçük adımlara böl" },
-    { icon: "📉", text: "Bugünkü görev süremi kısalt (Mikro seans yap)" },
-    ...(isChess
-      ? [{ icon: "♞", text: "Satranç taktik hatalarımı ve blunder motiflerimi analiz et" }]
-      : isCoding
-      ? [{ icon: "💻", text: "Kodlama görevlerimi ve mimari takıldığım yerleri analiz et" }]
-      : isCyber
-      ? [{ icon: "🛡️", text: "Lab analizlerimi ve zafiyet çözümlerimi özetle" }]
-      : activeExam
-      ? [{ icon: "📊", text: `${activeExam.title} deneme yanlışlarımı ve tekrar takvimimi analiz et` }]
-      : [{ icon: "🔄", text: "Haftalık planımda geride kalan işleri yeniden dengele" }]),
-    { icon: "🧭", text: "Bu haftanın odak hedefini ve darboğazlarımı söyle" },
-  ];
-
   const greeting = todayTasks.length
     ? `Bugün takviminde ${todayTasks.length} odak görevi var. Seni dinliyorum, planını birlikte en verimli hale getirelim.`
     : optionalPool.length
     ? `Bugün takviminde zorunlu iş görünmüyor; havuzda ${optionalPool.length} esnek görev var.`
     : "Bugün için planlı görev görünmüyor. İstersen senin için gerçekçi ve motive edici bir sonraki adım belirleyelim.";
 
+  const usageCount = workspace.coaching.preferences.aiUsage.date === today ? workspace.coaching.preferences.aiUsage.count : 0;
+  const dailyLimit = workspace.coaching.preferences.dailyAiLimit;
+
   return (
-    <div className={embedded ? "north-ai-embedded space-y-4" : "page-content max-w-4xl space-y-6"}>
-      {!embedded && (
-        <Heading
-          title="North Koç & Planlayıcı"
-          description="Hedeflerine, öğrenme stiline, geri bildirim hafızana ve gerçek enerjine göre planlar; her öneriyi onayına sunar."
-        />
-      )}
-
-      {/* ACTIVE CONTEXT CHIPS BAR — hidden in focus docked mode */}
-      {!focusDocked && (
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card/60 p-3 text-xs backdrop-blur-sm">
-        <span className="flex items-center gap-1.5 font-semibold text-foreground">
-          <Sparkles className="size-3.5 text-primary" />
-          Aktif Bağlam:
-        </span>
-        {workspace.profile.primaryFocus && (
-          <span className="inline-flex items-center gap-1 rounded-full border bg-muted/60 px-2.5 py-1 text-muted-foreground">
-            <Target className="size-3 text-primary" />
-            {workspace.profile.primaryFocus}
-          </span>
-        )}
-        <span className="inline-flex items-center gap-1 rounded-full border bg-muted/60 px-2.5 py-1 text-muted-foreground">
-          <Clock className="size-3" />
-          Bugün: {todayTasks.length} görev
-        </span>
-        {activeExam && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 font-medium text-emerald-700 dark:text-emerald-400">
-            {activeExam.title} ({activeExam.targetNet} Net Hedef)
-          </span>
-        )}
-        <span className="ml-auto text-[11px] text-muted-foreground">
-          Kullanım: {workspace.coaching.preferences.aiUsage.date === today ? workspace.coaching.preferences.aiUsage.count : 0} /{" "}
-          {workspace.coaching.preferences.dailyAiLimit}
-        </span>
-      </div>
-      )}
-
-      {currentTask && (
-        <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Odak Görevi Bağlamı</p>
-              <h3 className="mt-0.5 text-sm font-semibold text-foreground">{currentTask.title}</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">{currentTask.goal}</p>
-            </div>
-            <div className="w-44">
-              <Field label="Yardım Düzeyi">
-                <select className={fieldClass + " text-xs"} value={help} onChange={(e) => setHelp(e.target.value)}>
-                  <option value="0">Düzey 0 · Yardımsız</option>
-                  <option value="1">Düzey 1 · İpucu</option>
-                  <option value="2">Düzey 2 · Yönlendirme</option>
-                  <option value="3">Düzey 3 · Adımlar</option>
-                  <option value="4">Düzey 4 · Tam Açıklama</option>
-                </select>
-              </Field>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* QUICK SUGGESTIONS PILLS — hidden in focus docked mode */}
-      {!focusDocked && (
-      <div className="flex flex-wrap gap-2">
-        {quickPrompts.map((item, idx) => (
-          <button
-            key={idx}
-            type="button"
-            disabled={busy}
-            onClick={() => void ask(item.text)}
-            className="inline-flex items-center gap-1.5 rounded-full border bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:border-primary/50 hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
-          >
-            <span>{item.icon}</span>
-            <span>{item.text}</span>
-          </button>
-        ))}
-      </div>
-      )}
-
+    <div className={embedded ? "north-ai-embedded space-y-4" : "page-content max-w-4xl space-y-5"}>
       {/* CONVERSATION CONTAINER */}
-      <div className="rounded-2xl border bg-card shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
+      <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 sm:px-5 py-3.5 bg-card/60">
           <div className="flex items-center gap-2.5">
-            <span className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
+            <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground">
               <Bot className="size-4" />
             </span>
             <div>
-              <h3 className="text-xs font-semibold text-foreground">North Sohbet Akışı</h3>
-              <p className="text-[11px] text-muted-foreground">
+              <h3 className="text-xs sm:text-sm font-semibold text-foreground">North Koç</h3>
+              <p className="text-[11px] text-muted-foreground hidden sm:block">
                 Sade, kişiye özel ve eyleme dönüştürülebilir koçluk.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {focusDocked && (
-              <span className="inline-flex items-center gap-1 rounded-full border bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                <Sparkles className="size-2.5 text-primary" />
-                {workspace.coaching.preferences.aiUsage.date === today ? workspace.coaching.preferences.aiUsage.count : 0}/{workspace.coaching.preferences.dailyAiLimit}
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-muted/60 px-2.5 py-1 text-[11px] font-medium text-foreground">
+              <Sparkles className="size-3 text-primary" />
+              <span>Limit: <strong className="text-primary font-semibold">{usageCount}</strong> / {dailyLimit}</span>
+            </span>
             <Button
               type="button"
               variant="outline"
@@ -302,10 +203,10 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
               onClick={handleStartNewChat}
               disabled={workspace.coachMessages.length === 0}
               className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              title="Mevcut konuşmayı Ayarlar'a kaydeder ve yeni temiz bir sohbet başlatır"
+              title="Mevcut konuşmayı kaydeder ve yeni temiz bir sohbet başlatır"
             >
               <RotateCcw className="size-3" />
-              <span>Yeni Sohbet</span>
+              <span className="hidden sm:inline">Yeni Sohbet</span>
             </Button>
             <Button
               type="button"
@@ -314,9 +215,9 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
               asChild
               className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
-              <Link href="/profile?tab=memory" title="Geçmiş sohbetleri ve AI ayarlarını incele">
+              <Link href="/profile?tab=memory" title="Geçmiş sohbetleri incele">
                 <History className="size-3" />
-                <span>Geçmiş (Ayarlar)</span>
+                <span className="hidden sm:inline">Geçmiş</span>
               </Link>
             </Button>
           </div>
