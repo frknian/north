@@ -693,14 +693,14 @@ export default function LoginPage() {
 
         {/* SAĞ VİTRİN: North AI Koç & Satranç/Beceri İlerleme Bento Kartları (Web/Masaüstü için) */}
         <div className="hidden lg:flex flex-col gap-5 w-[330px] xl:w-[360px] shrink-0">
-          {/* Bento 3: North AI Koç Canlı Sohbet Görünümü */}
+          {/* Bento 3: Planorth Koç Canlı Sohbet Görünümü */}
           <div className="rounded-2xl border border-zinc-800/90 bg-[#0B101D]/90 p-5 shadow-2xl backdrop-blur-md transition hover:border-zinc-700/80">
             {/* Header */}
             <div className="flex items-center justify-between gap-3 mb-3.5">
               <div className="flex items-center gap-2.5">
                 <NorthCoachSymbol size={32} variant="avatar" />
                 <div>
-                  <h4 className="text-xs font-bold text-white">North Koç</h4>
+                  <h4 className="text-xs font-bold text-white">Planorth Koç</h4>
                   <p className="text-[10px] text-zinc-400">Kişisel AI Rehberin</p>
                 </div>
               </div>

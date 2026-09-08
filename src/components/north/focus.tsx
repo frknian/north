@@ -1009,7 +1009,7 @@ export function NorthFocus({ id }: { id: string }) {
             </div>
           </div>
 
-          {/* COLUMN 4: NORTH KOÇ (DOCKED COMPANION) */}
+          {/* COLUMN 4: PLANORTH KOÇ (DOCKED COMPANION) */}
           <div className="h-full flex flex-col rounded-2xl border bg-card shadow-xs overflow-hidden min-h-0">
             <NorthAI embedded taskId={id} focusDocked />
           </div>

@@ -276,7 +276,7 @@ export function NorthAI({
         <div className="flex items-center gap-3 min-w-0">
           <NorthCoachSymbol size={44} variant="avatar-rounded" priority />
           <div className="flex flex-col justify-center min-w-0">
-            <h3 className="text-base font-bold text-white tracking-tight leading-tight">North Koç</h3>
+            <h3 className="text-base font-bold text-white tracking-tight leading-tight">Planorth Koç</h3>
             <p className="text-[11px] text-zinc-400 leading-tight mt-0.5 max-w-[170px]">
               Sade, kişiye özel ve eyleme dönüştürülebilir koçluk.
             </p>

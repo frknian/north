@@ -31,7 +31,7 @@ export function NorthChatPopover({
       {open ? (
         <section
           className="mb-3 w-[calc(100vw-2rem)] max-w-[380px] sm:max-w-[390px] h-[860px] max-h-[92dvh] overflow-hidden rounded-[30px] border border-[#141E33] bg-[#070C16] shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200 flex flex-col p-3 sm:p-3.5"
-          aria-label="North Koç sohbeti"
+          aria-label="Planorth Koç sohbeti"
         >
           <NorthAI embedded taskId={taskId} onClose={() => setOpen(false)} />
         </section>
@@ -40,7 +40,7 @@ export function NorthChatPopover({
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="relative grid size-12 sm:size-14 place-items-center rounded-full bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-xl shadow-blue-950/50 transition-all hover:scale-105 active:scale-95 border border-blue-400/30"
-        aria-label={open ? "North sohbetini kapat" : "North Koç ile sohbet et"}
+        aria-label={open ? "Planorth sohbetini kapat" : "Planorth Koç ile sohbet et"}
         aria-expanded={open}
       >
         {open ? (

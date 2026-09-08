@@ -10,7 +10,7 @@ interface NorthCoachSymbolProps {
 }
 
 /**
- * North Koç özel pusula ve vizör/maskot sembolü.
+ * Planorth Koç özel pusula ve vizör/maskot sembolü.
  * - `symbol`: Şeffaf arka planlı salt sembol.
  * - `avatar`: Mesaj balonları ve butonlar için daire mavi gradyan rozet içinde sembol.
  * - `avatar-rounded`: Başlıklar için yuvarlatılmış (squircle) mavi gradyan rozet içinde sembol.
@@ -18,7 +18,7 @@ interface NorthCoachSymbolProps {
 export function NorthCoachSymbol({
   size = 32,
   className,
-  alt = "North Koç",
+  alt = "Planorth Koç",
   variant = "symbol",
   priority = false,
 }: NorthCoachSymbolProps) {
@@ -32,7 +32,7 @@ export function NorthCoachSymbol({
         )}
       >
         <Image
-          src="/north-coach-symbol.png"
+          src="/planorth-coach-symbol.png"
           alt={alt}
           width={size}
           height={size}
@@ -53,7 +53,7 @@ export function NorthCoachSymbol({
         )}
       >
         <Image
-          src="/north-coach-symbol.png"
+          src="/planorth-coach-symbol.png"
           alt={alt}
           width={size}
           height={size}
@@ -66,7 +66,7 @@ export function NorthCoachSymbol({
 
   return (
     <Image
-      src="/north-coach-symbol.png"
+      src="/planorth-coach-symbol.png"
       alt={alt}
       width={size}
       height={size}
@@ -76,3 +76,5 @@ export function NorthCoachSymbol({
     />
   );
 }
+
+export const PlanorthCoachSymbol = NorthCoachSymbol;

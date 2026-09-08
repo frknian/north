@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bot, CheckCircle2, CircleHelp, Clock3, Compass, Database, Flag, Focus, Sparkles, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { NorthCoachSymbol } from "@/components/north/north-coach-symbol";
 
 const firstSteps = [
   { icon: Target, title: "Hedefini netleştir", text: "Profil bölümünde ana odağını ve 90 günlük ölçülebilir sonucunu yaz." },
@@ -11,10 +12,10 @@ const firstSteps = [
 ];
 
 const guideSections = [
-  { title: "Her gün ne yapmalıyım?", body: "Bugün ekranında günlük check-in'i doldur. North süre ve enerji durumuna göre önceliğini gösterir. Önce tek ana görevi tamamla; vaktin kalırsa ikinci göreve geç." },
-  { title: "North Koç ile nasıl konuşmalıyım?", body: "Doğal biçimde yazabilirsin: “Bugün 30 dakikam var”, “Bu görevi yapamadım, küçült”, “Hedefimi değiştirdim” veya “Son çalışmalarımı analiz et”. Koç değişiklikleri önce önerir; sen onaylamadan planına uygulamaz." },
-  { title: "İlerleme neye göre hesaplanır?", body: "İlerleme; gerçek odak süresi, tamamlanan görevler, üretilen kanıtlar ve düzenli check-in kayıtlarından gelir. North veri yokken başarı veya başarısızlık uydurmaz." },
-  { title: "Planım ağır gelirse ne yapmalıyım?", body: "North Koç'a görevi küçültmesini veya haftalık havuza almasını söyle. Profil bölümünden haftalık kapasiteyi ve oturum süresini de değiştirebilirsin." },
+  { title: "Her gün ne yapmalıyım?", body: "Bugün ekranında günlük check-in'i doldur. Planorth süre ve enerji durumuna göre önceliğini gösterir. Önce tek ana görevi tamamla; vaktin kalırsa ikinci göreve geç." },
+  { title: "Planorth Koç ile nasıl konuşmalıyım?", body: "Doğal biçimde yazabilirsin: “Bugün 30 dakikam var”, “Bu görevi yapamadım, küçült”, “Hedefimi değiştirdim” veya “Son çalışmalarımı analiz et”. Koç değişiklikleri önce önerir; sen onaylamadan planına uygulamaz." },
+  { title: "İlerleme neye göre hesaplanır?", body: "İlerleme; gerçek odak süresi, tamamlanan görevler, üretilen kanıtlar ve düzenli check-in kayıtlarından gelir. Planorth veri yokken başarı veya başarısızlık uydurmaz." },
+  { title: "Planım ağır gelirse ne yapmalıyım?", body: "Planorth Koç'a görevi küçültmesini veya haftalık havuza almasını söyle. Profil bölümünden haftalık kapasiteyi ve oturum süresini de değiştirebilirsin." },
   { title: "Haftayı nasıl kapatmalıyım?", body: "Hafta sonunda Değerlendirmeler ekranını aç. Tamamlananları, ertelenenleri, darboğazı ve gelecek haftanın tek ana önceliğini belirle." },
   { title: "Verilerimi nasıl korurum?", body: "Verilerim ve güvenlik ekranından çalışma alanının bir kopyasını indirebilirsin. Aynı ekranda gizlilik metni, eşitleme durumu ve hesap silme kontrolleri bulunur." },
 ];
@@ -40,13 +41,13 @@ export function UserGuide() {
 
       <div className="space-y-5">
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Bot className="size-5 text-primary" />Hazır komutlar</CardTitle><CardDescription>North Koç’a bunlardan biriyle başlayabilirsin.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><NorthCoachSymbol size={22} variant="symbol" />Hazır komutlar</CardTitle><CardDescription>Planorth Koç’a bunlardan biriyle başlayabilirsin.</CardDescription></CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p className="rounded-lg border p-3">“Bugün için tek öncelik seç.”</p>
             <p className="rounded-lg border p-3">“Bu görevi yapamadım, küçült.”</p>
             <p className="rounded-lg border p-3">“Son yedi günümü analiz et.”</p>
             <p className="rounded-lg border p-3">“30–60–90 günlük planımı güncelle.”</p>
-            <Button className="mt-2 w-full" asChild><Link href="/north-ai"><Bot />North Koç’u aç</Link></Button>
+            <Button className="mt-2 w-full gap-2" asChild><Link href="/north-ai"><NorthCoachSymbol size={18} variant="symbol" />Planorth Koç’u aç</Link></Button>
           </CardContent>
         </Card>
         <Card>
