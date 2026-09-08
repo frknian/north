@@ -49,6 +49,7 @@ import { ambientSound } from "@/lib/ambient-sound";
 import { PipTimerController } from "@/lib/pip-timer";
 import { BreathworkModal } from "./breathwork-modal";
 import { NorthAI } from "./ai";
+import { FocusSoundMixer, type AmbientSoundType } from "./focus-sound-mixer";
 import {
   setFocusLock,
   clearFocusLock,
@@ -133,7 +134,9 @@ export function NorthFocus({ id }: { id: string }) {
   const pipControllerRef = useRef<PipTimerController | null>(null);
   const [pipActive, setPipActive] = useState(false);
   const [breathworkOpen, setBreathworkOpen] = useState(false);
-  const [activeSound, setActiveSound] = useState<"none" | "rain" | "noise" | "cafe" | "drone">("none");
+  const [activeSound, setActiveSound] = useState<AmbientSoundType>("none");
+  const [ambientVolume, setAmbientVolume] = useState(0.4);
+  const [customMinutes, setCustomMinutes] = useState<number | null>(null);
   const [photoProof, setPhotoProof] = useState<string | null>(null);
 
   const exitQuestion = task ? generateExitQuestion(task.title, task.goal, area?.name || "", area?.kind) : "";
@@ -263,11 +266,22 @@ export function NorthFocus({ id }: { id: string }) {
     return () => clearTimeout(timerId);
   }, [abandonTimerActive, abandonCountdown]);
 
-  const totalSeconds = (task?.minutes ?? 50) * 60;
+  const currentMinutes = customMinutes ?? task?.minutes ?? 40;
+  const totalSeconds = currentMinutes * 60;
   const elapsed = timer ? timer.accumulated + (timer.running ? Math.max(0, now - timer.started) : 0) : 0;
   const elapsedSeconds = Math.floor(elapsed / 1000);
   const remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
   const progressPercent = Math.min(100, Math.max(0, (elapsedSeconds / totalSeconds) * 100));
+
+  function adjustMinutes(delta: number) {
+    const next = Math.max(5, Math.min(180, currentMinutes + delta));
+    setCustomMinutes(next);
+    update((s) => ({
+      ...s,
+      tasks: s.tasks.map((t) => (t.id === id ? { ...t, minutes: next } : t)),
+    }));
+    toast.info(`Odak süresi ${delta > 0 ? "+" : ""}${delta} dk güncellendi (${next} dk)`);
+  }
 
   function handlePause() {
     if (timer?.running) {
@@ -447,8 +461,9 @@ export function NorthFocus({ id }: { id: string }) {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
 
-  const minutesStr = String(Math.floor(remainingSeconds / 60)).padStart(2, "0");
-  const secondsStr = String(remainingSeconds % 60).padStart(2, "0");
+  const displaySeconds = timer ? remainingSeconds : totalSeconds;
+  const minutesStr = String(Math.floor(displaySeconds / 60)).padStart(2, "0");
+  const secondsStr = String(displaySeconds % 60).padStart(2, "0");
 
   useEffect(() => {
     if (pipControllerRef.current?.isActive() && task) {
@@ -488,14 +503,19 @@ export function NorthFocus({ id }: { id: string }) {
     }
   };
 
-  const handleSoundChange = (type: "none" | "rain" | "noise" | "cafe" | "drone") => {
+  const handleSoundChange = (type: AmbientSoundType) => {
     setActiveSound(type);
     if (!ambientSound) return;
     if (type === "none") {
       ambientSound.stop();
     } else {
-      ambientSound.play(type, 0.4);
+      ambientSound.play(type, ambientVolume);
     }
+  };
+
+  const handleVolumeChange = (vol: number) => {
+    setAmbientVolume(vol);
+    ambientSound?.setVolume(vol);
   };
 
   if (!ready) {
@@ -515,10 +535,10 @@ export function NorthFocus({ id }: { id: string }) {
 
   return (
     <main className="w-full max-w-none px-2 sm:px-3 py-2 min-h-screen lg:h-screen flex flex-col gap-2 overflow-y-auto lg:overflow-hidden">
-      {/* 1. COMPACT TOP CONTROL BAR (Unified Navigation, Area, Task, Zen Timer, Controls) */}
-      <header className="shrink-0 rounded-2xl border bg-card/90 backdrop-blur-md px-3 py-2 shadow-xs flex flex-wrap items-center justify-between gap-3 min-h-[58px]">
+      {/* 1. COMPACT TOP CONTROL BAR (Unified Navigation, Area, Task, Centered Digital Timer, Controls) */}
+      <header className="shrink-0 rounded-2xl border bg-card/90 backdrop-blur-md px-3 py-2 shadow-xs grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 min-h-[58px]">
         {/* Left: Back, Area, Task Title & Goal */}
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className="flex items-center gap-2.5 min-w-0">
           <button
             type="button"
             onClick={() => {
@@ -559,55 +579,75 @@ export function NorthFocus({ id }: { id: string }) {
           </div>
         </div>
 
-        {/* Center: Circular Zen Timer + Status */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="relative flex items-center justify-center">
-            <div className={`relative ${timer?.running ? "pulse-zen" : ""}`}>
-              <svg width={size} height={size} className="-rotate-90">
-                <circle
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={radius}
-                  stroke="color-mix(in srgb, var(--border) 70%, transparent)"
-                  strokeWidth={strokeWidth}
-                  fill="none"
-                />
-                <circle
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={radius}
-                  stroke={ironWill ? "rgb(239, 68, 68)" : "var(--primary)"}
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  strokeLinecap="round"
-                  fill="none"
-                  className="transition-all duration-300 ease-out"
-                />
-              </svg>
+        {/* Center: Digital Timer (40:00) with -+5 and 10 dk buttons (Süreyi ortaya al, çember yerine 40:00) */}
+        <div className="flex items-center justify-center gap-1 sm:gap-2 shrink-0 py-0.5">
+          {/* -10 and -5 minute buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => adjustMinutes(-10)}
+              disabled={currentMinutes <= 10}
+              className="rounded-lg border border-border/70 bg-muted/50 hover:bg-muted active:scale-95 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-foreground transition-all shadow-xs disabled:opacity-30 disabled:pointer-events-none"
+              title="10 dakika azalt"
+              aria-label="10 dakika azalt"
+            >
+              -10
+            </button>
+            <button
+              type="button"
+              onClick={() => adjustMinutes(-5)}
+              disabled={currentMinutes <= 5}
+              className="rounded-lg border border-border/70 bg-muted/50 hover:bg-muted active:scale-95 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-foreground transition-all shadow-xs disabled:opacity-30 disabled:pointer-events-none"
+              title="5 dakika azalt"
+              aria-label="5 dakika azalt"
+            >
+              -5
+            </button>
+          </div>
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-mono text-xs sm:text-sm font-bold tracking-tight text-foreground">
-                  {minutesStr}:{secondsStr}
-                </span>
-              </div>
+          {/* Digital Timer Display (Çember yerine 40:00) */}
+          <div className="flex flex-col items-center justify-center px-1.5 sm:px-3 text-center min-w-[90px]">
+            <span className="font-mono text-2xl sm:text-3xl font-black tracking-tight text-foreground tabular-nums select-none leading-tight">
+              {minutesStr}:{secondsStr}
+            </span>
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground">
+              <span className="font-semibold text-foreground">
+                {!timer ? "Hazır" : timer.running ? (ironWill ? "Demir İrade" : "Derin Odak") : "Duraklatıldı"}
+              </span>
+              <span>•</span>
+              <span className="font-mono">
+                {timer ? `Kalan: ${Math.ceil(remainingSeconds / 60)} dk` : `Plan: ${currentMinutes} dk`}
+              </span>
+              {ironWill && <ShieldAlert className="size-3 text-red-500 inline ml-0.5" />}
             </div>
           </div>
 
-          <div className="hidden sm:flex flex-col text-left">
-            <div className="flex items-center gap-1">
-              <span className="text-[11px] font-bold text-foreground">
-                {!timer ? "Hazır" : timer.running ? (ironWill ? "Demir İrade" : "Derin Odak") : "Duraklatıldı"}
-              </span>
-              {ironWill && <ShieldAlert className="size-3 text-red-500" />}
-            </div>
-            <span className="text-[10px] text-muted-foreground font-mono">
-              {timer ? `Geçen: ${Math.floor(elapsedSeconds / 60)} dk` : `Plan: ${task.minutes} dk`}
-            </span>
+          {/* +5 and +10 minute buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => adjustMinutes(5)}
+              disabled={currentMinutes >= 180}
+              className="rounded-lg border border-border/70 bg-muted/50 hover:bg-muted active:scale-95 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-foreground transition-all shadow-xs disabled:opacity-30 disabled:pointer-events-none"
+              title="5 dakika ekle"
+              aria-label="5 dakika ekle"
+            >
+              +5
+            </button>
+            <button
+              type="button"
+              onClick={() => adjustMinutes(10)}
+              disabled={currentMinutes >= 180}
+              className="rounded-lg border border-border/70 bg-muted/50 hover:bg-muted active:scale-95 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-foreground transition-all shadow-xs disabled:opacity-30 disabled:pointer-events-none"
+              title="10 dakika ekle"
+              aria-label="10 dakika ekle"
+            >
+              +10
+            </button>
           </div>
 
           {timer?.running && tabSwitches > 0 && (
-            <span className="hidden xl:inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+            <span className="hidden xl:inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-600 dark:text-amber-400 font-medium ml-1">
               <AlertTriangle className="size-2.5" />
               {tabSwitches} sekme
             </span>
@@ -615,7 +655,7 @@ export function NorthFocus({ id }: { id: string }) {
         </div>
 
         {/* Right: Controls & Tools */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center justify-end gap-1.5 min-w-0">
           {!timer ? (
             <Button size="sm" className="rounded-xl px-3 sm:px-4 text-xs font-semibold shadow-xs h-8" onClick={handleStart}>
               <Play className="mr-1.5 size-3.5" />
@@ -902,52 +942,15 @@ export function NorthFocus({ id }: { id: string }) {
             </div>
           </div>
 
-          {/* COLUMN 3: SES MİKSERİ & KAYNAKLAR */}
+          {/* COLUMN 3: SES & MÜZİK MİKSERİ & KAYNAKLAR */}
           <div className="h-full flex flex-col gap-2 min-h-0">
-            {/* Ses Mikseri */}
-            <div className="flex-1 rounded-2xl border bg-card p-3 shadow-xs flex flex-col min-h-0">
-              <div className="flex items-center justify-between border-b pb-2 shrink-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="grid size-6 place-items-center rounded-lg bg-teal-500/10 text-teal-500 shrink-0">
-                    {activeSound === "none" ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="text-xs font-bold text-foreground truncate">Ses Mikseri</h2>
-                    <p className="text-[10px] text-muted-foreground truncate">Ortam sesiyle akışa gir</p>
-                  </div>
-                </div>
-                {activeSound !== "none" && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 dark:text-teal-400 shrink-0">
-                    <span className="size-1.5 rounded-full bg-teal-500 animate-pulse" />
-                    Çalıyor
-                  </span>
-                )}
-              </div>
-
-              <div className="mt-2 grid grid-cols-2 gap-1.5 flex-1 content-start overflow-y-auto pr-0.5">
-                {([
-                  ["none", "Kapalı", "Sessiz ortam"],
-                  ["rain", "🌧️ Yağmur", "Hafif yağmur"],
-                  ["cafe", "☕ Kafe", "Kafe uğultusu"],
-                  ["noise", "📻 Beyaz", "White noise"],
-                  ["drone", "🧘 432Hz Zen", "Derin odak"],
-                ] as const).map(([val, label, sub]) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => handleSoundChange(val)}
-                    className={`flex flex-col items-start rounded-xl border p-2 text-left transition-all ${
-                      activeSound === val
-                        ? "border-teal-500/50 bg-teal-500/10 text-foreground shadow-xs"
-                        : "border-border/60 bg-background/80 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                    }`}
-                  >
-                    <span className="text-xs font-semibold truncate w-full">{label}</span>
-                    <span className="text-[9px] opacity-75 truncate w-full">{sub}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Ses & Müzik Mikseri (Spotify, Apple Music, YT Music & Ortam Sesleri) */}
+            <FocusSoundMixer
+              activeSound={activeSound}
+              onSoundChange={handleSoundChange}
+              ambientVolume={ambientVolume}
+              onVolumeChange={handleVolumeChange}
+            />
 
             {/* Kaynaklar & Lablar */}
             <div className="flex-1 rounded-2xl border bg-card p-3 shadow-xs flex flex-col min-h-0">
