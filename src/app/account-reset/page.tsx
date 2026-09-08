@@ -77,7 +77,7 @@ export default function AccountResetPage() {
   }
 
   return <main className="grid min-h-dvh place-items-center px-4 py-10"><div className="w-full max-w-md">
-    <div className="mb-6 flex items-center justify-center gap-3"><NorthLogo size={40} priority/><div><p className="font-semibold">North</p><p className="text-xs text-muted-foreground">Tam yeni başlangıç</p></div></div>
+    <div className="mb-6 flex items-center justify-center gap-3"><NorthLogo size={40} priority/><div><p className="font-planorth text-base tracking-[0.04em]">PLANORTH</p><p className="text-xs text-muted-foreground">Tam yeni başlangıç</p></div></div>
     <Card className="border-destructive/30"><CardHeader><CardTitle>Hesabı sil</CardTitle><CardDescription>Giriş yaptığın North hesabını ve çalışma verilerini kalıcı olarak siler.</CardDescription></CardHeader><CardContent className="space-y-4">
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs leading-5 text-muted-foreground">Bu işlem geri alınamaz. Görevler, odak süreleri, beceriler, kanıtlar, notlar ve koç konuşmaları silinir. Google hesabın silinmez; yalnızca North hesabın kaldırılır.</div>
       {!authReady ? <p className="text-sm text-muted-foreground">Hesap bilgileri kontrol ediliyor…</p> : !email ? <div className="space-y-3 rounded-lg border bg-muted/30 p-4"><p className="text-sm text-muted-foreground">Hesap silmek için önce silmek istediğin hesapla giriş yapmalısın.</p><Button className="w-full" asChild><Link href="/login">Giriş yap</Link></Button></div> : <>

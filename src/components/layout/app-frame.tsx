@@ -45,8 +45,8 @@ export function AppFrame({children}:{children:React.ReactNode}) {
   const [loadingTooLong, setLoadingTooLong] = useState(false);
   const area=pathname.startsWith("/areas/")?north?.areas.find(a=>a.id===pathname.split("/")[2]):undefined;
   const primaryArea=north?.areas.find(a=>a.id==="primary-goal")??north?.areas.find(a=>a.id==="cyber");
-  const pageTitle=area?.name??titles[pathname]??(pathname.startsWith("/focus/")?"Odak":pathname.startsWith("/areas/")?"Alan": "North");
-  useEffect(()=>{document.title=pageTitle==="North"?"North":pageTitle+" — North";},[pageTitle]);
+  const pageTitle=area?.name??titles[pathname]??(pathname.startsWith("/focus/")?"Odak":pathname.startsWith("/areas/")?"Alan": "Planorth");
+  useEffect(()=>{document.title=pageTitle==="Planorth"?"Planorth":pageTitle+" — Planorth";},[pageTitle]);
   useEffect(() => {
     const timer = window.setTimeout(() => setLoadingTooLong(true), 4500);
     return () => window.clearTimeout(timer);
@@ -131,7 +131,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
       <main className="grid min-h-dvh place-items-center px-6 text-center">
         <div className="max-w-sm space-y-4">
           <NorthLogo size={48} className="mx-auto mb-2" />
-          <p className="text-sm font-medium text-foreground">North hazırlanıyor…</p>
+          <p className="text-sm font-medium text-foreground">Planorth hazırlanıyor…</p>
           {loadingTooLong && (
             <div className="space-y-3 pt-2">
               <p className="text-xs text-muted-foreground">
@@ -155,7 +155,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
     <a className="skip-link" href="#north-content">İçeriğe geç</a>
     <header className={cn("north-topbar",scrolled&&"is-scrolled")}>
       <div className="north-topbar-inner">
-        <Link href="/" aria-label="North — Bugün" className="north-brand"><NorthLogo size={34} priority/><span>North</span></Link>
+        <Link href="/" aria-label="Planorth — Bugün" className="north-brand"><NorthLogo size={34} priority/><span className="font-planorth text-base tracking-[0.04em]">PLANORTH</span></Link>
         <TopNavigation pathname={pathname}/>
         <div className="north-tools"><WorkspaceSearch/><ThemeToggle/><Link href="/data" className="north-profile hidden sm:grid" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link><Link href="/profile" className="north-profile hidden sm:grid" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link></div>
       </div>

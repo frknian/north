@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  Bot,
   Calendar,
   Check,
   ExternalLink,
@@ -41,6 +40,7 @@ import { capacity, dayKey, isAreaActive, weekKey } from "@/lib/north";
 import { useNorth, Heading, fieldClass, Field } from "./shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { NorthCoachSymbol } from "./north-coach-symbol";
 
 export function NorthAI({
   taskId,
@@ -274,9 +274,7 @@ export function NorthAI({
       {/* HEADER matching user's uploaded reference */}
       <div className="flex items-start justify-between gap-2 px-1 pt-1 pb-3 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white shadow-md">
-            <Bot className="size-6" />
-          </div>
+          <NorthCoachSymbol size={44} variant="avatar-rounded" priority />
           <div className="flex flex-col justify-center min-w-0">
             <h3 className="text-base font-bold text-white tracking-tight leading-tight">North Koç</h3>
             <p className="text-[11px] text-zinc-400 leading-tight mt-0.5 max-w-[170px]">
@@ -346,9 +344,7 @@ export function NorthAI({
                 const isAssistant = message.role === "assistant";
                 return isAssistant ? (
                   <div key={message.id} className="flex items-start gap-2.5">
-                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
-                      <Bot className="size-4.5" />
-                    </span>
+                    <NorthCoachSymbol size={32} variant="avatar" />
                     <div className="max-w-[86%] space-y-1">
                       <div className="rounded-2xl rounded-tl-xs bg-[#10192A] border border-[#17233B] p-3.5 text-xs sm:text-sm leading-relaxed text-zinc-200 shadow-xs">
                         <MessageResponse>{message.content}</MessageResponse>
@@ -417,9 +413,7 @@ export function NorthAI({
             ) : (
               /* Initial Greeting matching reference image */
               <div className="flex items-start gap-2.5">
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
-                  <Bot className="size-4.5" />
-                </span>
+                <NorthCoachSymbol size={32} variant="avatar" />
                 <div className="max-w-[86%] space-y-1">
                   <div className="rounded-2xl rounded-tl-xs bg-[#10192A] border border-[#17233B] p-3.5 shadow-xs">
                     <h4 className="text-sm font-bold text-white mb-1 tracking-tight">Merhaba!</h4>
@@ -432,9 +426,7 @@ export function NorthAI({
 
             {busy && (
               <div className="flex items-start gap-2.5">
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
-                  <Bot className="size-4.5" />
-                </span>
+                <NorthCoachSymbol size={32} variant="avatar" />
                 <div className="inline-flex items-center gap-2 rounded-2xl bg-[#10192A] border border-[#17233B] px-3.5 py-2.5 text-xs text-zinc-300 shadow-xs">
                   <LoaderCircle className="size-3.5 animate-spin text-blue-500" />
                   North düşünüyor…

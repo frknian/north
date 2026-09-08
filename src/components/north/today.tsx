@@ -32,7 +32,7 @@ export function NorthToday() {
   const hour = new Date().getHours();
   const libraryCount = hour < 6 ? 16 : hour < 10 ? 38 : hour < 15 ? 64 : hour < 19 ? 82 : hour < 23 ? 56 : 24;
 
-  if (!ready) return <div className="page-content" aria-busy="true">North hazırlanıyor…</div>;
+  if (!ready) return <div className="page-content" aria-busy="true">Planorth hazırlanıyor…</div>;
 
   return (
     <div className="page-content north-today-v2 space-y-6 pb-20 md:pb-8">

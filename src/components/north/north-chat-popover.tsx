@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, MessageCircle, X } from "lucide-react";
+import { X } from "lucide-react";
 import { NorthAI } from "./ai";
+import { NorthCoachSymbol } from "./north-coach-symbol";
 
 export function NorthChatPopover({
   open: controlledOpen,
@@ -38,11 +39,15 @@ export function NorthChatPopover({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="grid size-12 sm:size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
-        aria-label={open ? "North sohbetini kapat" : "North ile sohbet et"}
+        className="relative grid size-12 sm:size-14 place-items-center rounded-full bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-xl shadow-blue-950/50 transition-all hover:scale-105 active:scale-95 border border-blue-400/30"
+        aria-label={open ? "North sohbetini kapat" : "North Koç ile sohbet et"}
         aria-expanded={open}
       >
-        <MessageCircle className="size-5 sm:size-6" />
+        {open ? (
+          <X className="size-5 sm:size-6" />
+        ) : (
+          <NorthCoachSymbol size={34} variant="symbol" className="size-7.5 sm:size-8.5 drop-shadow-xs" />
+        )}
       </button>
     </div>
   );

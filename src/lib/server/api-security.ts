@@ -32,13 +32,13 @@ export async function secureApiRequest(
   scope: string,
   limits: { perMinute?: number; perDay?: number } = {},
 ): Promise<SecurityResult> {
-  const user = await verifyFirebaseRequest(request);
-  if (!user) return { ok: false, response: apiError("Oturum gerekli.", 401) };
-
   const origin = request.headers.get("origin");
   if (origin && origin !== "null" && origin !== new URL(request.url).origin) {
     return { ok: false, response: apiError("İstek kaynağına izin verilmedi.", 403) };
   }
+
+  const user = await verifyFirebaseRequest(request);
+  if (!user) return { ok: false, response: apiError("Oturum gerekli.", 401) };
 
   const now = Date.now();
   const perMinute = limits.perMinute ?? 8;
@@ -63,12 +63,29 @@ export async function readLimitedJson(request: Request, maxBytes = 64 * 1024): P
   const declaredSize = Number(request.headers.get("content-length"));
   if (Number.isFinite(declaredSize) && declaredSize > maxBytes) return { ok: false, response: apiError("İstek çok büyük.", 413) };
 
+  const reader = request.body?.getReader();
+  if (!reader) return { ok: false, response: apiError("Geçersiz JSON isteği.", 400) };
+
+  const decoder = new TextDecoder();
+  let receivedBytes = 0;
+  let raw = "";
   try {
-    const raw = await request.text();
-    if (new TextEncoder().encode(raw).byteLength > maxBytes) return { ok: false, response: apiError("İstek çok büyük.", 413) };
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      receivedBytes += value.byteLength;
+      if (receivedBytes > maxBytes) {
+        await reader.cancel();
+        return { ok: false, response: apiError("İstek çok büyük.", 413) };
+      }
+      raw += decoder.decode(value, { stream: true });
+    }
+    raw += decoder.decode();
     return { ok: true, data: JSON.parse(raw) };
   } catch {
     return { ok: false, response: apiError("Geçersiz JSON isteği.", 400) };
+  } finally {
+    reader.releaseLock();
   }
 }
 

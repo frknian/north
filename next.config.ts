@@ -9,11 +9,14 @@ const contentSecurityPolicy = [
   "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
   "frame-src https://*.firebaseapp.com https://accounts.google.com https://*.google.com",
   "worker-src 'self' blob:",
+  "media-src 'self' blob:",
   "manifest-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
+  "script-src-attr 'none'",
+  ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
 
 const nextConfig: NextConfig = {
@@ -23,13 +26,18 @@ const nextConfig: NextConfig = {
       headers: [
         { key: "Content-Security-Policy", value: contentSecurityPolicy },
         { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
-        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+        { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+        { key: "Origin-Agent-Cluster", value: "?1" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "X-Frame-Options", value: "DENY" },
         { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
       ],
+    }, {
+      source: "/api/:path*",
+      headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
     }];
   },
 };

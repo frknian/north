@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { NorthCoachSymbol } from "@/components/north/north-coach-symbol";
 import {
   Dialog,
   DialogContent,
@@ -697,9 +698,7 @@ export default function LoginPage() {
             {/* Header */}
             <div className="flex items-center justify-between gap-3 mb-3.5">
               <div className="flex items-center gap-2.5">
-                <span className="grid size-8 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
-                  <Bot className="size-4.5" />
-                </span>
+                <NorthCoachSymbol size={32} variant="avatar" />
                 <div>
                   <h4 className="text-xs font-bold text-white">North Koç</h4>
                   <p className="text-[10px] text-zinc-400">Kişisel AI Rehberin</p>
@@ -862,7 +861,7 @@ function Brand() {
     <div className="text-center mb-6 space-y-2">
       <div className="inline-flex items-center justify-center gap-2.5">
         <NorthLogo size={42} priority />
-        <span className="text-2xl font-bold tracking-tight text-white">North</span>
+        <span className="font-planorth text-2xl tracking-[0.04em] text-white">PLANORTH</span>
       </div>
       <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight">
         Daha az karar. Daha iyi odak. Net hedefler.

@@ -1,0 +1,78 @@
+import Image from "next/image";
+import { cn } from "@/lib/utils";
+
+interface NorthCoachSymbolProps {
+  size?: number;
+  className?: string;
+  alt?: string;
+  variant?: "symbol" | "avatar" | "avatar-rounded";
+  priority?: boolean;
+}
+
+/**
+ * North Koç özel pusula ve vizör/maskot sembolü.
+ * - `symbol`: Şeffaf arka planlı salt sembol.
+ * - `avatar`: Mesaj balonları ve butonlar için daire mavi gradyan rozet içinde sembol.
+ * - `avatar-rounded`: Başlıklar için yuvarlatılmış (squircle) mavi gradyan rozet içinde sembol.
+ */
+export function NorthCoachSymbol({
+  size = 32,
+  className,
+  alt = "North Koç",
+  variant = "symbol",
+  priority = false,
+}: NorthCoachSymbolProps) {
+  if (variant === "avatar") {
+    return (
+      <span
+        style={{ width: size, height: size }}
+        className={cn(
+          "relative grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-md border border-blue-400/30 overflow-hidden",
+          className
+        )}
+      >
+        <Image
+          src="/north-coach-symbol.png"
+          alt={alt}
+          width={size}
+          height={size}
+          priority={priority}
+          className="size-[84%] object-contain drop-shadow-xs select-none pointer-events-none"
+        />
+      </span>
+    );
+  }
+
+  if (variant === "avatar-rounded") {
+    return (
+      <span
+        style={{ width: size, height: size }}
+        className={cn(
+          "relative grid shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-md border border-blue-400/30 overflow-hidden",
+          className
+        )}
+      >
+        <Image
+          src="/north-coach-symbol.png"
+          alt={alt}
+          width={size}
+          height={size}
+          priority={priority}
+          className="size-[84%] object-contain drop-shadow-xs select-none pointer-events-none"
+        />
+      </span>
+    );
+  }
+
+  return (
+    <Image
+      src="/north-coach-symbol.png"
+      alt={alt}
+      width={size}
+      height={size}
+      priority={priority}
+      className={cn("object-contain select-none", className)}
+      style={{ width: size, height: size }}
+    />
+  );
+}

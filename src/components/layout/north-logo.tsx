@@ -16,7 +16,7 @@ export function NorthLogo({
   height,
   className,
   priority = false,
-  alt = "North",
+  alt = "Planorth",
 }: NorthLogoProps) {
   const w = width ?? size;
   const h = height ?? size;
@@ -25,7 +25,7 @@ export function NorthLogo({
     <span className={cn("relative inline-flex shrink-0 items-center justify-center", className)}>
       {/* Açık temada: koyu logo */}
       <Image
-        src="/north-mark-dark.png"
+        src="/planorth-mark-dark.png"
         alt={alt}
         width={w}
         height={h}
@@ -34,7 +34,7 @@ export function NorthLogo({
       />
       {/* Koyu temada: beyaz logo */}
       <Image
-        src="/north-mark-white.png"
+        src="/planorth-mark-white.png"
         alt={alt}
         width={w}
         height={h}
@@ -44,3 +44,5 @@ export function NorthLogo({
     </span>
   );
 }
+
+export const PlanorthLogo = NorthLogo;

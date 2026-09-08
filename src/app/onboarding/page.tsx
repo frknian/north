@@ -233,7 +233,7 @@ export default function OnboardingPage() {
         <div className="mb-8 flex items-center justify-center gap-3">
           <NorthLogo size={42} priority />
           <div>
-            <p className="font-semibold">North</p>
+            <p className="font-planorth text-base tracking-[0.04em]">PLANORTH</p>
             <p className="text-xs text-muted-foreground">Kişisel uzun vadeli gelişim koçun</p>
           </div>
         </div>
@@ -866,7 +866,7 @@ export default function OnboardingPage() {
               </Button>
             ) : (
               <Button onClick={finish} disabled={submitting}>
-                {submitting ? "North hazırlanıyor..." : <>North&apos;u başlat <ArrowRight /></>}
+                {submitting ? "Planorth hazırlanıyor..." : <>Planorth&apos;u başlat <ArrowRight /></>}
               </Button>
             )}
           </div>

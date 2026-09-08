@@ -18,8 +18,12 @@ for (const route of apiRoutes) {
 
 const security = read("src/lib/server/api-security.ts");
 assert.match(security, /origin !== new URL\(request\.url\)\.origin/);
+assert.ok(security.indexOf("origin !== new URL(request.url).origin") < security.indexOf("verifyFirebaseRequest(request)"), "cross-origin requests must be rejected before token verification");
 assert.match(security, /scope\.startsWith\("ai:"\)/);
 assert.match(security, /status, headers: \{ "Cache-Control": "no-store"/);
+assert.match(security, /request\.body\?\.getReader\(\)/);
+assert.match(security, /receivedBytes > maxBytes/);
+assert.doesNotMatch(security, /request\.text\(\)/);
 
 const firebase = read("src/lib/firebase/admin.ts");
 assert.match(firebase, /\^Bearer \(\[A-Za-z0-9\._-\]\{20,4096\}\)\$/);
@@ -28,6 +32,15 @@ assert.match(firebase, /AbortSignal\.timeout\(5_000\)/);
 const config = read("next.config.ts");
 for (const header of ["Content-Security-Policy", "Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Permissions-Policy"]) assert.ok(config.includes(header), `${header} missing`);
 assert.match(config, /NODE_ENV === "development"/);
+assert.match(config, /source: "\/api\/:path\*"/);
+
+const proxy = read("src/proxy.ts");
+assert.match(proxy, /'nonce-\$\{nonce\}'/);
+assert.match(proxy, /requestHeaders\.set\("Content-Security-Policy", csp\)/);
+assert.match(proxy, /script-src-attr 'none'/);
+
+const layout = read("src/app/layout.tsx");
+assert.match(layout, /nonce=\{nonce\}/);
 
 const rules = read("firestore.rules");
 assert.match(rules, /request\.auth\.uid == userId/);
