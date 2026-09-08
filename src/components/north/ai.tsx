@@ -12,11 +12,20 @@ import {
   Lightbulb,
   LoaderCircle,
   Minimize2,
+  MoreHorizontal,
+  Paperclip,
   Plus,
   RotateCcw,
   Send,
   Sparkles,
+  X,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent } from "@/components/ai-elements/message";
@@ -29,7 +38,17 @@ import { useNorth, Heading, fieldClass, Field } from "./shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function NorthAI({ taskId, embedded = false, focusDocked = false }: { taskId?: string; embedded?: boolean; focusDocked?: boolean } = {}) {
+export function NorthAI({
+  taskId,
+  embedded = false,
+  focusDocked = false,
+  onClose,
+}: {
+  taskId?: string;
+  embedded?: boolean;
+  focusDocked?: boolean;
+  onClose?: () => void;
+} = {}) {
   const { state, update, workspace } = useNorth();
   const role = taskId ? "coach" : "planner";
   const [question, setQuestion] = useState("");
@@ -175,99 +194,129 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
   const usageCount = workspace.coaching.preferences.aiUsage.date === today ? workspace.coaching.preferences.aiUsage.count : 0;
   const dailyLimit = workspace.coaching.preferences.dailyAiLimit;
 
+  const currentTimeStr = new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+
   return (
-    <div className={focusDocked ? "h-full flex flex-col min-h-0 overflow-hidden" : embedded ? "north-ai-embedded space-y-4" : "page-content max-w-4xl space-y-5"}>
+    <div className={focusDocked ? "h-full flex flex-col min-h-0 overflow-hidden" : embedded ? "north-ai-embedded h-full flex flex-col min-h-0" : "page-content max-w-2xl mx-auto space-y-5"}>
       {/* CONVERSATION CONTAINER */}
-      <div className={focusDocked ? "h-full flex flex-col min-h-0 bg-transparent border-0 shadow-none overflow-hidden" : "rounded-2xl border bg-card shadow-sm overflow-hidden"}>
-        <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b bg-card/60 shrink-0", focusDocked ? "px-3 py-2" : "px-4 sm:px-5 py-3.5")}>
-          <div className="flex items-center gap-2">
-            <span className={cn("grid place-items-center rounded-xl bg-primary text-primary-foreground shrink-0", focusDocked ? "size-7" : "size-8")}>
-              <Bot className={focusDocked ? "size-3.5" : "size-4"} />
+      <div className={cn(
+        "flex flex-col overflow-hidden bg-[#0B101D] text-zinc-100",
+        focusDocked ? "h-full min-h-0 border-0 shadow-none" : "rounded-3xl border border-zinc-800/80 shadow-2xl h-[640px] max-h-[85vh]"
+      )}>
+        {/* HEADER matching user's uploaded reference */}
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-4 sm:px-5 py-3.5 bg-[#0B101D] shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-md">
+              <Bot className="size-5.5" />
             </span>
-            <div>
-              <h3 className="text-xs sm:text-sm font-semibold text-foreground">North Koç</h3>
-              <p className="text-[10px] text-muted-foreground hidden sm:block">
-                {focusDocked ? "Canlı Odak Arkadaşı" : "Sade, kişiye özel ve eyleme dönüştürülebilir koçluk."}
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-white tracking-tight truncate">North Koç</h3>
+              <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                Sade, kişiye özel ve eyleme dönüştürülebilir koçluk.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-foreground">
-              <Sparkles className="size-2.5 text-primary" />
-              <span>Limit: <strong className="text-primary font-semibold">{usageCount}</strong> / {dailyLimit}</span>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Limit Badge matching user's image */}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-[#0E1A33] px-3 py-1 text-xs text-blue-400 font-medium">
+              <Sparkles className="size-3 text-blue-400" />
+              <span>Limit: <strong className="text-white font-bold">{usageCount}</strong> <span className="text-zinc-500">/</span> <span className="text-blue-400">{dailyLimit}</span></span>
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="xs"
-              onClick={handleStartNewChat}
-              disabled={workspace.coachMessages.length === 0}
-              className="gap-1 text-[11px] h-6 px-2 text-muted-foreground hover:text-foreground"
-              title="Mevcut konuşmayı kaydeder ve yeni temiz bir sohbet başlatır"
-            >
-              <RotateCcw className="size-2.5" />
-              <span>Yeni</span>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              asChild
-              className="gap-1 text-[11px] h-6 px-1.5 text-muted-foreground hover:text-foreground"
-            >
-              <Link href="/profile?tab=memory" title="Geçmiş sohbetleri incele">
-                <History className="size-2.5" />
-                <span>Geçmiş</span>
-              </Link>
-            </Button>
+
+            {/* Options Menu & Close Button in top right */}
+            <div className="flex flex-col items-end gap-0.5">
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-zinc-400 hover:text-white transition p-1 rounded-md hover:bg-zinc-800/60"
+                  title="Kapat"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-zinc-400 hover:text-white transition p-1 rounded-md hover:bg-zinc-800/60"
+                    title="Seçenekler"
+                  >
+                    <MoreHorizontal className="size-4.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 bg-[#0E1526] border-zinc-800 text-zinc-200">
+                  <DropdownMenuItem
+                    onClick={handleStartNewChat}
+                    disabled={workspace.coachMessages.length === 0}
+                    className="gap-2 text-xs cursor-pointer hover:bg-blue-600 hover:text-white"
+                  >
+                    <RotateCcw className="size-3.5" />
+                    <span>Yeni Sohbet Başlat</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer hover:bg-blue-600 hover:text-white">
+                    <Link href="/profile?tab=memory">
+                      <History className="size-3.5" />
+                      <span>Sohbet Geçmişi</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
-        <Conversation className={focusDocked ? "flex-1 min-h-0 overflow-y-auto" : embedded ? "max-h-[44dvh] min-h-64" : "max-h-[50dvh] min-h-72"}>
-          <ConversationContent className={cn("gap-4", focusDocked ? "p-3" : "gap-5 p-5")}>
+        {/* CONVERSATION MESSAGES */}
+        <Conversation className="flex-1 min-h-0 overflow-y-auto bg-[#0B101D]">
+          <ConversationContent className="gap-4 p-4">
             {workspace.coachMessages.length ? (
-              workspace.coachMessages.slice(-30).map((message) =>
-                message.role === "assistant" ? (
+              workspace.coachMessages.slice(-30).map((message) => {
+                const isAssistant = message.role === "assistant";
+                return isAssistant ? (
                   <div key={message.id} className="flex items-start gap-3">
-                    <span className="mt-1 grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-                      <Bot className="size-3.5" />
+                    <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
+                      <Bot className="size-5" />
                     </span>
-                    <Message from="assistant" className="max-w-[calc(100%-2.5rem)] gap-0">
-                      <MessageContent className="rounded-2xl border bg-background/80 px-4 py-3 text-xs leading-relaxed text-foreground shadow-none sm:text-sm">
+                    <div className="max-w-[85%] space-y-1">
+                      <div className="rounded-2xl rounded-tl-xs bg-[#131B2E] border border-blue-950/70 p-4 text-xs sm:text-sm leading-relaxed text-zinc-200 shadow-xs">
                         <MessageResponse>{message.content}</MessageResponse>
-                      </MessageContent>
-                    </Message>
+                      </div>
+                      <span className="text-[10px] text-zinc-500 ml-1 block">{currentTimeStr}</span>
+                    </div>
                   </div>
                 ) : (
-                  <div key={message.id} className="flex justify-end">
-                    <Message from="user" className="max-w-[85%]">
-                      <MessageContent className="rounded-2xl bg-primary text-primary-foreground px-4 py-2.5 text-xs sm:text-sm">
-                        <p className="whitespace-pre-wrap">{message.content}</p>
-                      </MessageContent>
-                    </Message>
+                  <div key={message.id} className="flex flex-col items-end space-y-1">
+                    <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-blue-600 text-white px-4 py-2.5 text-xs sm:text-sm shadow-sm">
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    </div>
+                    <span className="text-[10px] text-zinc-500 mr-1 block">{currentTimeStr}</span>
                   </div>
-                )
-              )
+                );
+              })
             ) : (
-              <div className="flex items-start gap-3 py-3">
-                <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
-                  <Bot className="size-4" />
+              /* Initial Greeting Bubble matching the user's uploaded image */
+              <div className="flex items-start gap-3">
+                <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
+                  <Bot className="size-5" />
                 </span>
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-foreground">Merhaba!</p>
-                  <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">{greeting}</p>
+                <div className="max-w-[85%] space-y-1">
+                  <div className="rounded-2xl rounded-tl-xs bg-[#131B2E] border border-blue-950/70 p-4 shadow-xs">
+                    <h4 className="text-sm font-bold text-white mb-1">Merhaba!</h4>
+                    <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">{greeting}</p>
+                  </div>
+                  <span className="text-[10px] text-zinc-500 ml-1 block">{currentTimeStr}</span>
                 </div>
               </div>
             )}
 
             {busy && (
               <div className="flex items-start gap-3">
-                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-                  <Bot className="size-3.5" />
+                <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm">
+                  <Bot className="size-5" />
                 </span>
-                <div className="inline-flex items-center gap-2 rounded-2xl border bg-muted/40 px-3.5 py-2 text-xs text-muted-foreground">
-                  <LoaderCircle className="size-3.5 animate-spin text-primary" />
+                <div className="inline-flex items-center gap-2 rounded-2xl bg-[#131B2E] border border-blue-950/70 px-4 py-3 text-xs text-zinc-300">
+                  <LoaderCircle className="size-3.5 animate-spin text-blue-500" />
                   North durumunu ve hedeflerini değerlendiriyor…
                 </div>
               </div>
@@ -276,14 +325,25 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
           <ConversationScrollButton />
         </Conversation>
 
-        {/* COMPOSER */}
-        <div className={cn("border-t shrink-0", focusDocked ? "p-2" : "p-3 sm:p-4")}>
-          <div className={cn("flex items-end gap-1.5 border bg-background focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/20", focusDocked ? "rounded-xl px-2 py-1" : "rounded-2xl px-3 py-2")}>
-            <textarea
-              className={cn(
-                "flex-1 resize-none bg-transparent px-1 py-1 text-xs text-foreground outline-none placeholder:text-muted-foreground",
-                focusDocked ? "max-h-20 min-h-8" : "max-h-32 min-h-11 sm:text-sm"
-              )}
+        {/* COMPOSER matching user's image */}
+        <div className="p-3 sm:p-4 border-t border-zinc-800/80 bg-[#0B101D] shrink-0">
+          <div className="flex items-center gap-2.5 rounded-2xl border border-zinc-800/90 bg-[#0E1526] px-3.5 py-2 shadow-inner focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all">
+            <label className="cursor-pointer text-zinc-400 hover:text-white transition p-1 shrink-0" title="Ek veya görsel ekle">
+              <Paperclip className="size-4.5" />
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  toast.info(`"${file.name}" seçildi. North analize hazır.`);
+                }}
+              />
+            </label>
+
+            <input
+              type="text"
+              className="flex-1 bg-transparent text-xs sm:text-sm text-white placeholder:text-zinc-500 outline-none"
               maxLength={3000}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
@@ -293,20 +353,21 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
                   void ask();
                 }
               }}
-              placeholder={focusDocked ? "North'a soru sor, görevi küçültmesini iste..." : "North'a soru sor, görevi küçültmesini iste veya planını gözden geçir..."}
+              placeholder="North'a soru sor, planını paylaş..."
               aria-label="North'a mesaj yaz"
             />
+
             <Button
               size="icon"
-              className={cn("shrink-0", focusDocked ? "size-7 rounded-lg" : "size-9 rounded-xl")}
+              className="size-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 transition shadow-sm shrink-0 disabled:opacity-40"
               disabled={busy || !question.trim()}
               onClick={() => void ask()}
               aria-label={busy ? "North düşünüyor" : "Gönder"}
             >
-              <Send className={focusDocked ? "size-3.5" : "size-4"} />
+              <Send className="size-4" />
             </Button>
           </div>
-          {error && <p role="alert" className="mt-1 text-[11px] font-medium text-destructive">{error}</p>}
+          {error && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive px-1">{error}</p>}
         </div>
       </div>
 

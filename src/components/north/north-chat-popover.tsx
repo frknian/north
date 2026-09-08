@@ -29,34 +29,10 @@ export function NorthChatPopover({
     <div className="fixed bottom-20 right-4 z-40 sm:bottom-7 sm:right-7">
       {open ? (
         <section
-          className="mb-3 w-[calc(100vw-2rem)] max-w-[29rem] overflow-hidden rounded-[26px] border bg-background shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200"
+          className="mb-3 w-[calc(100vw-2rem)] max-w-[28rem] h-[620px] max-h-[82dvh] overflow-hidden rounded-[26px] border border-zinc-800 bg-[#0B101D] shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200 flex flex-col"
           aria-label="North sohbeti"
         >
-          <header className="flex items-center justify-between border-b px-4 py-3.5">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-                <Bot className="size-4 sm:size-5" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold">North</p>
-                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  Bulut AI · kişisel koçun
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              onClick={() => setOpen(false)}
-              aria-label="Sohbeti kapat"
-            >
-              <X className="size-5" />
-            </button>
-          </header>
-          <div className="max-h-[min(65dvh,680px)] overflow-y-auto px-3 py-2">
-            <NorthAI embedded taskId={taskId} />
-          </div>
+          <NorthAI embedded taskId={taskId} onClose={() => setOpen(false)} />
         </section>
       ) : null}
       <button
