@@ -58,6 +58,7 @@ import {
   type ActiveFocusLock,
 } from "@/lib/focus-lock";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type Timer = {
   id: string;
@@ -440,8 +441,8 @@ export function NorthFocus({ id }: { id: string }) {
   };
 
   // Circular timer constants
-  const size = 190;
-  const strokeWidth = 7;
+  const size = 56;
+  const strokeWidth = 4;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
@@ -513,568 +514,503 @@ export function NorthFocus({ id }: { id: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:py-7 space-y-6">
-      {/* TOP NAVIGATION & AREA META (GERİ GİTME TUŞU İŞLEVSİZLEŞTİRME KORUMASI) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-        <button
-          type="button"
-          onClick={() => {
-            if (timer?.running) {
-              handleTriggerFinish();
-              toast.warning("Odak oturumu devam ediyor. Çıkmak için konudan soruyu cevaplaman gerekir.");
-            } else {
-              router.push("/");
-            }
-          }}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" />
-          Bugüne dön
-        </button>
+    <main className="w-full max-w-none px-2 sm:px-3 py-2 min-h-screen xl:h-screen flex flex-col gap-2 overflow-y-auto xl:overflow-hidden">
+      {/* 1. COMPACT TOP CONTROL BAR (Unified Navigation, Area, Task, Zen Timer, Controls) */}
+      <header className="shrink-0 rounded-2xl border bg-card/90 backdrop-blur-md px-3 py-2 shadow-xs flex flex-wrap items-center justify-between gap-3 min-h-[58px]">
+        {/* Left: Back, Area, Task Title & Goal */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (timer?.running) {
+                handleTriggerFinish();
+                toast.warning("Odak oturumu devam ediyor. Çıkmak için konudan soruyu cevaplaman gerekir.");
+              } else {
+                router.push("/");
+              }
+            }}
+            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground shrink-0"
+            title="Bugüne dön"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span className="hidden sm:inline">Bugün</span>
+          </button>
 
-        <div className="flex items-center gap-2.5">
+          <span className="inline-flex items-center gap-1.5 rounded-xl border bg-muted/60 px-2.5 py-1 text-xs font-semibold text-foreground shrink-0">
+            <span>{area.icon}</span>
+            <span className="hidden md:inline">{area.name}</span>
+          </span>
+
+          <div className="min-w-0 flex-1 flex flex-col justify-center">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="rounded-md bg-primary/10 px-1.5 py-0.2 text-[10px] font-semibold text-primary shrink-0">
+                Odak Görevi
+              </span>
+              <h1 className="text-xs sm:text-sm font-bold tracking-tight text-foreground truncate" title={task.title}>
+                {task.title}
+              </h1>
+            </div>
+            {task.goal && (
+              <p className="text-[11px] text-muted-foreground truncate" title={task.goal}>
+                <span className="text-primary font-medium">Somut Çıktı: </span>
+                {task.goal}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Center: Circular Zen Timer + Status */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="relative flex items-center justify-center">
+            <div className={`relative ${timer?.running ? "pulse-zen" : ""}`}>
+              <svg width={size} height={size} className="-rotate-90">
+                <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke="color-mix(in srgb, var(--border) 70%, transparent)"
+                  strokeWidth={strokeWidth}
+                  fill="none"
+                />
+                <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke={ironWill ? "rgb(239, 68, 68)" : "var(--primary)"}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  fill="none"
+                  className="transition-all duration-300 ease-out"
+                />
+              </svg>
+
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-mono text-xs sm:text-sm font-bold tracking-tight text-foreground">
+                  {minutesStr}:{secondsStr}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden sm:flex flex-col text-left">
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] font-bold text-foreground">
+                {!timer ? "Hazır" : timer.running ? (ironWill ? "Demir İrade" : "Derin Odak") : "Duraklatıldı"}
+              </span>
+              {ironWill && <ShieldAlert className="size-3 text-red-500" />}
+            </div>
+            <span className="text-[10px] text-muted-foreground font-mono">
+              {timer ? `Geçen: ${Math.floor(elapsedSeconds / 60)} dk` : `Plan: ${task.minutes} dk`}
+            </span>
+          </div>
+
+          {timer?.running && tabSwitches > 0 && (
+            <span className="hidden xl:inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+              <AlertTriangle className="size-2.5" />
+              {tabSwitches} sekme
+            </span>
+          )}
+        </div>
+
+        {/* Right: Controls & Tools */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {!timer ? (
+            <Button size="sm" className="rounded-xl px-3 sm:px-4 text-xs font-semibold shadow-xs h-8" onClick={handleStart}>
+              <Play className="mr-1.5 size-3.5" />
+              Odaklanmayı Başlat
+            </Button>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant={timer.running ? "outline" : "default"}
+                className="rounded-xl px-2.5 text-xs h-8"
+                onClick={() => (timer.running ? handlePause() : handleResume())}
+              >
+                {timer.running ? <Pause className="mr-1 size-3" /> : <Play className="mr-1 size-3" />}
+                {timer.running ? "Duraklat" : "Devam"}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-xl px-2.5 text-xs h-8"
+                onClick={handleTriggerFinish}
+              >
+                <Square className="mr-1 size-3" />
+                Bitir
+              </Button>
+            </>
+          )}
+
+          <Button
+            variant={pipActive ? "secondary" : "outline"}
+            size="sm"
+            className="rounded-xl text-xs px-2 h-8"
+            onClick={handleTogglePip}
+            title="Yüzen Mini Sayaç"
+          >
+            <Maximize2 className="size-3.5" />
+            <span className="hidden 2xl:inline ml-1">Sayaç</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl text-xs px-2 h-8"
+            onClick={() => setBreathworkOpen(true)}
+            title="2 Dakikalık Nefes ve Göz Molası"
+          >
+            <Heart className="size-3.5 text-teal-500" />
+            <span className="hidden 2xl:inline ml-1">Nefes</span>
+          </Button>
+
           <button
             type="button"
             onClick={toggleIronWill}
             disabled={timer?.running}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
+            className={cn(
+              "inline-flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs font-semibold transition-all h-8",
               ironWill
                 ? "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400 shadow-xs"
                 : "border-border/60 bg-muted/40 text-muted-foreground hover:text-foreground"
-            }`}
+            )}
             title="Demir İrade Modu"
           >
             {ironWill ? <ShieldAlert className="size-3.5 text-red-500" /> : <Shield className="size-3.5" />}
-            <span>{ironWill ? "Demir İrade Devrede" : "Standart Mod"}</span>
+            <span className="hidden 2xl:inline">{ironWill ? "Demir İrade" : "Standart"}</span>
           </button>
 
-          <span className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-3 py-1 text-xs font-semibold text-foreground">
-            <span>{area.icon}</span>
-            <span>{area.name}</span>
-          </span>
           <Companion state={state} compact />
         </div>
-      </div>
+      </header>
 
+      {/* 2. MAIN BENTO COCKPIT: ALL 4 PANELS SIDE-BY-SIDE (YANYANA) */}
       {!finishing ? (
-        <>
-          {/* =============================================================== */}
-          {/* 1. TOP HERO: ZEN TIMER & TASK COMMAND CENTER (FULL WIDTH)       */}
-          {/* =============================================================== */}
-          <section className="rounded-3xl border bg-card/85 backdrop-blur-md p-6 sm:p-7 shadow-sm">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
-              {/* LEFT: TASK META & SOMUT ÇIKTI */}
-              <div className="flex-1 space-y-3.5 text-center lg:text-left">
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
-                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                    Odak Görevi
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Planlanan: <strong>{task.minutes} dk</strong>
-                  </span>
-                  {timer?.running && tabSwitches > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                      <AlertTriangle className="size-3" />
-                      {tabSwitches} kez sekme değişti
-                    </span>
-                  )}
-                  {timer?.running && tabSwitches === 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                      <ShieldCheck className="size-3" />
-                      Kusursuz Sekme Koruması
-                    </span>
-                  )}
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
+          {/* COLUMN 1: NE YAPACAKSIN? (CHECKLIST & STEPS) */}
+          <div className="h-full flex flex-col rounded-2xl border bg-card p-3 shadow-xs overflow-hidden min-h-0">
+            <div className="flex items-center justify-between border-b pb-2 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="grid size-6 place-items-center rounded-lg bg-primary/10 text-primary shrink-0">
+                  <ListChecks className="size-3.5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-xs font-bold text-foreground truncate">Ne Yapacaksın?</h2>
+                  <p className="text-[10px] text-muted-foreground truncate">Bu oturum için somut adımlar</p>
                 </div>
+              </div>
+              {guidance && guidance.steps.length > 0 && (
+                <span className="rounded-full bg-muted/60 border px-2 py-0.5 text-[10px] font-semibold text-muted-foreground shrink-0">
+                  {guidance.steps.filter((s) => completedSteps[s.id]).length} / {guidance.steps.length}
+                </span>
+              )}
+            </div>
 
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                  {task.title}
-                </h1>
+            {guidance && guidance.steps.length > 0 && (
+              <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-muted/50 shrink-0">
+                <div
+                  className="h-full bg-primary transition-all duration-300 rounded-full"
+                  style={{
+                    width: `${(guidance.steps.filter((s) => completedSteps[s.id]).length / guidance.steps.length) * 100}%`,
+                  }}
+                />
+              </div>
+            )}
 
-                <div className="inline-block rounded-2xl border border-primary/20 bg-primary/5 px-4 py-2 text-xs leading-relaxed text-foreground sm:text-sm">
-                  <span className="font-semibold text-primary">Somut Çıktı: </span>
-                  {task.goal}
-                </div>
+            {guidance && (
+              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground shrink-0 line-clamp-2">
+                {guidance.summary}
+              </p>
+            )}
 
-                {task.resource && task.resource.startsWith("https://") && (
-                  <div>
-                    <a
-                      href={task.resource}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+            <div className="mt-2 flex-1 overflow-y-auto space-y-2 pr-1 min-h-0 focus-scrollbar">
+              {guidance && guidance.steps.length > 0 ? (
+                guidance.steps.map((step) => {
+                  const isDone = !!completedSteps[step.id];
+                  return (
+                    <div
+                      key={step.id}
+                      onClick={() => toggleStep(step.id)}
+                      className={`group flex cursor-pointer items-start gap-2 rounded-xl border p-2 transition-all ${
+                        isDone
+                          ? "border-primary/20 bg-primary/5 text-muted-foreground"
+                          : "border-border/60 bg-background/60 hover:border-primary/40 hover:bg-muted/30"
+                      }`}
                     >
-                      Kaynak dökümanı yeni sekmede aç
-                      <ExternalLink className="size-3" />
-                    </a>
+                      <button
+                        type="button"
+                        aria-label="Adımı tamamla"
+                        className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded border transition-colors ${
+                          isDone
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-muted-foreground/40 bg-background"
+                        }`}
+                      >
+                        {isDone && <Check className="size-3 stroke-[3]" />}
+                      </button>
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <p className={`text-xs font-semibold leading-tight transition-colors ${isDone ? "line-through opacity-75 text-foreground" : "text-foreground"}`}>
+                          {step.title}
+                        </p>
+                        <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
+                          {step.detail}
+                        </p>
+                        {step.command && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopy(step.command!);
+                            }}
+                            className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-100 dark:bg-black/60 max-w-full overflow-hidden"
+                          >
+                            <code className="truncate">{step.command}</code>
+                            <span className="text-primary font-sans font-semibold shrink-0">
+                              {copiedCmd === step.command ? "✓" : "Kopyala"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="py-4 text-center text-xs text-muted-foreground italic">
+                  Bu görev için rehber adımı bulunmuyor.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* COLUMN 2: NOTLAR & ZİHİN DÖKÜMÜ */}
+          <div className="h-full flex flex-col gap-2 min-h-0">
+            {/* Canlı Notlar & Çıktı */}
+            <div className="flex-1 rounded-2xl border bg-card p-3 shadow-xs flex flex-col min-h-0">
+              <div className="flex items-center justify-between border-b pb-2 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="grid size-6 place-items-center rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                    <FileText className="size-3.5" />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-xs font-bold text-foreground truncate">Canlı Notlar &amp; Çıktı</h2>
+                    <p className="text-[10px] text-muted-foreground truncate">Formül, kod veya çıkarımlar</p>
                   </div>
+                </div>
+                {scratchpadText.trim().length >= 20 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                    <Check className="size-2.5" />
+                    Kanıt Hazır
+                  </span>
                 )}
               </div>
 
-              {/* RIGHT: CIRCULAR ZEN TIMER & CONTROLS */}
-              <div className="flex flex-col sm:flex-row items-center gap-6 shrink-0">
-                {/* CIRCULAR SVG RING */}
-                <div className="relative flex items-center justify-center">
-                  <div className={`relative ${timer?.running ? "pulse-zen" : ""}`}>
-                    <svg width={size} height={size} className="-rotate-90">
-                      <circle
-                        cx={size / 2}
-                        cy={size / 2}
-                        r={radius}
-                        stroke="color-mix(in srgb, var(--border) 70%, transparent)"
-                        strokeWidth={strokeWidth}
-                        fill="none"
-                      />
-                      <circle
-                        cx={size / 2}
-                        cy={size / 2}
-                        r={radius}
-                        stroke={ironWill ? "rgb(239, 68, 68)" : "var(--primary)"}
-                        strokeWidth={strokeWidth}
-                        strokeDasharray={circumference}
-                        strokeDashoffset={strokeDashoffset}
-                        strokeLinecap="round"
-                        fill="none"
-                        className="transition-all duration-300 ease-out"
-                      />
-                    </svg>
+              <textarea
+                value={scratchpadText}
+                onChange={(e) => setScratchpadText(e.target.value)}
+                placeholder="Çalışırken çözdüğün adımları veya notları buraya yaz. Burada aldığın notlar erken çıkışta doğrudan kanıt sayılır..."
+                className="mt-2 flex-1 w-full resize-none rounded-xl border border-border bg-background/70 p-2.5 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-amber-500 focus:outline-hidden min-h-0"
+              />
 
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="font-mono text-4xl font-light tracking-tighter text-foreground sm:text-5xl">
-                        {minutesStr}:{secondsStr}
-                      </span>
-                      <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                        {ironWill && <ShieldAlert className="size-2.5 text-red-500" />}
-                        {!timer
-                          ? "Hazır"
-                          : timer.running
-                          ? ironWill
-                            ? "Demir İrade"
-                            : "Derin Odak"
-                          : "Duraklatıldı"}
-                      </span>
-                      {timer && (
-                        <span className="font-mono text-[11px] text-muted-foreground/70">
-                          Geçen: {Math.floor(elapsedSeconds / 60)} dk
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* PRIMARY ACTIONS & TOOLS */}
-                <div className="flex flex-col gap-2.5 w-full sm:w-auto">
-                  {!timer ? (
-                    <Button size="lg" className="rounded-2xl px-7 shadow-sm" onClick={handleStart}>
-                      <Play className="mr-2 size-4" />
-                      Odaklanmayı Başlat
-                    </Button>
-                  ) : (
-                    <>
-                      <Button
-                        size="default"
-                        variant={timer.running ? "outline" : "default"}
-                        className="rounded-2xl px-5"
-                        onClick={() => (timer.running ? handlePause() : handleResume())}
-                      >
-                        {timer.running ? <Pause className="mr-1.5 size-4" /> : <Play className="mr-1.5 size-4" />}
-                        {timer.running ? "Duraklat" : "Devam Et"}
-                      </Button>
-                      <Button
-                        size="default"
-                        variant="secondary"
-                        className="rounded-2xl px-5"
-                        onClick={handleTriggerFinish}
-                      >
-                        <Square className="mr-1.5 size-4" />
-                        Oturumu Bitir
-                      </Button>
-                    </>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant={pipActive ? "secondary" : "outline"}
-                      size="sm"
-                      className="rounded-xl text-xs flex-1"
-                      onClick={handleTogglePip}
-                      title="Yüzen Mini Sayaç"
-                    >
-                      <Maximize2 className="mr-1 size-3" />
-                      {pipActive ? "PiP Kapat" : "Yüzen Sayaç"}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl text-xs flex-1"
-                      onClick={() => setBreathworkOpen(true)}
-                      title="2 Dakikalık Nefes ve Göz Molası"
-                    >
-                      <Heart className="mr-1 size-3 text-teal-500" />
-                      Nefes Molası
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* =============================================================== */}
-          {/* 2. MAIN BENTO WORKSPACE: CARDS (LEFT) + DOCKED AI COACH (RIGHT) */}
-          {/* =============================================================== */}
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            {/* LEFT COLUMN: MODULAR BENTO CARDS */}
-            <div className="xl:col-span-7 2xl:col-span-8 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 1. BENTO CARD: NE YAPACAKSIN? (CHECKLIST & STEPS) */}
-                <div className="md:col-span-2 rounded-3xl border bg-card p-5 shadow-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="grid size-7 place-items-center rounded-lg bg-primary/10 text-primary">
-                        <ListChecks className="size-4" />
-                      </span>
-                      <div>
-                        <h2 className="text-sm font-semibold text-foreground">Ne Yapacaksın?</h2>
-                        <p className="text-[11px] text-muted-foreground">Bu oturum için somut adımlar</p>
-                      </div>
-                    </div>
-                    {guidance && guidance.steps.length > 0 && (
-                      <span className="rounded-full bg-muted/60 border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                        {guidance.steps.filter((s) => completedSteps[s.id]).length} / {guidance.steps.length} tamamlandı
-                      </span>
-                    )}
-                  </div>
-
-                  {guidance ? (
-                    <>
-                      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{guidance.summary}</p>
-
-                      {guidance.steps.length > 0 && (
-                        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted/50">
-                          <div
-                            className="h-full bg-primary transition-all duration-300 rounded-full"
-                            style={{
-                              width: `${
-                                (guidance.steps.filter((s) => completedSteps[s.id]).length / guidance.steps.length) * 100
-                              }%`,
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      <div className="mt-3.5 space-y-2">
-                        {guidance.steps.map((step) => {
-                          const isDone = !!completedSteps[step.id];
-                          return (
-                            <div
-                              key={step.id}
-                              onClick={() => toggleStep(step.id)}
-                              className={`group flex cursor-pointer items-start gap-2.5 rounded-2xl border p-2.5 transition-all ${
-                                isDone
-                                  ? "border-primary/20 bg-primary/5 text-muted-foreground"
-                                  : "border-border/60 bg-background/60 hover:border-primary/40 hover:bg-muted/30"
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                aria-label="Adımı tamamla"
-                                className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded border transition-colors ${
-                                  isDone
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-muted-foreground/40 bg-background"
-                                }`}
-                              >
-                                {isDone && <Check className="size-3 stroke-[3]" />}
-                              </button>
-                              <div className="flex-1 min-w-0 space-y-0.5">
-                                <p
-                                  className={`text-xs font-medium transition-colors ${
-                                    isDone ? "line-through opacity-75 text-foreground" : "text-foreground"
-                                  }`}
-                                >
-                                  {step.title}
-                                </p>
-                                <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
-                                  {step.detail}
-                                </p>
-                                {step.command && (
-                                  <div
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCopy(step.command!);
-                                    }}
-                                    className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-zinc-900 px-2.5 py-0.5 font-mono text-[10px] text-zinc-100 dark:bg-black/60"
-                                  >
-                                    <code>{step.command}</code>
-                                    <span className="text-primary font-sans font-medium">
-                                      {copiedCmd === step.command ? "Kopyalandı ✓" : "Kopyala"}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="mt-4 text-xs text-muted-foreground italic">Bu görev için rehber adımı bulunmuyor.</p>
-                  )}
-                </div>
-
-                {/* 2. BENTO CARD: CANLI ÇALIŞMA NOTLARI & KANIT ÇIKTISI */}
-                <div className="rounded-3xl border bg-card p-5 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between border-b pb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="grid size-7 place-items-center rounded-lg bg-amber-500/10 text-amber-500">
-                          <FileText className="size-4" />
-                        </span>
-                        <div>
-                          <h2 className="text-sm font-semibold text-foreground">Canlı Notlar &amp; Çıktı</h2>
-                          <p className="text-[11px] text-muted-foreground">Formül, kod veya çıkarımlar</p>
-                        </div>
-                      </div>
-                      {scratchpadText.trim().length >= 20 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          <Check className="size-3" />
-                          Kanıt Hazır
-                        </span>
-                      )}
-                    </div>
-                    <textarea
-                      value={scratchpadText}
-                      onChange={(e) => setScratchpadText(e.target.value)}
-                      placeholder="Çalışırken çözdüğün adımları veya notları buraya yaz. Burada aldığın notlar erken çıkışta doğrudan kanıt sayılır..."
-                      className="mt-3 h-32 w-full resize-none rounded-2xl border border-border bg-background/70 p-3 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-amber-500 focus:outline-hidden"
-                    />
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>Otomatik kaydedilir</span>
-                    <span>{scratchpadText.trim().length} karakter</span>
-                  </div>
-                </div>
-
-                {/* 3. BENTO CARD: AKLINDAKİNİ DÖK (BRAIN DUMP LIST) */}
-                <div className="rounded-3xl border bg-card p-5 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between border-b pb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="grid size-7 place-items-center rounded-lg bg-sky-500/10 text-sky-500">
-                          <Brain className="size-4" />
-                        </span>
-                        <div>
-                          <h2 className="text-sm font-semibold text-foreground">Aklındakini Dök</h2>
-                          <p className="text-[11px] text-muted-foreground">Aklına takılanları yaz, zihnini boşalt</p>
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-muted-foreground font-mono">
-                        {brainDumpItems.length} madde
-                      </span>
-                    </div>
-
-                    {/* DUMP INPUT FORM */}
-                    <form onSubmit={handleAddBrainDump} className="mt-3 flex gap-2">
-                      <input
-                        type="text"
-                        value={brainDumpInput}
-                        onChange={(e) => setBrainDumpInput(e.target.value)}
-                        placeholder="Aklını dağıtan düşünceyi yaz..."
-                        className="flex-1 rounded-xl border border-border bg-background/80 px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-sky-500 focus:outline-hidden"
-                      />
-                      <Button type="submit" size="sm" variant="secondary" className="rounded-xl px-3 text-xs shrink-0">
-                        <Plus className="size-3.5" />
-                        Ekle
-                      </Button>
-                    </form>
-
-                    {/* DUMP ITEMS LIST */}
-                    <div className="mt-2.5 max-h-24 overflow-y-auto space-y-1.5 pr-1">
-                      {brainDumpItems.length === 0 ? (
-                        <p className="py-3 text-center text-[11px] text-muted-foreground italic">
-                          Zihnin berrak. Dağıtıcı bir fikir gelirse buraya yazabilirsin.
-                        </p>
-                      ) : (
-                        brainDumpItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className={`flex items-center justify-between gap-2 rounded-xl border px-2.5 py-1 text-xs transition-colors ${
-                              item.done
-                                ? "bg-muted/30 border-border/40 text-muted-foreground line-through"
-                                : "bg-background/80 border-border"
-                            }`}
-                          >
-                            <span
-                              onClick={() => handleToggleBrainDumpDone(item.id)}
-                              className="cursor-pointer truncate flex-1 text-[11px]"
-                            >
-                              {item.text}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteBrainDump(item.id)}
-                              className="text-muted-foreground hover:text-red-500"
-                              title="Sil"
-                            >
-                              <Trash2 className="size-3" />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-2 text-right">
-                    {brainDumpItems.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setBrainDumpItems([]);
-                          try {
-                            localStorage.setItem(BRAIN_DUMP_KEY, JSON.stringify([]));
-                          } catch {}
-                        }}
-                        className="text-[10px] text-muted-foreground hover:text-foreground underline"
-                      >
-                        Hepsini Temizle
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* 4. BENTO CARD: SES MİKSERİ (AMBIENT SOUNDS) */}
-                <div className="rounded-3xl border bg-card p-5 shadow-xs">
-                  <div className="flex items-center justify-between border-b pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="grid size-7 place-items-center rounded-lg bg-teal-500/10 text-teal-500">
-                        {activeSound === "none" ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-                      </span>
-                      <div>
-                        <h2 className="text-sm font-semibold text-foreground">Ses Mikseri</h2>
-                        <p className="text-[11px] text-muted-foreground">Ortam sesiyle akışa gir</p>
-                      </div>
-                    </div>
-                    {activeSound !== "none" && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 dark:text-teal-400">
-                        <span className="size-1.5 rounded-full bg-teal-500 animate-pulse" />
-                        Çalıyor
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mt-3.5 grid grid-cols-2 gap-2">
-                    {([
-                      ["none", "Kapalı", "Sessiz ortam"],
-                      ["rain", "🌧️ Yağmur", "Hafif yağmur sesi"],
-                      ["cafe", "☕ Kafe", "Arka plan kafe uğultusu"],
-                      ["noise", "📻 Beyaz", "Pink / White noise"],
-                      ["drone", "🧘 432Hz Zen", "Derin odak meditatif frekans"],
-                    ] as const).map(([val, label, sub]) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => handleSoundChange(val)}
-                        className={`flex flex-col items-start rounded-2xl border p-2.5 text-left transition-all ${
-                          activeSound === val
-                            ? "border-teal-500/50 bg-teal-500/10 text-foreground shadow-xs"
-                            : "border-border/60 bg-background/80 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                        }`}
-                      >
-                        <span className="text-xs font-semibold">{label}</span>
-                        <span className="text-[10px] opacity-75 mt-0.5 line-clamp-1">{sub}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 5. BENTO CARD: KAYNAKLAR & LAB BAĞLANTILARI */}
-                <div className="rounded-3xl border bg-card p-5 shadow-xs">
-                  <div className="flex items-center justify-between border-b pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="grid size-7 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
-                        <BookOpen className="size-4" />
-                      </span>
-                      <div>
-                        <h2 className="text-sm font-semibold text-foreground">Kaynaklar &amp; Lablar</h2>
-                        <p className="text-[11px] text-muted-foreground">Önerilen linkler ve dökümanlar</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3.5 space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {guidance && guidance.resources.length > 0 ? (
-                      guidance.resources.map((res, idx) => (
-                        <a
-                          key={idx}
-                          href={res.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="group flex items-center justify-between rounded-2xl border bg-background/80 p-2.5 transition-all hover:border-primary/50 hover:bg-muted/30"
-                        >
-                          <div className="min-w-0 pr-2">
-                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
-                              {res.badge}
-                            </span>
-                            <p className="mt-1 text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                              {res.title}
-                            </p>
-                          </div>
-                          <ExternalLink className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
-                        </a>
-                      ))
-                    ) : task.resource ? (
-                      <a
-                        href={task.resource}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group flex items-center justify-between rounded-2xl border bg-background/80 p-3 hover:border-primary/50"
-                      >
-                        <div className="min-w-0">
-                          <span className="text-[10px] font-medium text-primary">Resmî Görev Kaynağı</span>
-                          <p className="text-xs font-semibold truncate text-foreground">{task.resource}</p>
-                        </div>
-                        <ExternalLink className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary" />
-                      </a>
-                    ) : (
-                      <p className="py-4 text-center text-[11px] text-muted-foreground italic">
-                        Bu görev için özel harici kaynak eklenmemiş.
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground shrink-0">
+                <span>Otomatik kaydedilir</span>
+                <span className="font-mono">{scratchpadText.trim().length} krk</span>
               </div>
             </div>
 
-            {/* RIGHT COLUMN: ALWAYS DOCKED NORTH AI COACH */}
-            <div className="xl:col-span-5 2xl:col-span-4">
-              <div className="sticky top-5 rounded-3xl border bg-card shadow-md overflow-hidden flex flex-col h-[740px] max-h-[calc(100dvh-5rem)]">
-                {/* DOCKED COACH HEADER */}
-                <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/30 shrink-0">
-                  <div className="flex items-center gap-2.5">
-                    <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground shadow-xs">
-                      <Bot className="size-4" />
-                    </span>
-                    <div>
-                      <h3 className="text-xs font-bold text-foreground">North Koç</h3>
-                      <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Canlı Odak Arkadaşın (Hep Açık)
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="rounded-full border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground truncate max-w-[140px]">
-                    {task.title}
+            {/* Aklındakini Dök */}
+            <div className="flex-1 rounded-2xl border bg-card p-3 shadow-xs flex flex-col min-h-0">
+              <div className="flex items-center justify-between border-b pb-2 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="grid size-6 place-items-center rounded-lg bg-sky-500/10 text-sky-500 shrink-0">
+                    <Brain className="size-3.5" />
                   </span>
+                  <div className="min-w-0">
+                    <h2 className="text-xs font-bold text-foreground truncate">Aklındakini Dök</h2>
+                    <p className="text-[10px] text-muted-foreground truncate">Aklına takılanları yaz, zihnini boşalt</p>
+                  </div>
                 </div>
+                <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                  {brainDumpItems.length} madde
+                </span>
+              </div>
 
-                {/* DOCKED COACH BODY */}
-                <div className="flex-1 overflow-y-auto p-3 focus-coach-scroll">
-                  <NorthAI embedded taskId={id} focusDocked />
+              <form onSubmit={handleAddBrainDump} className="mt-2 flex gap-1.5 shrink-0">
+                <input
+                  type="text"
+                  value={brainDumpInput}
+                  onChange={(e) => setBrainDumpInput(e.target.value)}
+                  placeholder="Aklını dağıtan düşünceyi yaz..."
+                  className="flex-1 rounded-xl border border-border bg-background/80 px-2.5 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:border-sky-500 focus:outline-hidden"
+                />
+                <Button type="submit" size="sm" variant="secondary" className="rounded-xl px-2.5 text-xs h-7 shrink-0">
+                  <Plus className="size-3" />
+                  Ekle
+                </Button>
+              </form>
+
+              <div className="mt-2 flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0 focus-scrollbar">
+                {brainDumpItems.length === 0 ? (
+                  <p className="py-3 text-center text-[11px] text-muted-foreground italic">
+                    Zihnin berrak. Dağıtıcı bir fikir gelirse buraya yazabilirsin.
+                  </p>
+                ) : (
+                  brainDumpItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center justify-between gap-2 rounded-xl border px-2 py-1 text-xs transition-colors ${
+                        item.done
+                          ? "bg-muted/30 border-border/40 text-muted-foreground line-through"
+                          : "bg-background/80 border-border"
+                      }`}
+                    >
+                      <span
+                        onClick={() => handleToggleBrainDumpDone(item.id)}
+                        className="cursor-pointer truncate flex-1 text-[11px]"
+                      >
+                        {item.text}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBrainDump(item.id)}
+                        className="text-muted-foreground hover:text-red-500 shrink-0"
+                        title="Sil"
+                      >
+                        <Trash2 className="size-3" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {brainDumpItems.length > 0 && (
+                <div className="mt-1 text-right shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBrainDumpItems([]);
+                      try {
+                        localStorage.setItem(BRAIN_DUMP_KEY, JSON.stringify([]));
+                      } catch {}
+                    }}
+                    className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                  >
+                    Hepsini Temizle
+                  </button>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* COLUMN 3: SES MİKSERİ & KAYNAKLAR */}
+          <div className="h-full flex flex-col gap-2 min-h-0">
+            {/* Ses Mikseri */}
+            <div className="flex-1 rounded-2xl border bg-card p-3 shadow-xs flex flex-col min-h-0">
+              <div className="flex items-center justify-between border-b pb-2 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="grid size-6 place-items-center rounded-lg bg-teal-500/10 text-teal-500 shrink-0">
+                    {activeSound === "none" ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-xs font-bold text-foreground truncate">Ses Mikseri</h2>
+                    <p className="text-[10px] text-muted-foreground truncate">Ortam sesiyle akışa gir</p>
+                  </div>
+                </div>
+                {activeSound !== "none" && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 dark:text-teal-400 shrink-0">
+                    <span className="size-1.5 rounded-full bg-teal-500 animate-pulse" />
+                    Çalıyor
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-1.5 flex-1 content-start overflow-y-auto pr-0.5">
+                {([
+                  ["none", "Kapalı", "Sessiz ortam"],
+                  ["rain", "🌧️ Yağmur", "Hafif yağmur"],
+                  ["cafe", "☕ Kafe", "Kafe uğultusu"],
+                  ["noise", "📻 Beyaz", "White noise"],
+                  ["drone", "🧘 432Hz Zen", "Derin odak"],
+                ] as const).map(([val, label, sub]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => handleSoundChange(val)}
+                    className={`flex flex-col items-start rounded-xl border p-2 text-left transition-all ${
+                      activeSound === val
+                        ? "border-teal-500/50 bg-teal-500/10 text-foreground shadow-xs"
+                        : "border-border/60 bg-background/80 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                    }`}
+                  >
+                    <span className="text-xs font-semibold truncate w-full">{label}</span>
+                    <span className="text-[9px] opacity-75 truncate w-full">{sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Kaynaklar & Lablar */}
+            <div className="flex-1 rounded-2xl border bg-card p-3 shadow-xs flex flex-col min-h-0">
+              <div className="flex items-center justify-between border-b pb-2 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="grid size-6 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0">
+                    <BookOpen className="size-3.5" />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-xs font-bold text-foreground truncate">Kaynaklar &amp; Lablar</h2>
+                    <p className="text-[10px] text-muted-foreground truncate">Önerilen dökümanlar</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0 focus-scrollbar">
+                {guidance && guidance.resources.length > 0 ? (
+                  guidance.resources.map((res, idx) => (
+                    <a
+                      key={idx}
+                      href={res.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex items-center justify-between rounded-xl border bg-background/80 p-2 transition-all hover:border-primary/50 hover:bg-muted/30"
+                    >
+                      <div className="min-w-0 pr-1.5">
+                        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                          {res.badge}
+                        </span>
+                        <p className="mt-0.5 text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                          {res.title}
+                        </p>
+                      </div>
+                      <ExternalLink className="size-3 shrink-0 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                    </a>
+                  ))
+                ) : task.resource ? (
+                  <a
+                    href={task.resource}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group flex items-center justify-between rounded-xl border bg-background/80 p-2 hover:border-primary/50"
+                  >
+                    <div className="min-w-0 pr-1.5">
+                      <span className="text-[9px] font-semibold text-primary">Resmî Görev Kaynağı</span>
+                      <p className="text-xs font-semibold truncate text-foreground">{task.resource}</p>
+                    </div>
+                    <ExternalLink className="size-3 shrink-0 text-muted-foreground group-hover:text-primary" />
+                  </a>
+                ) : (
+                  <p className="py-3 text-center text-xs text-muted-foreground italic">
+                    Bu görev için harici kaynak yok.
+                  </p>
+                )}
               </div>
             </div>
           </div>
-        </>
+
+          {/* COLUMN 4: NORTH KOÇ (DOCKED COMPANION) */}
+          <div className="h-full flex flex-col rounded-2xl border bg-card shadow-xs overflow-hidden min-h-0">
+            <NorthAI embedded taskId={id} focusDocked />
+          </div>
+        </div>
       ) : (
         /* POST-SESSION FEEDBACK SCREEN */
         <section className="celebrate-pop mt-4 space-y-6 max-w-3xl mx-auto">

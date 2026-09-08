@@ -27,6 +27,7 @@ import { plannerIntelligenceContext } from "@/lib/north-intelligence";
 import { capacity, dayKey, isAreaActive, weekKey } from "@/lib/north";
 import { useNorth, Heading, fieldClass, Field } from "./shared";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function NorthAI({ taskId, embedded = false, focusDocked = false }: { taskId?: string; embedded?: boolean; focusDocked?: boolean } = {}) {
   const { state, update, workspace } = useNorth();
@@ -175,25 +176,25 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
   const dailyLimit = workspace.coaching.preferences.dailyAiLimit;
 
   return (
-    <div className={embedded ? "north-ai-embedded space-y-4" : "page-content max-w-4xl space-y-5"}>
+    <div className={focusDocked ? "h-full flex flex-col min-h-0 overflow-hidden" : embedded ? "north-ai-embedded space-y-4" : "page-content max-w-4xl space-y-5"}>
       {/* CONVERSATION CONTAINER */}
-      <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 sm:px-5 py-3.5 bg-card/60">
-          <div className="flex items-center gap-2.5">
-            <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground">
-              <Bot className="size-4" />
+      <div className={focusDocked ? "h-full flex flex-col min-h-0 bg-transparent border-0 shadow-none overflow-hidden" : "rounded-2xl border bg-card shadow-sm overflow-hidden"}>
+        <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b bg-card/60 shrink-0", focusDocked ? "px-3 py-2" : "px-4 sm:px-5 py-3.5")}>
+          <div className="flex items-center gap-2">
+            <span className={cn("grid place-items-center rounded-xl bg-primary text-primary-foreground shrink-0", focusDocked ? "size-7" : "size-8")}>
+              <Bot className={focusDocked ? "size-3.5" : "size-4"} />
             </span>
             <div>
               <h3 className="text-xs sm:text-sm font-semibold text-foreground">North Koç</h3>
-              <p className="text-[11px] text-muted-foreground hidden sm:block">
-                Sade, kişiye özel ve eyleme dönüştürülebilir koçluk.
+              <p className="text-[10px] text-muted-foreground hidden sm:block">
+                {focusDocked ? "Canlı Odak Arkadaşı" : "Sade, kişiye özel ve eyleme dönüştürülebilir koçluk."}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-muted/60 px-2.5 py-1 text-[11px] font-medium text-foreground">
-              <Sparkles className="size-3 text-primary" />
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-foreground">
+              <Sparkles className="size-2.5 text-primary" />
               <span>Limit: <strong className="text-primary font-semibold">{usageCount}</strong> / {dailyLimit}</span>
             </span>
             <Button
@@ -202,29 +203,29 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
               size="xs"
               onClick={handleStartNewChat}
               disabled={workspace.coachMessages.length === 0}
-              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              className="gap-1 text-[11px] h-6 px-2 text-muted-foreground hover:text-foreground"
               title="Mevcut konuşmayı kaydeder ve yeni temiz bir sohbet başlatır"
             >
-              <RotateCcw className="size-3" />
-              <span className="hidden sm:inline">Yeni Sohbet</span>
+              <RotateCcw className="size-2.5" />
+              <span>Yeni</span>
             </Button>
             <Button
               type="button"
               variant="ghost"
               size="xs"
               asChild
-              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              className="gap-1 text-[11px] h-6 px-1.5 text-muted-foreground hover:text-foreground"
             >
               <Link href="/profile?tab=memory" title="Geçmiş sohbetleri incele">
-                <History className="size-3" />
-                <span className="hidden sm:inline">Geçmiş</span>
+                <History className="size-2.5" />
+                <span>Geçmiş</span>
               </Link>
             </Button>
           </div>
         </div>
 
-        <Conversation className={embedded ? "max-h-[44dvh] min-h-64" : "max-h-[50dvh] min-h-72"}>
-          <ConversationContent className="gap-5 p-5">
+        <Conversation className={focusDocked ? "flex-1 min-h-0 overflow-y-auto" : embedded ? "max-h-[44dvh] min-h-64" : "max-h-[50dvh] min-h-72"}>
+          <ConversationContent className={cn("gap-4", focusDocked ? "p-3" : "gap-5 p-5")}>
             {workspace.coachMessages.length ? (
               workspace.coachMessages.slice(-30).map((message) =>
                 message.role === "assistant" ? (
@@ -276,10 +277,13 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
         </Conversation>
 
         {/* COMPOSER */}
-        <div className="border-t p-3 sm:p-4">
-          <div className="flex items-end gap-2 rounded-2xl border bg-background px-3 py-2 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15">
+        <div className={cn("border-t shrink-0", focusDocked ? "p-2" : "p-3 sm:p-4")}>
+          <div className={cn("flex items-end gap-1.5 border bg-background focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/20", focusDocked ? "rounded-xl px-2 py-1" : "rounded-2xl px-3 py-2")}>
             <textarea
-              className="max-h-32 min-h-11 flex-1 resize-none bg-transparent px-1 py-1.5 text-xs text-foreground outline-none placeholder:text-muted-foreground sm:text-sm"
+              className={cn(
+                "flex-1 resize-none bg-transparent px-1 py-1 text-xs text-foreground outline-none placeholder:text-muted-foreground",
+                focusDocked ? "max-h-20 min-h-8" : "max-h-32 min-h-11 sm:text-sm"
+              )}
               maxLength={3000}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
@@ -289,20 +293,20 @@ export function NorthAI({ taskId, embedded = false, focusDocked = false }: { tas
                   void ask();
                 }
               }}
-              placeholder="North'a soru sor, görevi küçültmesini iste veya planını gözden geçir..."
+              placeholder={focusDocked ? "North'a soru sor, görevi küçültmesini iste..." : "North'a soru sor, görevi küçültmesini iste veya planını gözden geçir..."}
               aria-label="North'a mesaj yaz"
             />
             <Button
               size="icon"
-              className="size-9 shrink-0 rounded-xl"
+              className={cn("shrink-0", focusDocked ? "size-7 rounded-lg" : "size-9 rounded-xl")}
               disabled={busy || !question.trim()}
               onClick={() => void ask()}
               aria-label={busy ? "North düşünüyor" : "Gönder"}
             >
-              <Send className="size-4" />
+              <Send className={focusDocked ? "size-3.5" : "size-4"} />
             </Button>
           </div>
-          {error && <p role="alert" className="mt-2 text-xs font-medium text-destructive">{error}</p>}
+          {error && <p role="alert" className="mt-1 text-[11px] font-medium text-destructive">{error}</p>}
         </div>
       </div>
 
