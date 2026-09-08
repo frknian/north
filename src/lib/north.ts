@@ -615,7 +615,7 @@ export function missedAdvice(task: NorthTask) {
   return {action:"pool" as const,label:"Haftalık havuza al",why:"Önemli görev korunur; uygun günü sen seçersin."};
 }
 
-export function shrinkTask(task: NorthTask, newMinutes = Math.max(20, Math.round(task.minutes / 2))): NorthTask {
+export function shrinkTask(task: NorthTask, newMinutes = Math.max(10, Math.round(task.minutes / 2))): NorthTask {
   return {
     ...task,
     minutes: newMinutes,
