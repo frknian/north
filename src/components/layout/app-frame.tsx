@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { NorthLogo } from "@/components/layout/north-logo";
 import { isCurrentTabLocked, FOCUS_LOCK_KEY, BROADCAST_CHANNEL_NAME, type ActiveFocusLock } from "@/lib/focus-lock";
 import { FocusLockBarrier } from "@/components/features/focus-lock-barrier";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
@@ -136,6 +137,82 @@ export function AppFrame({children}:{children:React.ReactNode}) {
 function TopNavigation({pathname}:{pathname:string}) {
  return <nav className="north-desktop-tabs" aria-label="Ana navigasyon">{navigation.map(n=><Link key={n.href} href={n.href} className={cn("north-top-tab",activeTab(pathname)===n.href&&"is-active")} aria-current={activeTab(pathname)===n.href?"page":undefined}>{n.label}</Link>)}<DropdownMenu><DropdownMenuTrigger className={cn("north-top-tab north-more-trigger",activeTab(pathname)==="more"&&"is-active")} aria-label="Diğer sayfalar">Diğer <ChevronDown size={14}/></DropdownMenuTrigger><DropdownMenuContent align="start">{moreNavigation.map(item=><DropdownMenuItem key={item.href} asChild><Link href={item.href}><item.icon size={15}/>{item.label}</Link></DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu></nav>;
 }
-function MobileNavigation({pathname}:{pathname:string}) {
- return <nav className="north-mobile-tabs safe-bottom" aria-label="Mobil navigasyon">{navigation.map(n=><Link key={n.href} href={n.href} className={cn(activeTab(pathname)===n.href&&"is-active")} aria-current={activeTab(pathname)===n.href?"page":undefined}><n.icon size={19}/><span>{n.label}</span></Link>)}<Link href="/profile" className={cn(activeTab(pathname)==="more"&&"is-active")} aria-label="Diğer ve ayarlar"><MoreHorizontal size={19}/><span>Diğer</span></Link></nav>;
+function MobileNavigation({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const isMoreActive = activeTab(pathname) === "more";
+
+  return (
+    <nav className="north-mobile-tabs safe-bottom" aria-label="Mobil navigasyon">
+      {navigation.map((n) => (
+        <Link
+          key={n.href}
+          href={n.href}
+          className={cn(activeTab(pathname) === n.href && "is-active")}
+          aria-current={activeTab(pathname) === n.href ? "page" : undefined}
+        >
+          <n.icon size={19} />
+          <span>{n.label}</span>
+        </Link>
+      ))}
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <button
+            type="button"
+            className={cn(isMoreActive && "is-active")}
+            aria-label="Diğer sayfalar menüsü"
+            aria-expanded={open}
+          >
+            <MoreHorizontal size={19} />
+            <span>Diğer</span>
+          </button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="rounded-t-3xl px-5 pt-5 pb-8 max-h-[85vh] overflow-y-auto bg-card border-t border-border">
+          <SheetHeader className="pb-3 border-b border-border/60 text-left">
+            <SheetTitle className="text-base font-bold text-foreground">
+              Diğer Sayfalar &amp; Araçlar
+            </SheetTitle>
+          </SheetHeader>
+          <div className="grid grid-cols-2 gap-2.5 py-4">
+            {moreNavigation.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex items-center gap-2.5 p-3 rounded-xl border text-xs sm:text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-primary/10 text-primary border-primary/30 font-semibold"
+                      : "bg-muted/40 hover:bg-muted text-foreground border-border/60 hover:border-border"
+                  )}
+                >
+                  <div className={cn("p-1.5 rounded-lg shrink-0", isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground border border-border/60")}>
+                    <item.icon size={16} />
+                  </div>
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="pt-3 border-t border-border/60 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <Link
+              href="/data"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-1.5 hover:text-foreground font-medium p-1"
+            >
+              <ShieldCheck size={15} className="text-primary" />
+              <span>Verilerim ve Güvenlik</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px]">Tema:</span>
+              <ThemeToggle />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </nav>
+  );
 }
