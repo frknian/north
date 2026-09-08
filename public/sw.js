@@ -1,5 +1,5 @@
-const CACHE = "north-brand-v11";
-const CORE = ["/offline.html", "/north-192.png", "/north-512.png", "/north-180.png", "/favicon.ico"];
+const CACHE = "planorth-brand-v13";
+const CORE = ["/offline.html", "/planorth-192.png", "/planorth-512.png", "/planorth-180.png", "/apple-touch-icon.png", "/favicon.ico"];
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)));

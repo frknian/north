@@ -22,8 +22,34 @@ export const metadata: Metadata = {
   title: { default: "Planorth", template: "%s — Planorth" },
   description: "Daha az karar, daha iyi odak. Hedeflerin, alanların ve gerçek ilerlemen için kişisel AI koçun.",
   applicationName: "Planorth",
-  icons: { icon:[{url:"/favicon.ico",sizes:"any"},{url:"/north-192.png",sizes:"192x192",type:"image/png"}], apple:[{url:"/north-180.png",sizes:"180x180",type:"image/png"}] },
-  openGraph: { title:"Planorth", description:"Daha az karar. Daha iyi odak.", siteName:"Planorth", locale:"tr_TR", images:[{url:"/north-512.png",width:512,height:512,alt:"Planorth"}] },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/planorth-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/planorth-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/planorth-180.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+  },
+  openGraph: {
+    title: "Planorth",
+    description: "Daha az karar. Daha iyi odak.",
+    siteName: "Planorth",
+    locale: "tr_TR",
+    images: [{ url: "/planorth-og.png", width: 1200, height: 630, alt: "Planorth" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Planorth",
+    description: "Daha az karar. Daha iyi odak.",
+    images: ["/planorth-og.png"],
+  },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Planorth" },
 };
 
