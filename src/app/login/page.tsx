@@ -54,18 +54,27 @@ const KVKK_VERSION = "2026-09-06";
 
 function message(error: unknown) {
   const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
-  return (
-    ({
-      "auth/email-already-in-use": "Bu e-posta adresiyle zaten bir hesap var. Giriş yapmayı dene.",
-      "auth/invalid-credential": "E-posta veya şifre hatalı.",
-      "auth/invalid-email": "Geçerli bir e-posta adresi yaz.",
-      "auth/too-many-requests": "Çok fazla deneme yapıldı. Bir süre sonra tekrar dene.",
-      "auth/weak-password": "Şifre en az 6 karakter olmalı.",
-      "auth/popup-closed-by-user": "Google penceresi kapatıldı.",
-      "auth/cancelled-popup-request": "Giriş işlemi iptal edildi.",
-      "auth/popup-blocked": "Tarayıcı açılır pencereyi engelledi. Lütfen izin verin.",
-    } as Record<string, string>)[code] ?? "Kimlik doğrulama başarısız oldu."
-  );
+  const rawMessage = typeof error === "object" && error && "message" in error ? String(error.message) : "";
+  console.error("Auth error details:", { code, error });
+
+  const map: Record<string, string> = {
+    "auth/unauthorized-domain": "Bu alan adı Firebase'de yetkilendirilmemiş. Firebase Console > Authentication > Settings > Authorized domains bölümüne 'north-frkian.vercel.app' eklenmelidir.",
+    "auth/operation-not-allowed": "Firebase Console'da Google ile giriş sağlayıcısı henüz aktif edilmemiş.",
+    "auth/account-exists-with-different-credential": "Bu e-posta adresiyle başka bir yöntemle kayıt olunmuş. Lütfen şifrenizle giriş yapın.",
+    "auth/popup-closed-by-user": "Google penceresi kapatıldı.",
+    "auth/cancelled-popup-request": "Giriş işlemi iptal edildi.",
+    "auth/popup-blocked": "Tarayıcı açılır pencereyi engelledi. Lütfen açılır pencerelere izin verin.",
+    "auth/network-request-failed": "Ağ hatası. Lütfen internet bağlantınızı kontrol edin.",
+    "auth/email-already-in-use": "Bu e-posta adresiyle zaten bir hesap var. Giriş yapmayı dene.",
+    "auth/invalid-credential": "E-posta veya şifre hatalı.",
+    "auth/invalid-email": "Geçerli bir e-posta adresi yaz.",
+    "auth/too-many-requests": "Çok fazla deneme yapıldı. Bir süre sonra tekrar dene.",
+    "auth/weak-password": "Şifre en az 6 karakter olmalı.",
+  };
+
+  if (code && map[code]) return map[code];
+  if (code) return `Giriş hatası (${code}): ${rawMessage || "Yetkilendirme başarısız."}`;
+  return rawMessage || "Kimlik doğrulama başarısız oldu.";
 }
 
 export default function LoginPage() {
