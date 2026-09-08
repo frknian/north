@@ -123,7 +123,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
       <div className="north-topbar-inner">
         <Link href="/" aria-label="North — Bugün" className="north-brand"><NorthLogo size={34} priority/><span>North</span></Link>
         <TopNavigation pathname={pathname}/>
-        <div className="north-tools"><WorkspaceSearch/><ThemeToggle/><Link href="/data" className="north-profile" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link><Link href="/profile" className="north-profile" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link></div>
+        <div className="north-tools"><WorkspaceSearch/><ThemeToggle/><Link href="/data" className="north-profile hidden sm:grid" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link><Link href="/profile" className="north-profile hidden sm:grid" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link></div>
       </div>
     </header>
     <main id="north-content" className="north-main" tabIndex={-1}>

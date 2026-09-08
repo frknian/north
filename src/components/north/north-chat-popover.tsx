@@ -26,16 +26,16 @@ export function NorthChatPopover({
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 sm:bottom-7 sm:right-7">
+    <div className="fixed bottom-20 right-4 z-40 sm:bottom-7 sm:right-7">
       {open ? (
         <section
-          className="mb-3 w-[calc(100vw-2.5rem)] max-w-[29rem] overflow-hidden rounded-[26px] border bg-background shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200"
+          className="mb-3 w-[calc(100vw-2rem)] max-w-[29rem] overflow-hidden rounded-[26px] border bg-background shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200"
           aria-label="North sohbeti"
         >
           <header className="flex items-center justify-between border-b px-4 py-3.5">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
-                <Bot className="size-5" />
+              <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
+                <Bot className="size-4 sm:size-5" />
               </span>
               <div>
                 <p className="text-sm font-semibold">North</p>
@@ -54,7 +54,7 @@ export function NorthChatPopover({
               <X className="size-5" />
             </button>
           </header>
-          <div className="max-h-[min(72dvh,720px)] overflow-y-auto px-3 py-2">
+          <div className="max-h-[min(65dvh,680px)] overflow-y-auto px-3 py-2">
             <NorthAI embedded taskId={taskId} />
           </div>
         </section>
@@ -62,11 +62,11 @@ export function NorthChatPopover({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+        className="grid size-12 sm:size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
         aria-label={open ? "North sohbetini kapat" : "North ile sohbet et"}
         aria-expanded={open}
       >
-        <MessageCircle className="size-6" />
+        <MessageCircle className="size-5 sm:size-6" />
       </button>
     </div>
   );

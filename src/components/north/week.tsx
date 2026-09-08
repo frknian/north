@@ -534,7 +534,7 @@ export function NorthWeek() {
               </span>
               <button
                 onClick={() => searchInputRef.current?.focus()}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold text-muted-foreground hover:text-foreground bg-muted border border-border transition"
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold text-muted-foreground hover:text-foreground bg-muted border border-border transition"
               >
                 <Zap className="w-3 h-3 text-amber-400" />
                 <span>Hızlı Komut &amp; Arama</span>
@@ -1169,7 +1169,7 @@ export function NorthWeek() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-background border border-input rounded-xl py-2 pl-9 pr-8 text-xs text-foreground placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
-                  placeholder="Görev ara... (⌘K)"
+                  placeholder="Görev ara..."
                   type="text"
                 />
                 {searchQuery && (
@@ -1580,7 +1580,7 @@ export function NorthWeek() {
               <span className="text-emerald-400 font-semibold">Sprint Yükü Dengeli</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
               <span className="text-muted-foreground/80">Klavye Kısayolu:</span>
               <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono text-foreground/90">
                 N

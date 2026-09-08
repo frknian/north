@@ -34,29 +34,29 @@ export function NorthToday() {
   if (!ready) return <div className="page-content" aria-busy="true">North hazırlanıyor…</div>;
 
   return (
-    <div className="page-content north-today-v2 space-y-6">
-    <header className="north-today-header">
-      <div>
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <p className="north-eyebrow mb-0">{dateLabel}</p>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+    <div className="page-content north-today-v2 space-y-6 pb-20 md:pb-8">
+    <header className="north-today-header flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-8 mb-4 sm:mb-6">
+      <div className="w-full md:w-auto">
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <p className="north-eyebrow mb-0 text-[11px] font-bold text-primary tracking-wider uppercase">{dateLabel}</p>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
             <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <Users className="size-3" />
             Sanal Kütüphane: {libraryCount} kişi odakta
           </span>
         </div>
-        <h1>Bugün ne yapacaksın?</h1>
-        <p>{direction}</p>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">Bugün ne yapacaksın?</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl">{direction}</p>
       </div>
-      <div className="flex flex-col sm:items-end gap-2">
+      <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2 pt-1 border-t md:border-t-0 border-border/60">
         <Companion state={state}/>
-        <div className="flex gap-1.5">
-          <Button variant="outline" size="xs" onClick={() => setMorningOpen(true)} className="rounded-lg text-[11px] h-7">
-            <Sun className="mr-1 size-3 text-amber-500" />
+        <div className="flex items-center gap-1.5">
+          <Button variant="outline" size="xs" onClick={() => setMorningOpen(true)} className="rounded-lg text-[11px] h-8 px-2.5 shadow-xs">
+            <Sun className="mr-1 size-3.5 text-amber-500" />
             Sabah Pusulası
           </Button>
-          <Button variant="outline" size="xs" onClick={() => setEveningOpen(true)} className="rounded-lg text-[11px] h-7">
-            <Moon className="mr-1 size-3 text-indigo-400" />
+          <Button variant="outline" size="xs" onClick={() => setEveningOpen(true)} className="rounded-lg text-[11px] h-8 px-2.5 shadow-xs">
+            <Moon className="mr-1 size-3.5 text-indigo-400" />
             Günü Kapat
           </Button>
         </div>
@@ -81,13 +81,44 @@ export function NorthToday() {
       </div>
     </section>}
 
-    <section className="north-ai-nudge" aria-label="North önerisi"><Sparkles size={17}/><div><p>North&apos;un bugünkü önerisi</p><span>{current ? `${current.title} ile başla; ardından planını gerçek enerjine göre güncelleyelim.` : "Takviminde net bir başlangıç yok. Bir sonraki küçük adımı birlikte seçelim."}</span></div><Button asChild size="sm" variant="outline"><Link href="/north-ai">North&apos;a sor</Link></Button></section>
+    <section className="north-ai-nudge flex flex-col sm:flex-row sm:items-center justify-between gap-3" aria-label="North önerisi">
+      <div className="flex items-start gap-2.5 min-w-0">
+        <Sparkles size={17} className="text-primary shrink-0 mt-0.5" />
+        <div>
+          <p className="text-xs font-semibold text-foreground">North&apos;un bugünkü önerisi</p>
+          <span className="text-xs text-muted-foreground block mt-0.5">
+            {current ? `${current.title} ile başla; ardından planını gerçek enerjine göre güncelleyelim.` : "Takviminde net bir başlangıç yok. Bir sonraki küçük adımı birlikte seçelim."}
+          </span>
+        </div>
+      </div>
+      <Button asChild size="sm" variant="outline" className="w-full sm:w-auto shrink-0">
+        <Link href="/north-ai">North&apos;a sor</Link>
+      </Button>
+    </section>
 
     {current ? (
-      <section className="north-now-card">
-        <div className="north-now-label"><span>ŞİMDİ</span><span>{currentArea?.icon} {currentArea?.name}</span></div>
-        <div className="north-now-content"><div><h2>{current.title}</h2><p className="north-now-goal">{current.goal}</p><p className="north-now-reason">{current.why || "Bu görev, haftalık yönündeki en etkili sonraki adım."}</p></div><div className="north-now-time"><strong>{current.minutes}</strong><span>dakika</span></div></div>
-        <div className="north-now-actions"><Button asChild size="lg"><Link href={`/focus/${current.id}`}><Play size={17}/>Odaklanmaya başla</Link></Button><details><summary>Neden bu görev?</summary><p>{current.why || "Hedefin, bu haftaki planın ve tamamlanmamış işlerin dikkate alınarak seçildi."}</p></details></div>
+      <section className="north-now-card rounded-2xl border border-border bg-card p-5 sm:p-7 shadow-xs">
+        <div className="north-now-label flex items-center justify-between text-xs font-semibold text-primary">
+          <span className="uppercase tracking-wider">ŞİMDİ</span>
+          <span className="font-medium text-muted-foreground">{currentArea?.icon} {currentArea?.name}</span>
+        </div>
+        <div className="north-now-content mt-4 sm:mt-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">{current.title}</h2>
+            <p className="north-now-goal text-xs sm:text-sm text-muted-foreground mt-2">{current.goal}</p>
+            <p className="north-now-reason text-xs text-muted-foreground/80 mt-2.5 pl-3 border-l-2 border-primary/40 leading-relaxed">{current.why || "Bu görev, haftalık yönündeki en etkili sonraki adım."}</p>
+          </div>
+          <div className="north-now-time flex md:flex-col items-baseline md:items-end gap-1.5 shrink-0 bg-muted/40 md:bg-transparent p-2.5 md:p-0 rounded-xl">
+            <strong className="text-2xl sm:text-3xl md:text-4xl font-black text-primary font-mono">{current.minutes}</strong>
+            <span className="text-xs text-muted-foreground">dakika</span>
+          </div>
+        </div>
+        <div className="north-now-actions mt-5 flex flex-col sm:flex-row sm:items-center gap-3">
+          <Button asChild size="lg" className="w-full sm:w-auto h-11 px-6 text-sm font-semibold justify-center">
+            <Link href={`/focus/${current.id}`}><Play size={17} className="fill-current"/>Odaklanmaya başla</Link>
+          </Button>
+          <details className="text-xs text-muted-foreground"><summary className="cursor-pointer hover:text-foreground">Neden bu görev?</summary><p className="mt-1.5 pl-2 text-xs leading-relaxed">{current.why || "Hedefin, bu haftaki planın ve tamamlanmamış işlerin dikkate alınarak seçildi."}</p></details>
+        </div>
       </section>
     ) : completed > 0 ? (
       <RestCelebrationCard
@@ -96,14 +127,58 @@ export function NorthToday() {
         areaCount={new Set(state.activities.filter(a => a.date === today && a.outcome === "done").map(a => a.areaId)).size || 1}
       />
     ) : (
-      <section className="north-empty-state"><p>ŞİMDİ</p><h2>Bugün için net bir sonraki adım yok.</h2><span>Bir hedef ekle veya North’tan haftanı planlamasını iste.</span><div><Button asChild><Link href="/week">Planı aç</Link></Button><Button asChild variant="ghost"><Link href="/north-ai">North AI ile konuş</Link></Button></div></section>
+      <section className="north-empty-state p-6 sm:p-8 rounded-2xl border border-border bg-card/60 text-center sm:text-left space-y-3">
+        <p className="text-xs font-bold text-primary tracking-wider uppercase">ŞİMDİ</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">Bugün için net bir sonraki adım yok.</h2>
+        <span className="text-xs sm:text-sm text-muted-foreground block">Bir hedef ekle veya North’tan haftanı planlamasını iste.</span>
+        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+          <Button asChild className="w-full sm:w-auto"><Link href="/week">Planı aç</Link></Button>
+          <Button asChild variant="outline" className="w-full sm:w-auto"><Link href="/north-ai">North AI ile konuş</Link></Button>
+        </div>
+      </section>
     )}
 
-    {next.length > 0 && <section className="north-next-section"><div className="north-next-heading"><div><p>SONRAKİ</p><h2>Sıra sende değil, planında.</h2></div><Link href="/week">Planı düzenle <ArrowRight size={15}/></Link></div><div className="north-next-list">{next.map((task, index) => { const area = state.areas.find(item => item.id === task.areaId); return <article key={task.id}><span>{String(index + 2).padStart(2, "0")}</span><div><p>{area?.name}</p><h3>{task.title}</h3></div><time>{task.minutes} dk</time></article>; })}</div></section>}
+    {next.length > 0 && (
+      <section className="north-next-section mt-6">
+        <div className="north-next-heading flex items-end justify-between gap-3 mb-3">
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">SONRAKİ</p>
+            <h2 className="text-base sm:text-lg font-bold text-foreground">Sıra sende değil, planında.</h2>
+          </div>
+          <Link href="/week" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 shrink-0">
+            Planı düzenle <ArrowRight size={14}/>
+          </Link>
+        </div>
+        <div className="north-next-list divide-y divide-border border-y border-border">
+          {next.map((task, index) => {
+            const area = state.areas.find(item => item.id === task.areaId);
+            return (
+              <article key={task.id} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 py-3">
+                <span className="text-xs font-mono text-muted-foreground font-bold">{String(index + 2).padStart(2, "0")}</span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-primary truncate">{area?.name}</p>
+                  <h3 className="text-xs sm:text-sm font-medium text-foreground truncate">{task.title}</h3>
+                </div>
+                <time className="text-xs font-mono text-muted-foreground font-medium shrink-0">{task.minutes} dk</time>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    )}
 
     <MicroHabitsWidget />
 
-    <footer className="north-today-footer"><span><b>{completed}</b> / {Math.max(completed + sequence.length, 1)} tamamlandı</span><span><b>{plannedMinutes}</b> dk sırada</span><Link href="/progress">Gerçek ilerlemeyi gör <ArrowRight size={14}/></Link></footer>
+    <footer className="north-today-footer pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-muted-foreground pb-6">
+      <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
+        <span><b className="text-foreground">{completed}</b> / {Math.max(completed + sequence.length, 1)} tamamlandı</span>
+        <span>•</span>
+        <span><b className="text-foreground">{plannedMinutes}</b> dk sırada</span>
+      </div>
+      <Link href="/progress" className="text-primary hover:underline font-medium inline-flex items-center gap-1">
+        Gerçek ilerlemeyi gör <ArrowRight size={14}/>
+      </Link>
+    </footer>
 
     {/* RITUAL MODALS */}
     <MorningCompassModal
