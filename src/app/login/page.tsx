@@ -25,15 +25,25 @@ import {
   Bot,
   Check,
   Flame,
+  Languages,
   LoaderCircle,
   MailCheck,
   Sparkles,
+  Trophy,
   Volume2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NorthLogo } from "@/components/layout/north-logo";
@@ -65,6 +75,7 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [noticeRead, setNoticeRead] = useState(false);
+  const [kvkkOpen, setKvkkOpen] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [pending, setPending] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -264,9 +275,9 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute -bottom-32 right-10 size-[450px] rounded-full bg-cyan-600/10 blur-[120px] opacity-40" />
 
       <div className="relative w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-8 xl:gap-12 z-10">
-        {/* SOL VİTRİN: Canlı Odak & Zen Sayaç Bento Kartları (Web/Masaüstü için) */}
+        {/* SOL VİTRİN: Canlı Odak & Zen Sayaç Bento Kartları (Web/Masaüstü için - İngilizce & Odak) */}
         <div className="hidden lg:flex flex-col gap-5 w-[330px] xl:w-[360px] shrink-0">
-          {/* Bento 1: Günlük Odak Kartı */}
+          {/* Bento 1: Günlük Odak Kartı (İngilizce C1) */}
           <div className="rounded-2xl border border-zinc-800/90 bg-[#0B101D]/90 p-5 shadow-2xl backdrop-blur-md transition hover:border-zinc-700/80">
             <div className="flex items-center justify-between gap-2 mb-3">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[11px] font-semibold text-blue-400">
@@ -278,10 +289,11 @@ export default function LoginPage() {
             </div>
 
             <h3 className="text-sm font-bold text-white mb-1.5 leading-snug">
-              Wireshark ile Ağ Paket & Anomali Analizi
+              C1 İleri Kelime & Dinleme (Listening)
             </h3>
-            <p className="text-xs text-zinc-400 mb-3.5">
-              Siber Güvenlik · 45 dk derin odak oturumu
+            <p className="text-xs text-zinc-400 mb-3.5 flex items-center gap-1.5">
+              <Languages className="size-3.5 text-blue-400" />
+              Yabancı Dil · 45 dk derin odak oturumu
             </p>
 
             {/* Checklist */}
@@ -290,17 +302,17 @@ export default function LoginPage() {
                 <span className="grid size-4 place-items-center rounded-full bg-emerald-500/20 text-emerald-400">
                   <Check className="size-3" />
                 </span>
-                <span className="line-through text-zinc-500">Pcap dosyasını filtrele ve aç</span>
+                <span className="line-through text-zinc-500">20 yeni C1 akademik kelime tekrarı</span>
               </div>
               <div className="flex items-center gap-2.5 rounded-lg bg-[#131B2E]/60 border border-blue-950/60 px-3 py-2 text-zinc-300">
                 <span className="grid size-4 place-items-center rounded-full bg-emerald-500/20 text-emerald-400">
                   <Check className="size-3" />
                 </span>
-                <span className="line-through text-zinc-500">DNS tünelleme sorgularını incele</span>
+                <span className="line-through text-zinc-500">BBC 6-Minute English dinleme & gölgeleme</span>
               </div>
               <div className="flex items-center gap-2.5 rounded-lg bg-[#0E1526] border border-blue-500/30 px-3 py-2 text-white font-medium shadow-xs">
                 <span className="size-2 rounded-full bg-blue-500 animate-pulse ml-1 mr-1" />
-                <span>Şüpheli IP bayraklarını doğrula</span>
+                <span>Günlük konuşma pratiği ve telaffuz kaydı</span>
               </div>
             </div>
 
@@ -529,7 +541,7 @@ export default function LoginPage() {
                       </div>
                     )}
 
-                    {/* KVKK Onayı (Sadece Kayıt Ol modunda) */}
+                    {/* KVKK Onayı & Pop-up (Sadece Kayıt Ol modunda) */}
                     {mode === "signup" && (
                       <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-zinc-800/90 bg-[#0E1526]/80 p-3 text-xs text-zinc-300 select-none animate-in fade-in duration-200">
                         <Checkbox
@@ -538,9 +550,16 @@ export default function LoginPage() {
                           className="mt-0.5 border-zinc-700 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                         />
                         <span className="leading-relaxed">
-                          <Link href="/kvkk" target="_blank" className="font-medium text-blue-400 hover:underline">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setKvkkOpen(true);
+                            }}
+                            className="font-medium text-blue-400 hover:underline inline"
+                          >
                             KVKK Aydınlatma Metni
-                          </Link>
+                          </button>
                           &apos;ni okudum ve onaylıyorum.
                         </span>
                       </label>
@@ -601,13 +620,6 @@ export default function LoginPage() {
                         </p>
                       )}
                     </div>
-
-                    <p className="text-center text-[11px] text-zinc-400 pt-1">
-                      Sıfırdan başlamak mı istiyorsun?{" "}
-                      <Link href="/account-reset" className="text-zinc-400 hover:text-zinc-300 hover:underline">
-                        Eski hesabı güvenle sil
-                      </Link>
-                    </p>
                   </div>
                 </>
               )}
@@ -615,7 +627,7 @@ export default function LoginPage() {
           </Card>
         </div>
 
-        {/* SAĞ VİTRİN: North AI Koç & Beceri İlerleme Bento Kartları (Web/Masaüstü için) */}
+        {/* SAĞ VİTRİN: North AI Koç & Satranç/Beceri İlerleme Bento Kartları (Web/Masaüstü için) */}
         <div className="hidden lg:flex flex-col gap-5 w-[330px] xl:w-[360px] shrink-0">
           {/* Bento 3: North AI Koç Canlı Sohbet Görünümü */}
           <div className="rounded-2xl border border-zinc-800/90 bg-[#0B101D]/90 p-5 shadow-2xl backdrop-blur-md transition hover:border-zinc-700/80">
@@ -635,11 +647,11 @@ export default function LoginPage() {
               </span>
             </div>
 
-            {/* Mesaj Balonu */}
+            {/* Mesaj Balonu (İsimsiz, tarafsız karşılama) */}
             <div className="rounded-2xl rounded-tl-xs bg-[#131B2E] border border-blue-950/70 p-3.5 shadow-xs mb-3">
-              <h5 className="text-xs font-bold text-white mb-1">Merhaba Furkan!</h5>
+              <h5 className="text-xs font-bold text-white mb-1">Merhaba!</h5>
               <p className="text-xs text-zinc-300 leading-relaxed">
-                Bugün için 2 derin odak oturumu planladım. Önce Wireshark labını tamamlayıp ardından kanıtlarını yükleyebilirsin.
+                Haftalık hedeflerine göre bugün için 2 derin odak bloğu öneriyorum. İngilizce kelime çalışması veya satranç taktik analiziyle başlayabilirsin.
               </p>
               <span className="text-[10px] text-zinc-400 mt-2 block text-right">12:41</span>
             </div>
@@ -655,7 +667,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Bento 4: Beceri & Gelişim İvmesi */}
+          {/* Bento 4: Satranç & Beceri Gelişim İvmesi */}
           <div className="rounded-2xl border border-zinc-800/90 bg-[#0B101D]/90 p-4.5 shadow-2xl backdrop-blur-md transition hover:border-zinc-700/80">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-zinc-200">
@@ -669,41 +681,115 @@ export default function LoginPage() {
             <div className="space-y-2.5 text-xs">
               <div>
                 <div className="flex justify-between text-[11px] mb-1">
-                  <span className="text-zinc-300">Web & Ağ Güvenliği</span>
-                  <span className="font-semibold text-blue-400">%85</span>
+                  <span className="text-zinc-300">İngilizce Akıcılık (C1)</span>
+                  <span className="font-semibold text-blue-400">%88</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full w-[85%]" />
+                  <div className="h-full bg-blue-500 rounded-full w-[88%]" />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between text-[11px] mb-1">
-                  <span className="text-zinc-300">Ağ Trafiği & Pcap Analizi</span>
-                  <span className="font-semibold text-cyan-400">%74</span>
+                  <span className="text-zinc-300">Satranç Taktik & Çözüm (1850 Elo)</span>
+                  <span className="font-semibold text-cyan-400">%76</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
-                  <div className="h-full bg-cyan-500 rounded-full w-[74%]" />
+                  <div className="h-full bg-cyan-500 rounded-full w-[76%]" />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between text-[11px] mb-1">
-                  <span className="text-zinc-300">Zararlı Yazılım Tespiti</span>
-                  <span className="font-semibold text-indigo-400">%62</span>
+                  <span className="text-zinc-300">Zaman & Odaklanma Disiplini</span>
+                  <span className="font-semibold text-emerald-400">%94</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
-                  <div className="h-full bg-indigo-500 rounded-full w-[62%]" />
+                  <div className="h-full bg-emerald-500 rounded-full w-[94%]" />
                 </div>
               </div>
             </div>
 
-            <p className="mt-3 text-[11px] text-zinc-400 text-center">
-              🏆 Bu hafta 38 saat kesintisiz derin odak sağlandı.
+            <p className="mt-3 text-[11px] text-zinc-400 text-center flex items-center justify-center gap-1">
+              <Trophy className="size-3 text-amber-400" /> Bu hafta 38 saat kesintisiz derin odak sağlandı.
             </p>
           </div>
         </div>
       </div>
+
+      {/* KVKK AYDINLATMA METNİ POP-UP (MODAL) */}
+      <Dialog open={kvkkOpen} onOpenChange={setKvkkOpen}>
+        <DialogContent className="max-w-2xl max-h-[85dvh] flex flex-col bg-[#0B101D] border-zinc-800 text-white rounded-2xl p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-base sm:text-lg font-bold text-white">
+              KVKK Aydınlatma Metni
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              Sürüm: 6 Eylül 2026
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4 text-xs text-zinc-300 leading-relaxed">
+            <section className="space-y-1">
+              <h4 className="font-bold text-white text-xs">1. İşlenen veriler</h4>
+              <p className="text-zinc-400">
+                North; hesap oluştururken e-posta adresi, Firebase kullanıcı kimliği ve oturum sağlayıcısını işler. Uygulamayı kullandığında hedeflerin, değerlendirme yanıtların ve sonuçların, çalışma planların, görevlerin, odak kayıtların, beceri ve kanıtların, notların ve koç görüşmelerin hesabına bağlı olarak saklanabilir.
+              </p>
+            </section>
+
+            <section className="space-y-1">
+              <h4 className="font-bold text-white text-xs">2. İşleme amaçları ve hukuki sebep</h4>
+              <p className="text-zinc-400">
+                Bu veriler hesabı oluşturmak ve güvenli oturum açmayı sağlamak, ilerlemeyi cihazlar arasında eşitlemek, kişiselleştirilmiş plan ve analiz üretmek, AI koç özelliklerini sunmak ve hizmet güvenliğini korumak amacıyla işlenir. Hesap ve temel çalışma alanı verileri hizmetin kurulması ve ifası kapsamında işlenir.
+              </p>
+            </section>
+
+            <section className="space-y-1">
+              <h4 className="font-bold text-white text-xs">3. Verilerin aktarılması</h4>
+              <p className="text-zinc-400">
+                Kimlik doğrulama ve veri saklama için Google Firebase, uygulamanın barındırılması için Vercel ve yalnızca AI özelliklerini kullandığında yanıt üretimi için OpenAI hizmetlerinden yararlanılır. Bu sağlayıcıların sunucuları Türkiye dışında bulunabileceğinden veriler yurt dışına aktarılabilir. North, burada açıklanan amaç dışında veri satışı yapmaz.
+              </p>
+            </section>
+
+            <section className="space-y-1">
+              <h4 className="font-bold text-white text-xs">4. Saklama ve güvenlik</h4>
+              <p className="text-zinc-400">
+                Veriler hesabın açık olduğu süre boyunca veya hizmetin sunulması ve yasal yükümlülükler için gerekli süre boyunca saklanır. Hesabını profil ve ayarlar ekranından silebilirsin. Aktarım sırasında güvenli bağlantılar ve hizmet sağlayıcıların erişim kontrolleri kullanılır.
+              </p>
+            </section>
+
+            <section className="space-y-1">
+              <h4 className="font-bold text-white text-xs">5. KVKK kapsamındaki hakların</h4>
+              <p className="text-zinc-400">
+                6698 sayılı Kanun&apos;un 11. maddesi kapsamında verilerinin işlenip işlenmediğini öğrenme, bilgi isteme, işleme amacını ve amaca uygun kullanılıp kullanılmadığını öğrenme, aktarılan tarafları bilme, eksik veya yanlış verilerin düzeltilmesini isteme, şartları oluştuğunda silme veya yok etme talep etme, otomatik analiz sonucuna itiraz etme ve zararın giderilmesini isteme haklarına sahipsin.
+              </p>
+            </section>
+          </div>
+
+          <DialogFooter className="flex-row items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-zinc-800 bg-[#0E1526] hover:bg-[#131B2E] text-zinc-300"
+              onClick={() => setKvkkOpen(false)}
+            >
+              Kapat
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+              onClick={() => {
+                setNoticeRead(true);
+                setKvkkOpen(false);
+              }}
+            >
+              Okudum ve Onaylıyorum
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

@@ -1,4 +1,4 @@
-const CACHE = "north-brand-v7";
+const CACHE = "north-brand-v8";
 const CORE = ["/offline.html", "/north-192.png", "/north-512.png", "/north-180.png", "/favicon.ico"];
 self.addEventListener("install", event => {
   self.skipWaiting();

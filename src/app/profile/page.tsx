@@ -244,6 +244,12 @@ export default function ProfilePage() {
                 <CardHeader><CardTitle>Hesap ve veriler</CardTitle><CardDescription>Yedekleme, gizlilik ve hesap silme kontrolleri.</CardDescription></CardHeader>
                 <CardContent className="space-y-2">
                   <Button variant="outline" className="w-full" asChild><Link href="/data"><ShieldCheck />Verilerim ve güvenlik</Link></Button>
+                  <Button variant="outline" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive" asChild>
+                    <Link href="/account-reset">
+                      <Trash2 className="size-4" />
+                      Sıfırdan başla / Eski hesabı güvenle sil
+                    </Link>
+                  </Button>
                   <Button variant="ghost" className="w-full" onClick={() => void signOutUser()}><LogOut />Çıkış yap</Button>
                 </CardContent>
               </Card>
