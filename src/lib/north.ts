@@ -62,6 +62,7 @@ export interface NorthState {
   intelligence?: NorthIntelligenceState;
   dailyAdaptation?: NorthDailyAdaptation;
   feedbackMemory?: import("./types").FeedbackMemoryItem[];
+  weeklyAreaExclusions?: Record<string, string[]>;
 }
 export type PatternStatus = "insufficient" | "emerging" | "reliable" | "strong";
 export type PatternConfidence = "low" | "medium" | "high";
@@ -94,6 +95,78 @@ export const metricDefaults: Record<AreaKind, string> = { math: "Çözülen prob
 export const areaAccents = ["#9ebeb8", "#9aa9c7", "#b5a58a", "#a89bb8", "#9eae91", "#b39a9a"];
 export function areaStatus(area: Area) { return area.archived || area.status === "archived" ? "archived" : area.status === "paused" ? "paused" : "active"; }
 export function isAreaActive(area: Area) { return areaStatus(area) === "active"; }
+export function isAreaActiveForWeek(state: NorthState, areaId: string, week: string = weekKey()): boolean {
+  const area = state.areas.find((a) => a.id === areaId);
+  if (!area || !isAreaActive(area)) return false;
+  const exclusions = state.weeklyAreaExclusions?.[week] ?? [];
+  return !exclusions.includes(areaId);
+}
+export function toggleAreaForWeek(state: NorthState, areaId: string, week: string = weekKey()): NorthState {
+  const currentExclusions = state.weeklyAreaExclusions?.[week] ?? [];
+  const isExcluded = currentExclusions.includes(areaId);
+  const updatedExclusions = isExcluded
+    ? currentExclusions.filter((id) => id !== areaId)
+    : [...currentExclusions, areaId];
+
+  // If excluding, unassign any pending/partial tasks in this week belonging to this area to the pool (date: "")
+  let updatedTasks = state.tasks;
+  if (!isExcluded) {
+    updatedTasks = state.tasks.map((task) => {
+      if (
+        task.areaId === areaId &&
+        ["pending", "partial"].includes(task.status) &&
+        (task.week === week || (!task.week && task.date && weekKey(task.date) === week)) &&
+        task.date
+      ) {
+        return { ...task, date: "", week };
+      }
+      return task;
+    });
+  }
+
+  return {
+    ...state,
+    tasks: updatedTasks,
+    weeklyAreaExclusions: {
+      ...(state.weeklyAreaExclusions ?? {}),
+      [week]: updatedExclusions,
+    },
+  };
+}
+export function setAreaActiveForWeek(state: NorthState, areaId: string, week: string, active: boolean): NorthState {
+  const currentExclusions = state.weeklyAreaExclusions?.[week] ?? [];
+  const isCurrentlyExcluded = currentExclusions.includes(areaId);
+  if (active && isCurrentlyExcluded) {
+    return {
+      ...state,
+      weeklyAreaExclusions: {
+        ...(state.weeklyAreaExclusions ?? {}),
+        [week]: currentExclusions.filter((id) => id !== areaId),
+      },
+    };
+  } else if (!active && !isCurrentlyExcluded) {
+    const updatedTasks = state.tasks.map((task) => {
+      if (
+        task.areaId === areaId &&
+        ["pending", "partial"].includes(task.status) &&
+        (task.week === week || (!task.week && task.date && weekKey(task.date) === week)) &&
+        task.date
+      ) {
+        return { ...task, date: "", week };
+      }
+      return task;
+    });
+    return {
+      ...state,
+      tasks: updatedTasks,
+      weeklyAreaExclusions: {
+        ...(state.weeklyAreaExclusions ?? {}),
+        [week]: [...currentExclusions, areaId],
+      },
+    };
+  }
+  return state;
+}
 export function createArea(kind: AreaKind, id: string): Area {
   return { id, kind, name: kindLabels[kind], icon: ({math:"∑",cyber:"⌘",reading:"▤",chess:"♞",projects:"◇",custom:"◎"})[kind], goal: "", priority: 2, weeklyMinutes: 0, minimumMinutes: 10, archived: false, metric: metricDefaults[kind], target: 0, notes: "", resources: "", description: "", preferredSessionMinutes: 50, accent: areaAccents[0], status: "active" };
 }
@@ -119,11 +192,13 @@ export function distributePlanTasksToCalendar(
     week?: string;
     forceRedistribute?: boolean;
     activeDayIndices?: number[];
+    excludedAreaIds?: string[];
   } = {}
 ): NorthTask[] {
   const today = options.today || dayKey();
   const currentWeek = options.week || weekKey(today);
   const events = options.events || [];
+  const excludedAreaIds = options.excludedAreaIds || [];
   const weeklyMinutes = (options.weeklyHours ?? 10) * 60;
   // Default to Mon-Fri (0, 1, 2, 3, 4) - weekends excluded by default
   const activeDayIndices = options.activeDayIndices && options.activeDayIndices.length > 0
@@ -169,6 +244,10 @@ export function distributePlanTasksToCalendar(
     if (task.status === "done" || task.status === "cancelled") {
       continue;
     }
+    // If area is excluded for this week, do NOT place in this week's active days
+    if (excludedAreaIds.includes(task.areaId)) {
+      continue;
+    }
     const isTaskOnActiveDay = activeDays.includes(task.date);
     if (task.date && !options.forceRedistribute && isTaskOnActiveDay) {
       continue;
@@ -180,65 +259,76 @@ export function distributePlanTasksToCalendar(
   }
 
   if (tasksToDistribute.length === 0) {
+    if (options.forceRedistribute && excludedAreaIds.length > 0) {
+      return tasks.map((task) => {
+        if (
+          excludedAreaIds.includes(task.areaId) &&
+          task.status !== "done" &&
+          task.status !== "cancelled" &&
+          (task.week === currentWeek || (task.date && daysInCurrentWeek.includes(task.date)))
+        ) {
+          return { ...task, date: "", week: currentWeek };
+        }
+        return task;
+      });
+    }
     return tasks;
   }
 
   // Group tasks by areaId so we can interleave them across days (Pzt x, y; Sal y, z; etc.)
   const tasksByArea: Record<string, NorthTask[]> = {};
-  for (const t of tasksToDistribute) {
-    const aid = t.areaId || "default";
-    if (!tasksByArea[aid]) tasksByArea[aid] = [];
-    tasksByArea[aid].push(t);
+  for (const task of tasksToDistribute) {
+    if (!tasksByArea[task.areaId]) tasksByArea[task.areaId] = [];
+    tasksByArea[task.areaId].push(task);
   }
 
-  // Interleave tasks from different areas
+  // Interleave tasks from different areas for variety
   const interleavedTasks: NorthTask[] = [];
-  const areaIds = Object.keys(tasksByArea);
-  let hasRemaining = true;
+  const areaKeys = Object.keys(tasksByArea);
+  let hasMore = true;
   let round = 0;
-  while (hasRemaining) {
-    hasRemaining = false;
-    for (const aid of areaIds) {
-      if (tasksByArea[aid].length > round) {
-        interleavedTasks.push(tasksByArea[aid][round]);
-        if (tasksByArea[aid].length > round + 1) {
-          hasRemaining = true;
-        }
+  while (hasMore) {
+    hasMore = false;
+    for (const aId of areaKeys) {
+      if (round < tasksByArea[aId].length) {
+        interleavedTasks.push(tasksByArea[aId][round]);
+        hasMore = true;
       }
     }
     round++;
   }
 
+  // Assign interleaved tasks to available days with least load
   const assignedMap = new Map<string, string>();
-  let dayPointer = 0;
-
   for (const task of interleavedTasks) {
-    let bestDay = availableDays[dayPointer % availableDays.length];
-    let foundUnderCapacity = false;
-
-    for (let attempt = 0; attempt < availableDays.length; attempt++) {
-      const candidateDay = availableDays[(dayPointer + attempt) % availableDays.length];
-      const currentLoad = dayMinutes[candidateDay] || 0;
-      if (currentLoad + task.minutes <= dailyTargetCapacity) {
-        bestDay = candidateDay;
-        dayPointer = (dayPointer + attempt + 1) % availableDays.length;
-        foundUnderCapacity = true;
-        break;
+    let bestDay = availableDays[0];
+    let minMin = Infinity;
+    for (const d of availableDays) {
+      const currentLoad = dayMinutes[d] || 0;
+      if (currentLoad < minMin) {
+        minMin = currentLoad;
+        bestDay = d;
       }
     }
-
-    if (!foundUnderCapacity) {
-      bestDay = availableDays.reduce((minDay, d) => {
-        return (dayMinutes[d] || 0) < (dayMinutes[minDay] || 0) ? d : minDay;
-      }, availableDays[0]);
-      dayPointer = (dayPointer + 1) % availableDays.length;
-    }
-
     dayMinutes[bestDay] = (dayMinutes[bestDay] || 0) + task.minutes;
     assignedMap.set(task.id, bestDay);
   }
 
-  return tasks.map(task => {
+  return tasks.map((task) => {
+    // If area is excluded for this week and forceRedistribute is true, move pending task to pool
+    if (
+      excludedAreaIds.includes(task.areaId) &&
+      options.forceRedistribute &&
+      task.status !== "done" &&
+      task.status !== "cancelled" &&
+      (task.week === currentWeek || (task.date && daysInCurrentWeek.includes(task.date)))
+    ) {
+      return {
+        ...task,
+        date: "",
+        week: currentWeek,
+      };
+    }
     if (assignedMap.has(task.id)) {
       return {
         ...task,
@@ -250,12 +340,19 @@ export function distributePlanTasksToCalendar(
   });
 }
 
-export function distributePoolTasksToWeek(state: NorthState, week: string = weekKey()): NorthState {
+export function distributePoolTasksToWeek(
+  state: NorthState,
+  week: string = weekKey(),
+  options: { activeDayIndices?: number[]; forceRedistribute?: boolean; excludedAreaIds?: string[] } = {}
+): NorthState {
+  const excludedAreaIds = options.excludedAreaIds ?? (state.weeklyAreaExclusions?.[week] ?? []);
   const updatedTasks = distributePlanTasksToCalendar(state.tasks, {
     weeklyHours: state.weeklyHours,
     events: state.events,
     week,
-    forceRedistribute: false,
+    forceRedistribute: options.forceRedistribute ?? false,
+    activeDayIndices: options.activeDayIndices,
+    excludedAreaIds,
   });
   return {
     ...state,

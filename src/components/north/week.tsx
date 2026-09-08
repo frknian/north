@@ -45,6 +45,9 @@ import {
   weekKey,
   distributePlanTasksToCalendar,
   distributePoolTasksToWeek,
+  isAreaActiveForWeek,
+  toggleAreaForWeek,
+  setAreaActiveForWeek,
   type NorthTask,
   type Area,
 } from "@/lib/north";
@@ -128,7 +131,13 @@ export function NorthWeek() {
 
   const [replanModalOpen, setReplanModalOpen] = useState(false);
   const [tempPlanDays, setTempPlanDays] = useState<number[]>(activePlanDays);
+  const [tempExcludedAreas, setTempExcludedAreas] = useState<string[]>([]);
   const [replanForceAll, setReplanForceAll] = useState(true);
+
+  const currentWeekKey = useMemo(() => {
+    if (scopeFilter === "nextWeek") return shiftDay(weekKey(), 7);
+    return week;
+  }, [scopeFilter, week]);
 
   // Dialog states
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -312,17 +321,25 @@ export function NorthWeek() {
   };
 
   // Actions
-  const handleAutoPlan = (force = false, days = activePlanDays) => {
+  const handleAutoPlan = (force = false, days = activePlanDays, excludedAreas?: string[]) => {
+    const targetWeek = currentWeekKey;
+    const targetExclusions = excludedAreas ?? (state.weeklyAreaExclusions?.[targetWeek] ?? []);
+
     update((curr) => {
       const updated = distributePlanTasksToCalendar(curr.tasks, {
         weeklyHours: curr.weeklyHours,
         events: curr.events,
-        week,
+        week: targetWeek,
         forceRedistribute: force,
         activeDayIndices: days,
+        excludedAreaIds: targetExclusions,
       });
       return {
         ...curr,
+        weeklyAreaExclusions: {
+          ...(curr.weeklyAreaExclusions ?? {}),
+          [targetWeek]: targetExclusions,
+        },
         tasks: updated,
       };
     });
@@ -335,15 +352,30 @@ export function NorthWeek() {
     );
   };
 
-  const handleExecuteReplan = (days: number[], force: boolean) => {
+  const handleExecuteReplan = (days: number[], force: boolean, excludedAreas: string[]) => {
     setActivePlanDays(days);
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem("north_active_plan_days", JSON.stringify(days));
       } catch {}
     }
-    handleAutoPlan(force, days);
+    handleAutoPlan(force, days, excludedAreas);
     setReplanModalOpen(false);
+  };
+
+  const handleToggleAreaForWeek = (areaId: string, customWeek?: string) => {
+    const targetWeek = customWeek || currentWeekKey;
+    const area = state.areas.find((a) => a.id === areaId);
+    const areaName = area?.name || "Alan";
+    const isCurrentlyActive = isAreaActiveForWeek(state, areaId, targetWeek);
+
+    update((curr) => toggleAreaForWeek(curr, areaId, targetWeek));
+
+    if (isCurrentlyActive) {
+      showToast(`⏸ "${areaName}" bu hafta (${targetWeek === weekKey() ? 'Bu Hafta' : 'Seçilen Hafta'}) için mola moduna alındı. Görevler havuza taşındı (diğer haftalarda plan devam eder).`);
+    } else {
+      showToast(`▶️ "${areaName}" bu haftanın planına başarıyla dahil edildi.`);
+    }
   };
 
   const handleToggleTask = (task: NorthTask) => {
@@ -554,6 +586,7 @@ export function NorthWeek() {
             <button
               onClick={() => {
                 setTempPlanDays(activePlanDays);
+                setTempExcludedAreas(state.weeklyAreaExclusions?.[currentWeekKey] ?? []);
                 setReplanModalOpen(true);
               }}
               type="button"
@@ -867,6 +900,7 @@ export function NorthWeek() {
               <button
                 onClick={() => {
                   setTempPlanDays(activePlanDays);
+                  setTempExcludedAreas(state.weeklyAreaExclusions?.[currentWeekKey] ?? []);
                   setReplanModalOpen(true);
                 }}
                 className="font-medium text-muted-foreground hover:text-foreground transition flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border text-xs"
@@ -1264,36 +1298,73 @@ export function NorthWeek() {
                 const styling = getAreaStyling(area.id, area.name);
                 const count = allTasksInScope.filter((t) => t.areaId === area.id).length;
                 const isSelected = activeAreaFilter === area.id;
+                const isExcluded = (state.weeklyAreaExclusions?.[currentWeekKey] ?? []).includes(area.id);
 
                 return (
-                  <button
+                  <div
                     key={area.id}
-                    onClick={() => setActiveAreaFilter(isSelected ? "all" : area.id)}
                     className={cn(
-                      "px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5",
+                      "inline-flex items-center rounded-xl border transition shadow-xs overflow-hidden",
                       isSelected
-                        ? "bg-muted text-white border-blue-500/50 shadow-sm"
-                        : "bg-card hover:bg-muted text-muted-foreground border-border"
+                        ? "border-blue-500/60 bg-muted text-foreground"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted/40",
+                      isExcluded && "opacity-60 bg-muted/20"
                     )}
                   >
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: styling.color }} />
-                    <span>{area.name}</span>
-                    <span className="px-1.5 py-0.2 bg-muted rounded-md text-[10px] font-mono text-muted-foreground">
-                      {count}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveAreaFilter(isSelected ? "all" : area.id)}
+                      className="px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition"
+                    >
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: styling.color }} />
+                      <span className={cn(isExcluded && "line-through text-muted-foreground")}>{area.name}</span>
+                      <span className="px-1.5 py-0.2 bg-muted rounded-md text-[10px] font-mono text-muted-foreground">
+                        {count}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleAreaForWeek(area.id);
+                      }}
+                      title={isExcluded ? "Bu haftaya dahil et (Planda Aktifleştir)" : "Bu hafta mola ver (Havuza al)"}
+                      className={cn(
+                        "px-1.5 py-1.5 border-l border-border text-[10px] font-bold transition flex items-center gap-1 hover:bg-muted/80",
+                        isExcluded
+                          ? "text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {isExcluded ? "⏸ Mola" : "✓ Aktif"}
+                    </button>
+                  </div>
                 );
               })}
             </div>
 
-            {/* Quick Action: Inline Add Hint */}
-            <button
-              onClick={() => openCreateTaskModal()}
-              className="text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-muted transition border border-dashed border-border"
-            >
-              <Plus className="w-3.5 h-3.5 text-blue-400" />
-              <span>Hızlı Görev Ekle</span>
-            </button>
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setTempPlanDays(activePlanDays);
+                  setTempExcludedAreas(state.weeklyAreaExclusions?.[currentWeekKey] ?? []);
+                  setReplanModalOpen(true);
+                }}
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-muted transition border border-border"
+              >
+                <Layers className="w-3.5 h-3.5 text-primary" />
+                <span>Haftalık Alanlar & Günler</span>
+              </button>
+              <button
+                onClick={() => openCreateTaskModal()}
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-muted transition border border-dashed border-border"
+              >
+                <Plus className="w-3.5 h-3.5 text-blue-400" />
+                <span>Hızlı Görev Ekle</span>
+              </button>
+            </div>
           </div>
 
           {/* Modern Task Cards List Container */}
@@ -1998,6 +2069,60 @@ export function NorthWeek() {
               )}
             </div>
 
+            {/* Area Inclusion / Exclusion for this Week */}
+            <div className="space-y-2 pt-3 border-t border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-primary" />
+                  Bu Haftaya Dahil Edilecek Alanlar
+                </Label>
+                <span className="text-[11px] font-semibold text-foreground bg-muted px-2 py-0.5 rounded-md">
+                  {activeAreas.length - tempExcludedAreas.length} / {activeAreas.length} Alan Aktif
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                İstediğin alanı bu hafta mola moduna alabilirsin. Kapattığın alanın görevleri silinmez, havuzda bekler ve diğer haftalarda planında yer almaya devam eder.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 max-h-48 overflow-y-auto pr-0.5">
+                {activeAreas.map((area) => {
+                  const styling = getAreaStyling(area.id, area.name);
+                  const isExcluded = tempExcludedAreas.includes(area.id);
+                  return (
+                    <button
+                      key={area.id}
+                      type="button"
+                      onClick={() => {
+                        if (isExcluded) {
+                          setTempExcludedAreas(tempExcludedAreas.filter((id) => id !== area.id));
+                        } else {
+                          setTempExcludedAreas([...tempExcludedAreas, area.id]);
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center justify-between p-2.5 rounded-xl border text-left text-xs transition cursor-pointer",
+                        !isExcluded
+                          ? "bg-primary/10 border-primary/40 text-foreground font-semibold shadow-xs"
+                          : "bg-muted/30 border-border text-muted-foreground hover:bg-muted/50 opacity-60"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: styling.color }} />
+                        <span className="truncate">{area.name}</span>
+                      </div>
+                      <span className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ml-1.5",
+                        !isExcluded
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground border border-border"
+                      )}>
+                        {!isExcluded ? "Bu Hafta Açık" : "Mola (Kapalı)"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Distribution Mode Options */}
             <div className="space-y-2 pt-2 border-t border-border">
               <Label className="text-xs text-muted-foreground font-semibold">Dağıtım Modu</Label>
@@ -2043,11 +2168,11 @@ export function NorthWeek() {
             </Button>
             <Button
               size="sm"
-              onClick={() => handleExecuteReplan(tempPlanDays, replanForceAll)}
+              onClick={() => handleExecuteReplan(tempPlanDays, replanForceAll, tempExcludedAreas)}
               disabled={tempPlanDays.length === 0}
               className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold"
             >
-              Seçilen Günlere Dağıt ({tempPlanDays.length} Gün)
+              Seçilen Gün ve Alanlara Dağıt ({activeAreas.length - tempExcludedAreas.length} Alan, {tempPlanDays.length} Gün)
             </Button>
           </DialogFooter>
         </DialogContent>
