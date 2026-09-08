@@ -19,7 +19,7 @@ import {
   browserSessionPersistence,
   type User,
 } from "firebase/auth";
-import { deleteDoc, doc, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
 import {
   ArrowRight,
   Bot,
@@ -66,7 +66,8 @@ function message(error: unknown) {
     "auth/popup-blocked": "Tarayıcı açılır pencereyi engelledi. Lütfen açılır pencerelere izin verin.",
     "auth/network-request-failed": "Ağ hatası. Lütfen internet bağlantınızı kontrol edin.",
     "auth/email-already-in-use": "Bu e-posta adresiyle zaten bir hesap var. Giriş yapmayı dene.",
-    "auth/invalid-credential": "E-posta veya şifre hatalı.",
+    "auth/user-not-found": "Böyle bir hesap bulunamadı. Lütfen önce Kayıt Ol sekmesinden kayıt olun.",
+    "auth/invalid-credential": "E-posta veya şifre hatalı. Hesabınız yoksa lütfen Kayıt Ol sekmesini kullanın.",
     "auth/invalid-email": "Geçerli bir e-posta adresi yaz.",
     "auth/too-many-requests": "Çok fazla deneme yapıldı. Bir süre sonra tekrar dene.",
     "auth/weak-password": "Şifre en az 6 karakter olmalı.",
@@ -140,6 +141,11 @@ export default function LoginPage() {
     const firebase = getFirebase();
     if (!firebase) return;
 
+    if (mode === "signup" && !noticeRead) {
+      toast.error("Google ile kayıt olabilmek için lütfen aşağıdaki KVKK Aydınlatma Metni'ni onaylayın.");
+      return;
+    }
+
     setGoogleBusy(true);
     try {
       const provider = new GoogleAuthProvider();
@@ -147,15 +153,43 @@ export default function LoginPage() {
       const result = await signInWithPopup(firebase.auth, provider);
       const isNewUser = Boolean(getAdditionalUserInfo(result)?.isNewUser);
 
-      if (isNewUser) {
+      // Check if user has an existing account in Firestore
+      const ref = doc(firebase.db, "users", result.user.uid, "workspaces", "cybercoach");
+      const snapshot = await getDoc(ref).catch(() => null);
+      const accountExists = !isNewUser && Boolean(snapshot && snapshot.exists());
+
+      // CASE 1: User tried to SIGN IN (Giriş Yap), but has NO account!
+      if (mode === "signin" && !accountExists) {
+        // Prevent auto-registration. Delete user from auth if new, or sign out.
+        if (isNewUser) {
+          await deleteUser(result.user).catch(() => undefined);
+        } else {
+          await signOut(firebase.auth).catch(() => undefined);
+        }
+        toast.error("Böyle bir hesap bulunamadı. Lütfen önce 'Kayıt Ol' sekmesinden kayıt olun.");
+        setMode("signup");
+        return;
+      }
+
+      // CASE 2: User tried to SIGN UP (Kayıt Ol), but ALREADY has an account!
+      if (mode === "signup" && accountExists) {
+        toast.info("Bu Google hesabı ile zaten kayıtlı bir hesabınız var. Giriş yapıldı.");
+        router.push("/");
+        router.refresh();
+        return;
+      }
+
+      // CASE 3: Valid Registration from SIGN UP mode
+      if (mode === "signup" || isNewUser) {
         try {
           await saveRegistration(result.user, "google.com");
         } catch (error) {
           console.error("Kayıt verisi yazılırken hata:", error);
         }
-        toast.success("Google ile hoş geldin! Başlangıç hedeflerini belirleyelim.");
+        toast.success("Google ile hesabınız oluşturuldu! Başlangıç hedeflerini belirleyelim.");
         router.push("/onboarding");
       } else {
+        // CASE 4: Valid Sign In from SIGN IN mode
         toast.success("Google ile başarıyla giriş yapıldı.");
         router.push("/");
       }
@@ -395,42 +429,6 @@ export default function LoginPage() {
                 />
               ) : (
                 <>
-                  {/* GOOGLE İLE GİRİŞ BUTONU */}
-                  <div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      className="w-full h-12 border-zinc-800 bg-[#0E1526] hover:bg-[#131B2E] hover:border-blue-500/40 text-white font-medium shadow-sm transition-all flex items-center justify-center gap-3 rounded-2xl"
-                      disabled={busy || googleBusy}
-                      onClick={signInWithGoogle}
-                    >
-                      {googleBusy ? (
-                        <span className="inline-flex items-center gap-2 text-xs text-zinc-300">
-                          <LoaderCircle className="size-4 animate-spin text-blue-500" />
-                          Google ile bağlanıyor…
-                        </span>
-                      ) : (
-                        <>
-                          <GoogleMark />
-                          <span className="text-sm font-semibold tracking-wide">
-                            Google ile Devam Et
-                          </span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* VEYA E-POSTA AYIRICI */}
-                  <div className="relative my-4 flex items-center justify-center">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-zinc-800" />
-                    </div>
-                    <span className="relative bg-[#0B101D] px-3 text-[11px] font-medium text-zinc-400">
-                      veya e-posta ile devam et
-                    </span>
-                  </div>
-
                   {/* SEKMELER: GİRİŞ YAP & KAYIT OL */}
                   <div className="grid grid-cols-2 rounded-xl bg-[#0E1526] p-1 border border-zinc-800/90 mb-4" role="tablist">
                     <button
@@ -461,6 +459,42 @@ export default function LoginPage() {
                     >
                       Kayıt Ol
                     </button>
+                  </div>
+
+                  {/* GOOGLE BUTONU */}
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      className="w-full h-12 border-zinc-800 bg-[#0E1526] hover:bg-[#131B2E] hover:border-blue-500/40 text-white font-medium shadow-sm transition-all flex items-center justify-center gap-3 rounded-2xl"
+                      disabled={busy || googleBusy}
+                      onClick={signInWithGoogle}
+                    >
+                      {googleBusy ? (
+                        <span className="inline-flex items-center gap-2 text-xs text-zinc-300">
+                          <LoaderCircle className="size-4 animate-spin text-blue-500" />
+                          Google ile bağlanıyor…
+                        </span>
+                      ) : (
+                        <>
+                          <GoogleMark />
+                          <span className="text-sm font-semibold tracking-wide">
+                            {mode === "signup" ? "Google ile Kayıt Ol" : "Google ile Giriş Yap"}
+                          </span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* VEYA E-POSTA AYIRICI */}
+                  <div className="relative my-4 flex items-center justify-center">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-zinc-800" />
+                    </div>
+                    <span className="relative bg-[#0B101D] px-3 text-[11px] font-medium text-zinc-400">
+                      veya e-posta ile {mode === "signup" ? "kayıt ol" : "devam et"}
+                    </span>
                   </div>
 
                   {/* FORM ALANLARI */}

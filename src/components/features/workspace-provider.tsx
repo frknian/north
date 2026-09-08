@@ -198,23 +198,27 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             }
           }
           if (!active) return;
-          const data = snapshot.exists() ? snapshot.data() : null;
-          if (data && data.state) {
-            const normalized = normalizeState(data.state as Partial<WorkspaceState>);
-            setState(normalized);
-            try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); } catch {}
-          } else {
-            let candidateState: WorkspaceState | null = null;
-            const stored = window.localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-              try {
-                const parsed = JSON.parse(stored);
-                if (parsed && typeof parsed === "object") candidateState = normalizeState(parsed);
-              } catch {}
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            if (data && data.state) {
+              const normalized = normalizeState(data.state as Partial<WorkspaceState>);
+              setState(normalized);
+              try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); } catch {}
+            } else {
+              let candidateState: WorkspaceState | null = null;
+              const stored = window.localStorage.getItem(STORAGE_KEY);
+              if (stored) {
+                try {
+                  const parsed = JSON.parse(stored);
+                  if (parsed && typeof parsed === "object") candidateState = normalizeState(parsed);
+                } catch {}
+              }
+              const finalState = candidateState ?? createEmptyWorkspaceState();
+              setState(finalState);
+              await setDoc(ref, { state: JSON.parse(JSON.stringify(finalState)), updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
             }
-            const finalState = candidateState ?? createEmptyWorkspaceState();
-            setState(finalState);
-            await setDoc(ref, { state: JSON.parse(JSON.stringify(finalState)), updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+          } else {
+            setState(createEmptyWorkspaceState());
           }
         } catch (error) {
           console.error("Firebase workspace hydration error:", error);
