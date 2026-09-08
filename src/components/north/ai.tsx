@@ -8,6 +8,8 @@ import {
   Bot,
   Calendar,
   Check,
+  ExternalLink,
+  FileText,
   HelpCircle,
   History,
   Lightbulb,
@@ -21,6 +23,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import type { CoachMessageAttachment } from "@/lib/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +57,47 @@ export function NorthAI({
   const router = useRouter();
   const role = taskId ? "coach" : "planner";
   const [question, setQuestion] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<CoachMessageAttachment[]>([]);
+
+  function formatFileSize(bytes?: number): string {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    Array.from(files).forEach((file) => {
+      if (file.size > 15 * 1024 * 1024) {
+        toast.error(`"${file.name}" 15MB boyut sınırını aşıyor.`);
+        return;
+      }
+      const isImage = file.type.startsWith("image/");
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (!isImage && !isPdf) {
+        toast.error(`Sadece PDF ve görsel (PNG, JPG, WebP) formatları desteklenir.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const newAtt: CoachMessageAttachment = {
+          id: crypto.randomUUID(),
+          name: file.name,
+          type: isImage ? "image" : "pdf",
+          url: dataUrl,
+          size: file.size,
+        };
+        setPendingAttachments((prev) => [...prev, newAtt]);
+        toast.success(`"${file.name}" eklendi.`);
+      };
+      reader.onerror = () => {
+        toast.error(`"${file.name}" okunurken hata oluştu.`);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleClose = () => {
     if (onClose) {
@@ -104,11 +148,12 @@ export function NorthAI({
     setAnswer(null);
     setError("");
     setApplied([]);
+    setPendingAttachments([]);
   }
 
   async function ask(customPrompt?: string) {
-    const promptToSend = (customPrompt || question).trim();
-    if (!promptToSend || busy) return;
+    const textPrompt = (customPrompt || question).trim();
+    if ((!textPrompt && pendingAttachments.length === 0) || busy) return;
 
     const today = dayKey();
     const usage = workspace.coaching.preferences.aiUsage;
@@ -118,14 +163,23 @@ export function NorthAI({
       return;
     }
 
+    const attachmentsToSend = [...pendingAttachments];
+    setPendingAttachments([]);
+
     setBusy(true);
     setError("");
     setAnswer(null);
     setApplied([]);
+
+    const promptToSend = textPrompt || (attachmentsToSend.length > 0
+      ? `[${attachmentsToSend.map((a) => a.name).join(", ")} dosyası eklendi]`
+      : "");
+
     workspace.addCoachMessage({
       id: crypto.randomUUID(),
       role: "user",
-      content: promptToSend,
+      content: textPrompt,
+      attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined,
       createdAt: new Date().toISOString(),
     });
     setQuestion("");
@@ -306,8 +360,53 @@ export function NorthAI({
                   </div>
                 ) : (
                   <div key={message.id} className="flex flex-col items-end space-y-1">
-                    <div className="max-w-[86%] rounded-2xl rounded-tr-xs bg-blue-600 text-white px-3.5 py-2.5 text-xs sm:text-sm shadow-sm">
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    <div className="max-w-[86%] rounded-2xl rounded-tr-xs bg-blue-600 text-white px-3.5 py-2.5 text-xs sm:text-sm shadow-sm space-y-2">
+                      {/* Attached PDFs and Images */}
+                      {message.attachments && message.attachments.length > 0 && (
+                        <div className="space-y-1.5">
+                          {message.attachments.map((att) =>
+                            att.type === "image" ? (
+                              <div key={att.id} className="relative group overflow-hidden rounded-xl border border-white/20 bg-black/40">
+                                <img
+                                  src={att.url}
+                                  alt={att.name}
+                                  className="max-h-52 w-auto max-w-full rounded-xl object-contain cursor-pointer hover:opacity-95 transition"
+                                  onClick={() => window.open(att.url, "_blank")}
+                                />
+                                <div className="p-1.5 flex items-center justify-between text-[10px] text-white/90 bg-black/50">
+                                  <span className="truncate max-w-[150px] font-medium">{att.name}</span>
+                                  {att.size && (
+                                    <span className="text-[9px] opacity-75 font-mono ml-1 shrink-0">
+                                      {formatFileSize(att.size)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <a
+                                key={att.id}
+                                href={att.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                download={att.name}
+                                className="flex items-center gap-2.5 rounded-xl border border-white/25 bg-blue-700/70 hover:bg-blue-700 p-2.5 text-left transition group shadow-xs"
+                              >
+                                <div className="grid size-8 place-items-center rounded-lg bg-red-500 text-white shrink-0 shadow-xs">
+                                  <FileText className="size-4.5" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-xs font-semibold text-white truncate block">{att.name}</span>
+                                  <p className="text-[10px] text-blue-200/90 font-mono">
+                                    {att.size ? formatFileSize(att.size) : "PDF Belgesi"} • Aç / İndir
+                                  </p>
+                                </div>
+                                <ExternalLink className="size-3 text-white/80 group-hover:text-white shrink-0" />
+                              </a>
+                            )
+                          )}
+                        </div>
+                      )}
+                      {message.content && <p className="whitespace-pre-wrap">{message.content}</p>}
                     </div>
                     <span className="text-[10px] text-zinc-500 mr-1 block font-mono text-right">
                       {new Date(message.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
@@ -470,16 +569,45 @@ export function NorthAI({
 
         {/* COMPOSER FOOTER matching user's image */}
         <div className="p-3 border-t border-[#141E33] bg-[#070C16] shrink-0">
+          {/* Pending Attachments preview */}
+          {pendingAttachments.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-[#0E1526] border border-blue-900/40">
+              {pendingAttachments.map((att) => (
+                <div
+                  key={att.id}
+                  className="flex items-center gap-1.5 rounded-lg bg-[#141D30] border border-blue-700/40 px-2 py-1 text-xs text-zinc-200 shadow-xs"
+                >
+                  {att.type === "image" ? (
+                    <img src={att.url} alt={att.name} className="size-5 rounded object-cover" />
+                  ) : (
+                    <FileText className="size-3.5 text-red-400 shrink-0" />
+                  )}
+                  <span className="max-w-[130px] truncate text-[11px] font-medium">{att.name}</span>
+                  <span className="text-[9px] text-zinc-400 font-mono">({formatFileSize(att.size)})</span>
+                  <button
+                    type="button"
+                    onClick={() => setPendingAttachments((prev) => prev.filter((a) => a.id !== att.id))}
+                    className="p-0.5 rounded-full hover:bg-zinc-700 text-zinc-400 hover:text-white transition ml-0.5"
+                    title="Kaldır"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 rounded-2xl border border-[#18243E] bg-[#0A101D] px-3.5 py-2 shadow-inner focus-within:border-blue-500/50 transition-all">
-            <label className="cursor-pointer text-zinc-400 hover:text-white transition p-1 shrink-0" title="Ek veya görsel ekle">
+            <label className="cursor-pointer text-zinc-400 hover:text-white transition p-1 shrink-0" title="PDF veya görsel yükle">
               <Paperclip className="size-4.5 rotate-45" />
               <input
                 type="file"
+                accept="image/*,application/pdf"
+                multiple
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  toast.info(`"${file.name}" seçildi. North analize hazır.`);
+                  handleFileSelect(e.target.files);
+                  e.target.value = "";
                 }}
               />
             </label>
@@ -496,14 +624,14 @@ export function NorthAI({
                   void ask();
                 }
               }}
-              placeholder="North'a soru sor, planını paylaş..."
+              placeholder={pendingAttachments.length > 0 ? "Dosyalar eklendi. Soru sor veya gönder..." : "North'a soru sor, planını paylaş..."}
               aria-label="North'a mesaj yaz"
             />
 
             <Button
               size="icon"
               className="size-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 transition shadow-sm shrink-0 disabled:opacity-40"
-              disabled={busy || !question.trim()}
+              disabled={busy || (!question.trim() && pendingAttachments.length === 0)}
               onClick={() => void ask()}
               aria-label={busy ? "North düşünüyor" : "Gönder"}
             >
