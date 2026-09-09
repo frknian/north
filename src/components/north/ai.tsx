@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -21,8 +21,11 @@ import {
   Send,
   Sparkles,
   X,
+  Activity,
 } from "lucide-react";
 import type { CoachMessageAttachment } from "@/lib/types";
+import { diagnoseDomainState } from "@/lib/coaching/domain-engine";
+import { DomainCoachingCockpit } from "./domain-coaching-cockpit";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,7 +114,19 @@ export function NorthAI({
   const [error, setError] = useState("");
   const [applied, setApplied] = useState<number[]>([]);
   const [help, setHelp] = useState("2");
+  const [selectedAreaId, setSelectedAreaId] = useState<string>("");
+  const [showCockpit, setShowCockpit] = useState<boolean>(false);
   const currentTask = state.tasks.find((t) => t.id === taskId);
+  const selectedArea =
+    (selectedAreaId ? state.areas.find((a) => a.id === selectedAreaId) : null) ||
+    (currentTask?.areaId ? state.areas.find((a) => a.id === currentTask.areaId) : null) ||
+    state.areas.find(isAreaActive) ||
+    state.areas[0];
+
+  const domainDiagnosis = useMemo(() => {
+    if (!selectedArea) return null;
+    return diagnoseDomainState(selectedArea, state, workspace);
+  }, [selectedArea, state, workspace]);
 
   // Archive and reset chat on close/open if enabled in settings
   const messagesRef = useRef(workspace.coachMessages);
@@ -211,6 +226,7 @@ export function NorthAI({
             intelligence,
             feedbackMemory: workspace.feedbackMemory,
             examProfiles: workspace.examProfiles,
+            domainDiagnostics: domainDiagnosis,
           }),
         }),
       });
@@ -340,6 +356,57 @@ export function NorthAI({
           )}
         </div>
       </div>
+
+      {/* DOMAIN COACHING COCKPIT BAR */}
+      {selectedArea && domainDiagnosis && (
+        <div className="py-2.5 px-1 border-b border-border/50 shrink-0">
+          <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-muted-foreground">Aktif Alan:</span>
+              {state.areas.length > 1 ? (
+                <select
+                  value={selectedArea.id}
+                  onChange={(e) => setSelectedAreaId(e.target.value)}
+                  className="rounded-lg border bg-background px-2.5 py-1 text-xs text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                >
+                  {state.areas.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.icon} {a.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="font-semibold text-foreground inline-flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-lg">
+                  <span>{selectedArea.icon}</span>
+                  <span>{selectedArea.name}</span>
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowCockpit(!showCockpit)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border bg-muted/40 hover:bg-muted/80 transition cursor-pointer"
+            >
+              <Activity className="size-3 text-primary" />
+              <span>Sağlık Skoru: <strong className="font-mono text-foreground">{domainDiagnosis.healthScore}/100</strong></span>
+              <span className="text-muted-foreground">•</span>
+              <span className="text-primary font-semibold">{showCockpit ? "Teşhisi Kapat" : "Alan Koçluk Teşhisi"}</span>
+            </button>
+          </div>
+
+          {/* Collapsible Cockpit */}
+          {showCockpit && (
+            <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <DomainCoachingCockpit
+                area={selectedArea}
+                compact
+                onActionApplied={() => setShowCockpit(false)}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CONVERSATION AREA */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2">

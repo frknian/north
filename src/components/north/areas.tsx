@@ -36,6 +36,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AreaModules } from "./area-modules";
+import { DomainCoachingCockpit } from "./domain-coaching-cockpit";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { findDomain } from "@/lib/domain-catalog";
 import {
@@ -1320,6 +1321,9 @@ function AreaWorkspace({
       {/* ----------------------------------------------------------- */}
       {tab === "coach" && (
         <div className="space-y-6">
+          {/* Real Background Domain Coaching Cockpit */}
+          <DomainCoachingCockpit area={area} />
+
           {/* Domain Coach Guidance Card */}
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0">
