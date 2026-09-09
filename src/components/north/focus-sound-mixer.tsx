@@ -187,36 +187,38 @@ export function FocusSoundMixer({
 
   // Load saved preferences from localStorage on mount
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const savedTab = localStorage.getItem("north_focus_sound_tab");
-      if (savedTab && ["ambient", "spotify", "apple", "yt"].includes(savedTab)) {
-        setTab(savedTab as "ambient" | "spotify" | "apple" | "yt");
-      }
-      const savedSpotify = localStorage.getItem("north_focus_spotify_url");
-      if (savedSpotify) {
-        setSpotifyUrl(savedSpotify);
-        setSpotifyEmbed(convertToEmbedUrl(savedSpotify, "spotify"));
-      }
-      const savedApple = localStorage.getItem("north_focus_apple_url");
-      if (savedApple) {
-        setAppleUrl(savedApple);
-        setAppleEmbed(convertToEmbedUrl(savedApple, "apple"));
-      }
-      const savedYt = localStorage.getItem("north_focus_yt_url");
-      if (savedYt) {
-        setYtUrl(savedYt);
-        setYtEmbed(convertToEmbedUrl(savedYt, "yt"));
-      }
-      const savedVol = localStorage.getItem("north_focus_ambient_vol");
-      if (savedVol) {
-        const v = parseFloat(savedVol);
-        if (!isNaN(v)) {
-          setVolume(v);
-          onVolumeChange?.(v);
+    const timer = window.setTimeout(() => {
+      try {
+        const savedTab = localStorage.getItem("north_focus_sound_tab");
+        if (savedTab && ["ambient", "spotify", "apple", "yt"].includes(savedTab)) {
+          setTab(savedTab as "ambient" | "spotify" | "apple" | "yt");
         }
-      }
-    } catch {}
+        const savedSpotify = localStorage.getItem("north_focus_spotify_url");
+        if (savedSpotify) {
+          setSpotifyUrl(savedSpotify);
+          setSpotifyEmbed(convertToEmbedUrl(savedSpotify, "spotify"));
+        }
+        const savedApple = localStorage.getItem("north_focus_apple_url");
+        if (savedApple) {
+          setAppleUrl(savedApple);
+          setAppleEmbed(convertToEmbedUrl(savedApple, "apple"));
+        }
+        const savedYt = localStorage.getItem("north_focus_yt_url");
+        if (savedYt) {
+          setYtUrl(savedYt);
+          setYtEmbed(convertToEmbedUrl(savedYt, "yt"));
+        }
+        const savedVol = localStorage.getItem("north_focus_ambient_vol");
+        if (savedVol) {
+          const v = parseFloat(savedVol);
+          if (!isNaN(v)) {
+            setVolume(v);
+            onVolumeChange?.(v);
+          }
+        }
+      } catch {}
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleTabChange = (nextTab: "ambient" | "spotify" | "apple" | "yt") => {
@@ -598,7 +600,7 @@ export function FocusSoundMixer({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-[#FA243C] hover:underline font-medium"
                 >
-                  Apple Music'te Aç <ExternalLink className="size-2.5" />
+                  Apple Music&apos;te Aç <ExternalLink className="size-2.5" />
                 </a>
               </div>
             </div>
@@ -680,7 +682,7 @@ export function FocusSoundMixer({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-[#FF0000] hover:underline font-medium"
                 >
-                  YouTube'da Aç <ExternalLink className="size-2.5" />
+                  YouTube&apos;da Aç <ExternalLink className="size-2.5" />
                 </a>
               </div>
             </div>

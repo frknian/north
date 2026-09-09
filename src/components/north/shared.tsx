@@ -93,17 +93,21 @@ export function CompanionModal({
   const simTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!isSimulating) {
-      setPreviewLevel(actualLevel);
-    }
+    const timer = window.setTimeout(() => {
+      if (!isSimulating) setPreviewLevel(actualLevel);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [actualLevel, isSimulating]);
 
   useEffect(() => {
-    if (open) {
-      setNameInput(settings.name || "Yol Arkadaşı");
-      setPreviewLevel(actualLevel);
-      setIsSimulating(false);
-    }
+    const timer = window.setTimeout(() => {
+      if (open) {
+        setNameInput(settings.name || "Yol Arkadaşı");
+        setPreviewLevel(actualLevel);
+        setIsSimulating(false);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [open, settings.name, actualLevel]);
 
   useEffect(() => {

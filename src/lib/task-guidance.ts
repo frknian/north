@@ -30,12 +30,17 @@ export interface TaskGuidance {
   aiPrompt: string;
 }
 
+export function getTaskMicroSteps(task: NorthTask, area?: Area): TaskStep[] {
+  return getTaskGuidance(task, area).steps.slice(0, 3);
+}
+
 export function getTaskGuidance(task: NorthTask, area?: Area): TaskGuidance {
   const t = (task.title + " " + task.goal).toLowerCase();
   const areaName = (area?.name || "").toLowerCase();
   const areaGoal = (area?.goal || "").toLowerCase();
   const kind = area?.kind;
   const domainId = area?.domainId || "";
+  const detectedTaskLanguage = detectLanguage(t);
 
   // 1. SATRANÇ (ÖSYM / Sınav sızıntısını kesin önlemek için öncelikli kontrol)
   if (
@@ -844,6 +849,8 @@ export function getTaskGuidance(task: NorthTask, area?: Area): TaskGuidance {
   // 12. YABANCI DİL
   if (
     domainId === "language" ||
+    ["english", "german", "french", "japanese", "arabic"].includes(domainId) ||
+    Boolean(detectedTaskLanguage) ||
     areaName.includes("ingilizce") ||
     areaName.includes("dil") ||
     areaName.includes("english") ||
@@ -1133,7 +1140,7 @@ export function getTaskGuidance(task: NorthTask, area?: Area): TaskGuidance {
   }
 
   // 17. YABANCI DİL ÖĞRENME (İngilizce, Almanca, Fransızca, Japonca, Arapça)
-  const detectedLang = detectLanguage(areaName) || detectLanguage(areaGoal) || detectLanguage(t);
+  const detectedLang = detectLanguage(areaName) || detectLanguage(areaGoal) || detectedTaskLanguage;
   const isLanguageDomain = domainId === "language" || ["english", "german", "french", "japanese", "arabic"].includes(domainId) || Boolean(detectedLang);
 
   if (isLanguageDomain) {

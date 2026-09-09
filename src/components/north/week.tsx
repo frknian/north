@@ -429,7 +429,7 @@ export function NorthWeek() {
     showToast("📅 Görev seçilen güne atandı.");
   };
 
-  const openCreateTaskModal = (targetDate?: string) => {
+  function openCreateTaskModal(targetDate?: string) {
     const defaultArea = activeAreas[0] || state.areas[0];
     setEditingTask({
       id: crypto.randomUUID(),
@@ -447,7 +447,7 @@ export function NorthWeek() {
       week,
     });
     setTaskModalOpen(true);
-  };
+  }
 
   const openEditTaskModal = (task: NorthTask) => {
     setEditingTask({ ...task });
@@ -1220,7 +1220,7 @@ export function NorthWeek() {
               <div className="relative">
                 <select
                   value={scopeFilter}
-                  onChange={(e) => setScopeFilter(e.target.value as any)}
+                  onChange={(e) => setScopeFilter(e.target.value as "thisWeek" | "nextWeek" | "all")}
                   className="bg-background border border-input text-xs font-semibold text-foreground rounded-xl py-2 pl-3 pr-8 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:bg-muted transition"
                 >
                   <option value="thisWeek">Bu Hafta ({currentWeekTasks.length})</option>
@@ -1236,7 +1236,7 @@ export function NorthWeek() {
               <div className="relative">
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  onChange={(e) => setStatusFilter(e.target.value as "active" | "done" | "all")}
                   className="bg-background border border-input text-xs font-semibold text-foreground rounded-xl py-2 pl-3 pr-8 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:bg-muted transition"
                 >
                   <option value="active">Aktif ({currentWeekTasks.filter((t) => t.status !== "done").length})</option>

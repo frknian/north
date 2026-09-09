@@ -59,12 +59,15 @@ export function FlashcardsModal({ open, onOpenChange }: { open: boolean; onOpenC
   const [newTag, setNewTag] = useState("Genel");
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setCards(JSON.parse(stored));
-      }
-    } catch {}
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          setCards(JSON.parse(stored));
+        }
+      } catch {}
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const saveCards = (next: Flashcard[]) => {

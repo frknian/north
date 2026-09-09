@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Award, BarChart3, CalendarDays, ClipboardList, FlaskConical, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Award, BarChart3, BookOpen, CalendarDays, ClipboardList, FlaskConical, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { NorthChatPopover } from "@/components/north/north-chat-popover";
 import { WorkspaceSearch } from "@/components/features/workspace-search";
 import { useWorkspace } from "@/components/features/workspace-provider";
@@ -24,7 +24,7 @@ const navigation = [
   { href: "/areas", label: "Alanlar", icon: Layers3 },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
   { href: "/progress", label: "İlerleme", icon: BarChart3 },
-  { href: "/reviews", label: "Değerlendirme", icon: Award },
+  { href: "/resources", label: "Kaynaklar", icon: BookOpen },
   { href: "/labs", label: "Lablar", icon: FlaskConical },
   { href: "/evidence", label: "Kanıtlar", icon: ShieldCheck },
 ];
@@ -36,14 +36,14 @@ const titles: Record<string, string> = {
   "/week": "Haftalık Plan",
   "/areas": "Hedef Alanları",
   "/calendar": "Takvim & Zaman Blokları",
-  "/progress": "İlerleme & Analiz",
-  "/reviews": "Haftalık Değerlendirme",
+  "/progress": "İlerleme & Değerlendirme",
+  "/reviews": "İlerleme & Değerlendirme",
+  "/resources": "Kaynaklar & Araştırma Merkezi",
   "/labs": "Pratik Lab Günlüğü",
   "/evidence": "Kanıtlar & Portföy",
   "/profile": "Profil ve Ayarlar",
   "/data": "Verilerim ve Güvenlik",
   "/skills": "Beceriler",
-  "/resources": "Kaynaklar",
   "/career": "Kariyer",
   "/knowledge": "Bilgi Bankası",
   "/certifications": "Sertifikalar",
@@ -196,7 +196,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
       )}
       tabIndex={-1}
     >
-      {areaRoutes.some(p=>pathname===p||pathname.startsWith(p+"/"))&&<div className="north-context"><Link href={`/areas/${primaryArea?.id??"cyber"}`}>Alanlar / {primaryArea?.name??"Ana hedef"}</Link><span>/ {titles[pathname]??"Ayrıntı"}</span></div>}
+      {areaRoutes.some(p=>pathname===p||pathname.startsWith(p+"/"))&&<div className="north-context"><Link href={primaryArea ? `/areas/${primaryArea.id}` : "/areas"}>Alanlar / {primaryArea?.name??"Ana hedef"}</Link><span>/ {titles[pathname]??"Ayrıntı"}</span></div>}
       <div key={pathname} className={cn("north-route", pathname === "/coach" && "h-full overflow-hidden !p-0")}>{children}</div>
     </main>
     <NorthChatPopover/><MobileNavigation pathname={pathname}/>

@@ -96,13 +96,16 @@ export default function LoginPage() {
 
   // Load remembered email on mount
   useEffect(() => {
-    try {
-      const savedEmail = localStorage.getItem("north_remembered_email");
-      if (savedEmail) {
-        setEmail(savedEmail);
-        setRememberMe(true);
-      }
-    } catch {}
+    const timer = window.setTimeout(() => {
+      try {
+        const savedEmail = localStorage.getItem("north_remembered_email");
+        if (savedEmail) {
+          setEmail(savedEmail);
+          setRememberMe(true);
+        }
+      } catch {}
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   async function saveRegistration(user: User, provider = "password") {

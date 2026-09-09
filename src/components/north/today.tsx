@@ -2,18 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Feather, Moon, Play, Sparkles, Sun } from "lucide-react";
+import { ArrowRight, Feather, Moon, Play, Sparkles, Sun, Zap, BookOpen } from "lucide-react";
 import { dailySelection, dayKey, rolloverUnfinishedTasks } from "@/lib/north";
 import { useNorth, Companion } from "./shared";
 import { Button } from "@/components/ui/button";
 import { RestCelebrationCard } from "./progress-charts";
 import { getTodayWisdom } from "@/lib/daily-wisdom";
 import { MicroHabitsWidget, MorningCompassModal, EveningWinddownModal } from "./daily-rituals";
+import { FocusLauncherDialog } from "./focus-launcher-dialog";
 
 export function NorthToday() {
   const { state, update, ready } = useNorth();
   const [morningOpen, setMorningOpen] = useState(false);
   const [eveningOpen, setEveningOpen] = useState(false);
+  const [focusLauncherOpen, setFocusLauncherOpen] = useState(false);
+  const [focusLauncherMode, setFocusLauncherMode] = useState<"free" | "reading">("free");
   const today = dayKey();
   const sequence = dailySelection(state, today);
   const current = sequence[0];
@@ -98,9 +101,27 @@ export function NorthToday() {
               <span className="text-[11px] text-muted-foreground">dakika</span>
             </div>
           </div>
-          <div className="north-now-actions mt-5 flex items-center gap-3">
+          <div className="north-now-actions mt-5 flex flex-wrap items-center gap-2.5">
             <Button asChild size="lg" className="h-10 px-5 text-sm font-semibold shadow-xs">
               <Link href={`/focus/${current.id}`}><Play size={16} className="fill-current mr-1.5"/>Odaklanmaya başla</Link>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() => { setFocusLauncherMode("free"); setFocusLauncherOpen(true); }}
+              className="h-10 px-3.5 text-xs font-semibold rounded-xl"
+            >
+              <Zap className="size-3.5 mr-1.5 text-amber-500" /> Serbest Odak
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() => { setFocusLauncherMode("reading"); setFocusLauncherOpen(true); }}
+              className="h-10 px-3.5 text-xs font-semibold rounded-xl"
+            >
+              <BookOpen className="size-3.5 mr-1.5 text-primary" /> Kitap Okuma
             </Button>
           </div>
         </section>
@@ -114,10 +135,29 @@ export function NorthToday() {
         <section className="north-empty-state p-6 sm:p-8 rounded-2xl border border-border bg-card/60 text-center sm:text-left space-y-3">
           <p className="text-xs font-bold text-primary tracking-wider uppercase">ŞİMDİ</p>
           <h2 className="text-xl sm:text-2xl font-bold text-foreground">Bugün için net bir sonraki adım yok.</h2>
-          <span className="text-xs sm:text-sm text-muted-foreground block">Bir hedef ekle veya North’tan haftanı planlamasını iste.</span>
-          <div className="flex flex-col sm:flex-row gap-2 pt-1">
-            <Button asChild className="w-full sm:w-auto"><Link href="/week">Planı aç</Link></Button>
-            <Button asChild variant="outline" className="w-full sm:w-auto"><Link href="/coach">Koç ile konuş</Link></Button>
+          <span className="text-xs sm:text-sm text-muted-foreground block">Bir hedef ekle veya sistemden bağımsız hemen serbest bir odak oturumu başlat.</span>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              type="button"
+              onClick={() => { setFocusLauncherMode("free"); setFocusLauncherOpen(true); }}
+              className="rounded-xl text-xs font-semibold shadow-xs"
+            >
+              <Zap className="size-3.5 mr-1.5 fill-current" /> Serbest Odak Başlat
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => { setFocusLauncherMode("reading"); setFocusLauncherOpen(true); }}
+              className="rounded-xl text-xs font-semibold"
+            >
+              <BookOpen className="size-3.5 mr-1.5 text-primary" /> Kitap Okuma Odağı
+            </Button>
+            <Button asChild variant="ghost" className="rounded-xl text-xs">
+              <Link href="/week">Planı aç</Link>
+            </Button>
+            <Button asChild variant="ghost" className="rounded-xl text-xs">
+              <Link href="/coach">Koç ile konuş</Link>
+            </Button>
           </div>
         </section>
       )}
@@ -185,6 +225,12 @@ export function NorthToday() {
         const result = rolloverUnfinishedTasks(state, today);
         update(() => result.state);
       }}
+    />
+
+    <FocusLauncherDialog
+      open={focusLauncherOpen}
+      onOpenChange={setFocusLauncherOpen}
+      defaultMode={focusLauncherMode}
     />
   </div>
   );

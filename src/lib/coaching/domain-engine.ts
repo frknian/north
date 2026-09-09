@@ -543,8 +543,8 @@ function diagnoseTheory(area: Area, state: NorthState, workspace: WorkspaceState
 
   const findings: DomainDiagnosticFinding[] = [];
   const metrics: DomainDiagnosticsReport["metrics"] = [];
-  let healthScore = 85;
-  let status: DomainDiagnosticsReport["status"] = "optimal";
+  const healthScore = 85;
+  const status: DomainDiagnosticsReport["status"] = "optimal";
 
   metrics.push({ label: "Kavram / Çalışma Notu", value: notesCount });
   metrics.push({

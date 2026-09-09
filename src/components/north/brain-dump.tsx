@@ -21,12 +21,15 @@ export function BrainDumpModal({ open, onOpenChange }: { open: boolean; onOpenCh
   const [input, setInput] = useState("");
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setItems(JSON.parse(stored));
-      }
-    } catch {}
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          setItems(JSON.parse(stored));
+        }
+      } catch {}
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [open]);
 
   const saveItems = (next: DumpItem[]) => {

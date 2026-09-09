@@ -28,12 +28,15 @@ export function MicroHabitsWidget() {
   const [habits, setHabits] = useState<Habit[]>(DEFAULT_HABITS);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(HABITS_KEY);
-      if (stored) {
-        setHabits(JSON.parse(stored));
-      }
-    } catch {}
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = localStorage.getItem(HABITS_KEY);
+        if (stored) {
+          setHabits(JSON.parse(stored));
+        }
+      } catch {}
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const toggleHabit = (id: string) => {

@@ -26,7 +26,8 @@ export function FocusLockBarrier({
   const [abandonCountdown, setAbandonCountdown] = useState(5);
 
   useEffect(() => {
-    setCurrentReason(reason);
+    const timer = window.setTimeout(() => setCurrentReason(reason), 0);
+    return () => window.clearTimeout(timer);
   }, [reason]);
 
   useEffect(() => {

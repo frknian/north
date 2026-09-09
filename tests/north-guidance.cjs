@@ -29,7 +29,7 @@ function loadModule(path, context = {}) {
 }
 
 const guidanceModule = loadModule('src/lib/task-guidance.ts');
-const { getTaskGuidance } = guidanceModule;
+const { getTaskGuidance, getTaskMicroSteps } = guidanceModule;
 
 console.log('--- GÖREV REHBERLİĞİ & ALAN İZOLASYONU TESTLERİ ---');
 
@@ -95,6 +95,22 @@ const mobileTask = { id: 't-mob-1', areaId: 'area-mobile', title: 'Profil Ekran�
 
 const mobileGuidance = getTaskGuidance(mobileTask, mobileArea);
 const mobileText = JSON.stringify(mobileGuidance).toLowerCase();
+
+// Task text must win when a stale area kind conflicts with an obvious language task.
+const mismatchedReadingArea = { id: 'area-reading', name: 'Okuma', kind: 'reading', goal: 'Regular reading' };
+const englishFlashcardTask = {
+  id: 't-language-priority',
+  areaId: 'area-reading',
+  title: 'English active vocabulary and flashcard set',
+  goal: 'Create a 20-word active study list with example sentences.',
+};
+const englishGuidanceText = JSON.stringify(getTaskGuidance(englishFlashcardTask, mismatchedReadingArea)).toLowerCase();
+const englishMicroSteps = getTaskMicroSteps(englishFlashcardTask, mismatchedReadingArea);
+
+assert.ok(englishGuidanceText.includes('cambridge'), 'Language task should include a trusted language resource');
+assert.ok(englishGuidanceText.includes('flashcard'), 'Language task should include a flashcard step');
+assert.ok(!englishGuidanceText.includes('stanford encyclopedia'), 'Language task must not fall through to philosophy resources');
+assert.equal(englishMicroSteps.length, 3, 'Micro-step helper must return exactly three task-specific steps');
 
 assert.ok(mobileText.includes('flutter') || mobileText.includes('android'), 'Mobil rehberlik mobil araçları içermelidir');
 console.log('   ✓ 6. Mobil Geliştirme test edildi: Flutter/Android adımları doğrulandı.');

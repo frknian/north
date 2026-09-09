@@ -1,70 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowRight, BookOpen, ExternalLink, FlaskConical, LockKeyhole, Search } from "lucide-react";
-import { useWorkspace } from "@/components/features/workspace-provider";
-import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-
-const categories = ["Tümü", "Networking", "Linux", "Pentesting", "Web", "Active Directory", "Cloud", "Python/Bash", "Reporting"];
-const quickFilters = ["Ana kaynaklar", "Lablar", "Dokümantasyon", "Ücretsiz", "Son kullanılan"] as const;
+import { ResourcesHub } from "@/components/features/resources-hub";
 
 export default function ResourcesPage() {
-  const workspace = useWorkspace();
-  const [category, setCategory] = useState("Tümü");
-  const [quick, setQuick] = useState<string>("Ana kaynaklar");
-  const [langFilter, setLangFilter] = useState<string>("Tüm Diller");
-  const [costFilter, setCostFilter] = useState<string>("Tümü");
-  const [query, setQuery] = useState("");
-
-  const visible = useMemo(() => workspace.resources.filter((resource) => {
-    const categoryMatch = category === "Tümü" || resource.category === category;
-    const langMatch = langFilter === "Tüm Diller" || (langFilter === "Türkçe" ? resource.language === "tr" : resource.language === "en");
-    const costMatch = costFilter === "Tümü" || (costFilter === "Ücretsiz" ? resource.isFree : !resource.isFree);
-    const queryMatch = `${resource.title} ${resource.provider} ${resource.tags.join(" ")}`.toLocaleLowerCase("tr").includes(query.toLocaleLowerCase("tr"));
-    const quickMatch = quick === "Ana kaynaklar" ? resource.priority === "primary" : quick === "Lablar" ? ["lab", "challenge", "vulnerable-machine", "tool"].includes(resource.resourceType) : quick === "Dokümantasyon" ? ["documentation", "reference"].includes(resource.resourceType) : quick === "Ücretsiz" ? resource.isFree : quick === "Son kullanılan" ? Boolean(resource.lastUsedAt) : true;
-    return resource.active && categoryMatch && langMatch && costMatch && queryMatch && quickMatch;
-  }), [category, langFilter, costFilter, query, quick, workspace.resources]);
-
-  const locks = Object.entries(workspace.sourceLocks ?? {});
-
-  return <><PageHeader eyebrow="Doğru zamanda doğru kaynak" title="Kaynaklar" description="Görevlerinde tekrar tekrar kullanacağın az sayıda, doğrulanmış teori ve pratik kaynağı." /><div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6 lg:p-8"><details className="rounded-xl border p-4"><summary className="cursor-pointer text-sm font-medium">Ana kaynak tercihleri</summary><Card className="mt-3 border-0 bg-transparent shadow-none"><CardHeader><CardTitle className="flex items-center gap-2"><LockKeyhole className="size-4 text-primary" /> Ana kaynak</CardTitle><CardDescription>Aktif becerilerde ana kaynak sabit tutulur; AI yalnızca yetersiz veya faydasız olduğunda alternatif önerir.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2">{locks.map(([skill, resourceId]) => { const item = workspace.resources.find((resource) => resource.id === resourceId); return item ? <Badge key={skill} variant="secondary" className="gap-1.5 py-1.5"><span className="text-muted-foreground">{skill}:</span> {item.provider}</Badge> : null; })}</CardContent></Card></details>
-  
-  <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-    <div className="relative">
-      <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Kaynak, sağlayıcı veya etiket ara" className="pl-9" />
-    </div>
-    <div className="flex flex-wrap gap-2">
-      {quickFilters.map((item) => <Button key={item} size="sm" variant={quick === item ? "default" : "outline"} onClick={() => setQuick(item)}>{item}</Button>)}
-    </div>
-  </div>
-
-  {/* Extra Filters for Language and Cost */}
-  <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-    <div className="flex gap-2 overflow-x-auto pb-1">
-      {categories.map((item) => <Button key={item} size="sm" variant={category === item ? "secondary" : "ghost"} onClick={() => setCategory(item)} className="shrink-0">{item}</Button>)}
-    </div>
-    <div className="flex items-center gap-2">
-      <select className="h-8 rounded-lg border bg-background px-2 text-xs text-muted-foreground" value={langFilter} onChange={(e) => setLangFilter(e.target.value)}>
-        <option value="Tüm Diller">Tüm Diller</option>
-        <option value="Türkçe">Türkçe</option>
-        <option value="İngilizce">İngilizce</option>
-      </select>
-      <select className="h-8 rounded-lg border bg-background px-2 text-xs text-muted-foreground" value={costFilter} onChange={(e) => setCostFilter(e.target.value)}>
-        <option value="Tümü">Tüm Ücretler</option>
-        <option value="Ücretsiz">Ücretsiz</option>
-        <option value="Ücretli">Ücretli</option>
-      </select>
-    </div>
-  </div>
-
-  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-    {visible.map((resource) => <Card key={resource.id} className="flex flex-col"><CardHeader><div className="mb-2 flex flex-wrap gap-2"><Badge>{resource.priority === "primary" ? "Ana kaynak" : resource.priority === "secondary" ? "İkincil" : "İsteğe bağlı"}</Badge><Badge variant="outline">{resource.resourceType}</Badge>{resource.isFree ? <Badge variant="outline">Ücretsiz</Badge> : <Badge variant="secondary">Ücretli</Badge>}<Badge variant="outline">{resource.language === "tr" ? "TR" : "EN"}</Badge>{resource.rating === "not_useful" && <Badge variant="destructive">İşime yaramadı</Badge>}</div><CardTitle className="text-base">{resource.title}</CardTitle><CardDescription>{resource.provider} · {resource.subcategory}</CardDescription></CardHeader><CardContent className="flex flex-1 flex-col"><p className="line-clamp-3 text-sm leading-6 text-muted-foreground">{resource.description}</p><div className="mt-4 grid grid-cols-2 gap-2 border-t pt-3 text-xs"><div><p className="text-muted-foreground">Tahmini süre</p><p className="mt-1 font-medium">{resource.estimatedTime}</p></div><div><p className="text-muted-foreground">Kullanım</p><p className="mt-1 font-medium">{resource.usageCount} kez</p></div></div><div className="mt-4 flex gap-2"><Button asChild variant="outline" className="flex-1"><Link href={`/resources/${resource.id}`}>Detay <ArrowRight /></Link></Button><Button asChild size="icon" variant="secondary"><a href={resource.url} target="_blank" rel="noreferrer" aria-label={`${resource.title} kaynağını aç`}><ExternalLink /></a></Button></div></CardContent></Card>)}
-  </div>
-  {visible.length === 0 ? <Card className="border-dashed"><CardContent className="flex flex-col items-center py-12 text-center"><BookOpen className="mb-3 size-7 text-muted-foreground" /><p className="font-medium">Bu filtreye uygun kaynak yok</p><p className="mt-1 text-sm text-muted-foreground">Kategori veya filtreleri değiştir.</p></CardContent></Card> : null}<Card><CardHeader><CardTitle className="flex items-center gap-2"><FlaskConical className="size-4 text-primary" /> Yol haritasına bağlı koleksiyon</CardTitle><CardDescription>1–3. ayda Cisco, Nmap, Wireshark, pwn.college, PortSwigger ve yerel yasal lablar önceliklidir. AD ve bulut kaynakları sonraki aşamada ağırlık kazanır.</CardDescription></CardHeader></Card></div></>;
+  return <ResourcesHub />;
 }

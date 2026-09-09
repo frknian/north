@@ -760,17 +760,17 @@ export function NorthAI({
             <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2 text-[11px]">
               <span className="text-muted-foreground font-medium">Koçun Yaklaşımı:</span>
               <div className="flex items-center gap-1">
-                {[
+                {([
                   { id: "balanced", label: "🧘 Dengeli", title: "Sakin ve sürdürülebilir" },
                   { id: "disciplined", label: "🥊 Disiplinli", title: "Tavizsiz ve motive edici" },
                   { id: "tactical", label: "💡 Taktikçi", title: "Stratejik ve pratik zekalı" },
-                ].map((s) => (
+                ] as const).map((s) => (
                   <button
                     key={s.id}
                     type="button"
                     title={s.title}
                     onClick={() => {
-                      setCoachStyle(s.id as any);
+                      setCoachStyle(s.id);
                       toast.success(`Koç tarzı "${s.label}" olarak güncellendi.`);
                     }}
                     className={cn(
@@ -1329,7 +1329,7 @@ function CoachResourceCards({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {resources.map((res, idx) => {
-          const typeConfig: Record<string, { label: string; icon: any; color: string; badge: string }> = {
+          const typeConfig: Record<string, { label: string; icon: typeof Play; color: string; badge: string }> = {
             video: {
               label: "Video / Anlatım",
               icon: Play,
@@ -1450,4 +1450,3 @@ function CoachResourceCards({
     </div>
   );
 }
-
