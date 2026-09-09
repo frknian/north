@@ -44,20 +44,17 @@ export function SanalKutuphaneBadge({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15 hover:border-emerald-500/40 transition-all cursor-pointer shadow-2xs",
+          "inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer",
           className
         )}
-        title="Sanal Kütüphane Salonunu Aç"
-        aria-label={`Sanal Kütüphane: ${count} kişi odakta`}
+        title="Sanal Kütüphane: Çalışma salonunu gör"
+        aria-label={`${count} kişi odakta`}
       >
         <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        <Users className="size-3.5 shrink-0" />
-        {compact ? (
-          <span className="font-mono font-semibold">${count}</span>
-        ) : (
-          <span>
-            Sanal Kütüphane: <strong className="font-mono">${count}</strong> kişi
-          </span>
+        <Users className="size-3 shrink-0 opacity-70" />
+        <span className="font-mono font-semibold">{count}</span>
+        {!compact && (
+          <span className="text-[10px] text-muted-foreground font-normal hidden sm:inline">odakta</span>
         )}
       </button>
 
