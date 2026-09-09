@@ -24,6 +24,7 @@ import {
   Lightbulb,
   LoaderCircle,
   Minimize2,
+  Moon,
   MoreHorizontal,
   Paperclip,
   Play,
@@ -32,6 +33,7 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Sun,
   Target,
   TrendingDown,
   TrendingUp,
@@ -62,6 +64,7 @@ import { useNorth } from "./shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { CompanionAvatar } from "./companion-avatar";
 import { NorthCoachSymbol } from "./north-coach-symbol";
 
 export function NorthAI({
@@ -86,7 +89,12 @@ export function NorthAI({
   const [applied, setApplied] = useState<number[]>([]);
   const [help, setHelp] = useState("2");
   const [selectedAreaId, setSelectedAreaId] = useState<string>("");
-  const [mobileTab, setMobileTab] = useState<"cockpit" | "chat">("chat");
+  const [mobileTab, setMobileTab] = useState<"desk" | "chat">("chat");
+  const [coachStyle, setCoachStyle] = useState<"balanced" | "disciplined" | "tactical">("balanced");
+
+  const today = dayKey();
+  const userName = workspace.profile?.fullName ? workspace.profile.fullName.split(" ")[0] : "Furkan";
+  const currentEnergy = state.energy?.date === today ? state.energy.level : "normal";
 
   const currentTask = state.tasks.find((t) => t.id === taskId);
   const selectedArea =
@@ -99,6 +107,23 @@ export function NorthAI({
     if (!selectedArea) return null;
     return diagnoseDomainState(selectedArea, state, workspace);
   }, [selectedArea, state, workspace]);
+
+  const companionSettings = workspace.companionSettings ?? {
+    name: "Yol Arkadaşım",
+    color: "blue",
+    outfit: "scarf",
+  };
+
+  function setDailyEnergy(level: "low" | "normal" | "high") {
+    update((s) => ({
+      ...s,
+      energy: { date: today, level },
+    }));
+    const label = level === "high" ? "Zindeyim 🔥" : level === "low" ? "Yorgunum 😴" : "Dengeli ⚡";
+    toast.success(`Enerjin "${label}" olarak ayarlandı.`, {
+      description: "Koç tavsiyeleri ve görev temposu güncellendi.",
+    });
+  }
 
   function formatFileSize(bytes?: number): string {
     if (!bytes) return "";
@@ -148,7 +173,6 @@ export function NorthAI({
     }
   };
 
-  // Archive and reset chat on close/open if enabled in settings
   const messagesRef = useRef(workspace.coachMessages);
   const preferencesRef = useRef(workspace.coaching.preferences);
   const archiveSessionRef = useRef(workspace.archiveCurrentCoachSession);
@@ -185,7 +209,6 @@ export function NorthAI({
 
   const handleStartPrescribedAction = (action: DomainPrescribedAction) => {
     if (!selectedArea) return;
-    const today = dayKey();
     const currentWk = weekKey();
     const newTask: NorthTask = {
       id: crypto.randomUUID(),
@@ -220,7 +243,6 @@ export function NorthAI({
     const textPrompt = (customPrompt || question).trim();
     if ((!textPrompt && pendingAttachments.length === 0) || busy) return;
 
-    const today = dayKey();
     const usage = workspace.coaching.preferences.aiUsage;
     const count = usage.date === today ? usage.count : 0;
     if (count >= workspace.coaching.preferences.dailyAiLimit) {
@@ -248,7 +270,7 @@ export function NorthAI({
     });
     setQuestion("");
 
-    // If on mobile, auto switch to chat tab so user sees the answer immediately
+    // Auto-switch to chat tab on mobile
     setMobileTab("chat");
 
     try {
@@ -261,6 +283,9 @@ export function NorthAI({
           question: promptToSend,
           history: workspace.coachMessages.slice(-20).map(({ role, content }) => ({ role, content })),
           context: JSON.stringify({
+            userName,
+            userEnergy: currentEnergy,
+            coachStyle,
             profile: workspace.profile,
             onboarding: workspace.coaching.onboarding,
             checkins: workspace.coaching.checkins.slice(0, 14),
@@ -313,91 +338,98 @@ export function NorthAI({
     }
   }
 
-  const today = dayKey();
   const usageCount =
     workspace.coaching.preferences.aiUsage.date === today ? workspace.coaching.preferences.aiUsage.count : 0;
   const dailyLimit = workspace.coaching.preferences.dailyAiLimit;
 
-  const archetypeIcons: Record<DomainArchetype, React.ReactNode> = {
-    exam: <Target className="size-4 text-rose-500" />,
-    tech: <Code2 className="size-4 text-emerald-500" />,
-    language: <Globe2 className="size-4 text-sky-500" />,
-    theory: <BookOpen className="size-4 text-amber-500" />,
-    skill: <Brain className="size-4 text-violet-500" />,
-  };
+  // Personal Note from Coach
+  const personalCoachNote = useMemo(() => {
+    const areaTitle = selectedArea?.name || "Hedeflerin";
+    if (currentEnergy === "high") {
+      return {
+        vibe: "Enerjin Çok Yüksek!",
+        badgeColor: "text-rose-500 bg-rose-500/10 border-rose-500/20",
+        message: `${userName}, bugün tam bir odak günün! Zihnin açıkken ${areaTitle} için en zorlayıcı konuyu bitirelim. Tek bir sağlam blok yeterli.`,
+        tip: domainDiagnosis?.pedagogicalAdvice || "Zorlu konuları enerjin zirvedeyken çözmek kalıcı öğrenmeyi 3 kat hızlandırır.",
+      };
+    }
+    if (currentEnergy === "low") {
+      return {
+        vibe: "Bugün Enerjin Düşük, Koruma Modundayız",
+        badgeColor: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+        message: `${userName}, yorgun hissetmen çok insani. Kendini hırpalamak yok; bugünkü tek kuralımız sıfır çekmemek. 20 dakikalık hafif bir seansla günü kurtaracağız.`,
+        tip: "Yorgun günlerde ağır soru çözmek yerine geçmiş notları ve kavram kartlarını gözden geçirmek zihni dinlendirir.",
+      };
+    }
+    return {
+      vibe: "Dengeli & İstikrarlı Tempo",
+      badgeColor: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+      message: `${userName}, ritmin gayet iyi gidiyor. ${areaTitle} için gereksiz telaş yapmadan, sıradaki adımı sakin bir odakla tamamlayalım.`,
+      tip: domainDiagnosis?.pedagogicalAdvice || "Tutarlı 40 dakika, haftada bir yapılan 4 saatlik yorucu çalışmadan çok daha kalıcıdır.",
+    };
+  }, [userName, selectedArea, currentEnergy, domainDiagnosis]);
 
-  const statusConfig = domainDiagnosis
-    ? {
-        optimal: {
-          label: "Optimal Gelişim",
-          colorClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
-          badgeIcon: <CheckCircle2 className="size-3.5 text-emerald-500" />,
-          ringColor: "text-emerald-500",
-        },
-        stagnant: {
-          label: "Durağanlık Eğilimi",
-          colorClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
-          badgeIcon: <Activity className="size-3.5 text-amber-500" />,
-          ringColor: "text-amber-500",
-        },
-        bottleneck: {
-          label: "Darboğaz Tespiti",
-          colorClass: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/25",
-          badgeIcon: <AlertTriangle className="size-3.5 text-orange-500" />,
-          ringColor: "text-orange-500",
-        },
-        at_risk: {
-          label: "Kritik Müdahale",
-          colorClass: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25",
-          badgeIcon: <AlertOctagon className="size-3.5 text-rose-500" />,
-          ringColor: "text-rose-500",
-        },
-      }[domainDiagnosis.status]
-    : null;
-
-  // Proactive greeting based on actual domain diagnosis
-  const proactiveGreeting = domainDiagnosis
-    ? `Merhaba! ${selectedArea?.name || "Hedef alanın"} için arka plan teşhisini inceledim. Durum: ${domainDiagnosis.statusLabel} (Sağlık: %${domainDiagnosis.healthScore}). ${
-        domainDiagnosis.findings[0]
-          ? `Öne çıkan tespit: "${domainDiagnosis.findings[0].title}". `
-          : ""
-      }Bugünü en net adımlarla planlayalım.`
-    : "Merhaba! Bugün için çalışma hedeflerini birlikte netleştirelim ve en verimli odak planını kuralım.";
-
-  // Quick Zero-Prompt action chips
+  // Personal zero-prompt action chips
   const quickActions = [
     {
       icon: <Target className="size-3.5 text-blue-500" />,
-      label: "Günün Planını Kilitle",
-      prompt: `Bugün ${selectedArea?.name || "alanım"} için takvimimdeki öncelikli işleri netleştir ve kapasiteme göre planı kilitle.`,
+      label: "Bugün Ne Yapmalıyım?",
+      prompt: `Selam Koç, bugün enerjim ${currentEnergy === "high" ? "yüksek" : currentEnergy === "low" ? "düşük" : "normal"}. ${selectedArea?.name || "alanım"} için bugünkü en kritik tek işi belirle.`,
     },
     {
       icon: <Minimize2 className="size-3.5 text-amber-500" />,
-      label: "Tıkandım / Görevi Küçült",
-      prompt: `Şu anki görevde tıkandım veya süre uzun geliyor; görevi daha küçük ve net adımlara böl.`,
+      label: "Tıkandım, Görevi Küçült",
+      prompt: `Şu anki görevde odaklanmakta zorlanıyorum; süreyi küçült ve beni rahatlatacak daha hafif bir adım öner.`,
     },
     {
       icon: <Zap className="size-3.5 text-rose-500" />,
-      label: "Darboğazımı Nasıl Aşarım?",
-      prompt: `${selectedArea?.name || "Bu alan"} için saptanan darboğazı (${domainDiagnosis?.statusLabel || "tıkanıklık"}) bertaraf etmek için en etkili taktik nedir?`,
+      label: "Bana Özel Taktik Ver",
+      prompt: `${selectedArea?.name || "Bu alan"} için şu an uygulayabileceğim en pratik, sonuç getiren koçluk taktiğini söyle.`,
     },
     {
-      icon: <Sparkles className="size-3.5 text-emerald-500" />,
-      label: "Gelişim Raporumu Değerlendir",
-      prompt: `Son çalışmalarımı ve ritmimi analiz et; neyi iyi yapıyorum, hangi noktayı acil değiştirmeliyim?`,
+      icon: <CoffeeIcon className="size-3.5 text-emerald-500" />,
+      label: "Çok Yorgunum, Ne Yapalım?",
+      prompt: `Bugün zihnim ve bedenim yorgun. Ritmi bozmadan ve suçluluk hissetmeden en hafif şekilde ne yapmalıyım?`,
     },
   ];
+
+  function CoffeeIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+      <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M10 2v2" />
+        <path d="M14 2v2" />
+        <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h12Z" />
+        <path d="M6 2v2" />
+      </svg>
+    );
+  }
 
   // -------------------------------------------------------------
   // COMPACT VIEW: FOR FOCUS DOCKED OR EMBEDDED MODAL
   // -------------------------------------------------------------
   if (focusDocked || embedded) {
     return (
-      <div className="flex flex-col h-full w-full min-h-0 text-foreground bg-card p-2 sm:p-3 overflow-hidden">
+      <div className="flex flex-col h-full w-full min-h-0 text-foreground bg-card p-2.5 sm:p-3 overflow-hidden">
         {/* Compact Header */}
         <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-border shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <NorthCoachSymbol size={30} variant="avatar" priority />
+            <CompanionAvatar
+              size={30}
+              color={companionSettings.color}
+              outfit={companionSettings.outfit}
+              level={1}
+            />
             <div className="min-w-0">
               <span className="text-xs font-bold text-foreground block truncate">Planorth Koç</span>
               <span className="text-[10px] text-muted-foreground truncate block">
@@ -467,27 +499,27 @@ export function NorthAI({
   }
 
   // -------------------------------------------------------------
-  // FULL PAGE VIEW: PLANORTH COACHING STUDIO (TWO-COLUMN HYBRID)
+  // FULL PAGE VIEW: PLANORTH PERSONAL COACHING STUDIO
   // -------------------------------------------------------------
   return (
-    <div className="w-full h-[calc(100dvh-4.5rem)] max-w-7xl mx-auto p-2 sm:p-4 flex flex-col gap-3">
-      {/* MOBILE SEGMENT SWITCHER (< 1024px) */}
+    <div className="w-full h-full max-w-7xl mx-auto p-2 sm:p-3.5 flex flex-col gap-2.5 overflow-hidden">
+      {/* MOBILE TOP SEGMENT BAR (< 1024px) */}
       <div className="flex lg:hidden items-center p-1 rounded-xl bg-muted/60 border border-border shrink-0">
         <button
           type="button"
-          onClick={() => setMobileTab("cockpit")}
+          onClick={() => setMobileTab("desk")}
           className={cn(
             "flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all text-center flex items-center justify-center gap-1.5",
-            mobileTab === "cockpit" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+            mobileTab === "desk" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <Activity className="size-3.5 text-primary" />
-          <span>Alan Teşhisi &amp; Reçete</span>
-          {domainDiagnosis && (
-            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded-full bg-primary/10 text-primary">
-              %{domainDiagnosis.healthScore}
-            </span>
-          )}
+          <CompanionAvatar
+            size={18}
+            color={companionSettings.color}
+            outfit={companionSettings.outfit}
+            level={1}
+          />
+          <span>Koçun Masası</span>
         </button>
         <button
           type="button"
@@ -498,102 +530,178 @@ export function NorthAI({
           )}
         >
           <Sparkles className="size-3.5 text-primary" />
-          <span>Koç Seansı</span>
+          <span>Birebir Seans</span>
         </button>
       </div>
 
-      {/* DESKTOP 12-COLUMN STUDIO GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
+      {/* 12-COLUMN MAIN STUDIO GRID: LOCKED TO SCREEN */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 flex-1 min-h-0 overflow-hidden">
         {/* ========================================================= */}
-        {/* LEFT COLUMN: DIAGNOSTICS & PRESCRIPTION DESK (5 Cols)      */}
+        {/* LEFT COLUMN: PERSONAL COACH DESK (5 Cols)                 */}
         {/* ========================================================= */}
         <aside
           className={cn(
-            "lg:col-span-5 flex flex-col gap-3.5 overflow-y-auto pr-0 lg:pr-1.5 custom-scrollbar",
+            "lg:col-span-5 flex flex-col gap-3 overflow-y-auto pr-0 lg:pr-1 custom-scrollbar",
             mobileTab === "chat" && "hidden lg:flex"
           )}
         >
-          {/* Desk Header & Area Selector */}
-          <div className="rounded-2xl border border-border/80 bg-card/80 backdrop-blur-sm p-4 shadow-xs space-y-3.5">
+          {/* 1. Personal Header & Companion Identity */}
+          <div className="rounded-2xl border border-border/80 bg-card/85 p-3.5 sm:p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <NorthCoachSymbol size={36} variant="avatar-rounded" priority />
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative shrink-0">
+                  <CompanionAvatar
+                    size={42}
+                    color={companionSettings.color}
+                    outfit={companionSettings.outfit}
+                    level={2}
+                    showAura
+                  />
+                  <span className="absolute -bottom-1 -right-1 size-3 rounded-full bg-emerald-500 border-2 border-card" />
+                </div>
                 <div className="min-w-0">
-                  <h2 className="text-sm font-bold text-foreground tracking-tight">Planorth Koçluk Masası</h2>
-                  <p className="text-[11px] text-muted-foreground truncate">Arka plan deterministik teşhis motoru</p>
+                  <h2 className="text-base font-bold text-foreground tracking-tight flex items-center gap-1.5">
+                    <span>Selam, {userName}!</span>
+                    <span className="text-sm font-normal">👋</span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Kişisel gelişimin ve hedeflerin için buradayım.
+                  </p>
                 </div>
               </div>
 
-              {/* Health Score Circle */}
-              {domainDiagnosis && statusConfig && (
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="relative size-10 flex items-center justify-center">
-                    <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-                      <path
-                        className="text-muted/30"
-                        strokeWidth="3.5"
-                        stroke="currentColor"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                      <path
-                        className={statusConfig.ringColor}
-                        strokeDasharray={`${domainDiagnosis.healthScore}, 100`}
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        stroke="currentColor"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                    <span className="absolute text-[11px] font-black font-mono">{domainDiagnosis.healthScore}</span>
-                  </div>
-                </div>
+              {/* Area Selector */}
+              {state.areas.length > 1 ? (
+                <select
+                  value={selectedArea.id}
+                  onChange={(e) => setSelectedAreaId(e.target.value)}
+                  className="rounded-xl border bg-background px-2.5 py-1 text-xs text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer max-w-[150px] truncate"
+                >
+                  {state.areas.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.icon} {a.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Badge variant="outline" className="text-xs font-semibold px-2 py-0.5 shrink-0">
+                  {selectedArea.icon} {selectedArea.name}
+                </Badge>
               )}
             </div>
 
-            {/* Active Area Selector */}
-            {selectedArea && (
-              <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Alan:</span>
-                  {state.areas.length > 1 ? (
-                    <select
-                      value={selectedArea.id}
-                      onChange={(e) => setSelectedAreaId(e.target.value)}
-                      className="rounded-lg border bg-background px-2.5 py-1 text-xs text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer truncate max-w-[200px]"
-                    >
-                      {state.areas.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.icon} {a.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="font-semibold text-foreground text-xs inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded-lg truncate">
-                      <span>{selectedArea.icon}</span>
-                      <span>{selectedArea.name}</span>
-                    </span>
-                  )}
-                </div>
-
-                {domainDiagnosis && statusConfig && (
-                  <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 font-semibold", statusConfig.colorClass)}>
-                    {statusConfig.badgeIcon}
-                    <span className="ml-1">{statusConfig.label}</span>
-                  </Badge>
-                )}
+            {/* 2. Personal Mood / Energy Check-in */}
+            <div className="pt-2.5 border-t border-border/50 flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground text-[11px]">Bugün kendini nasıl hissediyorsun?</span>
+                <span className="text-[10px] opacity-80">Ritim buna göre esner</span>
               </div>
-            )}
+
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setDailyEnergy("high")}
+                  className={cn(
+                    "py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                    currentEnergy === "high"
+                      ? "bg-rose-500/15 border-rose-500/40 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/30 font-bold"
+                      : "bg-background/60 hover:bg-muted/50 border-border/70 text-muted-foreground"
+                  )}
+                >
+                  <Flame className="size-3.5 text-rose-500" />
+                  <span>Zindeyim</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDailyEnergy("normal")}
+                  className={cn(
+                    "py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                    currentEnergy === "normal"
+                      ? "bg-blue-500/15 border-blue-500/40 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/30 font-bold"
+                      : "bg-background/60 hover:bg-muted/50 border-border/70 text-muted-foreground"
+                  )}
+                >
+                  <Zap className="size-3.5 text-blue-500" />
+                  <span>Dengeli</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDailyEnergy("low")}
+                  className={cn(
+                    "py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                    currentEnergy === "low"
+                      ? "bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30 font-bold"
+                      : "bg-background/60 hover:bg-muted/50 border-border/70 text-muted-foreground"
+                  )}
+                >
+                  <Moon className="size-3.5 text-amber-500" />
+                  <span>Yorgunum</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Coaching Style Persona Vibe */}
+            <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2 text-[11px]">
+              <span className="text-muted-foreground font-medium">Koçun Yaklaşımı:</span>
+              <div className="flex items-center gap-1">
+                {[
+                  { id: "balanced", label: "🧘 Dengeli", title: "Sakin ve sürdürülebilir" },
+                  { id: "disciplined", label: "🥊 Disiplinli", title: "Tavizsiz ve motive edici" },
+                  { id: "tactical", label: "💡 Taktikçi", title: "Stratejik ve pratik zekalı" },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    title={s.title}
+                    onClick={() => {
+                      setCoachStyle(s.id as any);
+                      toast.success(`Koç tarzı "${s.label}" olarak güncellendi.`);
+                    }}
+                    className={cn(
+                      "px-2 py-0.5 rounded-lg text-[10px] font-semibold transition cursor-pointer",
+                      coachStyle === s.id
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/40 hover:bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* PRESCRIBED ACTION HERO CARD */}
+          {/* 4. PERSONAL HANDWRITTEN COACH NOTE */}
+          <div className="rounded-2xl border border-border/80 bg-card/85 p-3.5 sm:p-4 shadow-xs space-y-2.5 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Sparkles className="size-3 text-amber-500" />
+                Koçun Sana Bugünkü Notu
+              </span>
+              <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", personalCoachNote.badgeColor)}>
+                {personalCoachNote.vibe}
+              </span>
+            </div>
+
+            <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed font-sans font-medium">
+              &ldquo;{personalCoachNote.message}&rdquo;
+            </p>
+
+            <div className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground flex items-start gap-1.5">
+              <Lightbulb className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
+              <span className="leading-snug">{personalCoachNote.tip}</span>
+            </div>
+          </div>
+
+          {/* 5. COLLABORATIVE TODAY'S MISSION (HERO ACTION) */}
           {domainDiagnosis?.prescribedAction && (
-            <div className="rounded-2xl border border-primary/30 bg-primary/[0.04] p-4 shadow-xs space-y-3">
+            <div className="rounded-2xl border border-primary/30 bg-primary/[0.04] p-3.5 sm:p-4 shadow-xs space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
                   <Zap className="size-4 fill-primary/20 text-primary" />
-                  <span>Koçun Günlük Müdahalesi</span>
+                  <span>Birlikte Belirlediğimiz Görev</span>
                 </div>
                 <Badge variant="secondary" className="text-[10px] font-mono px-2 py-0.5">
                   <Clock className="size-3 mr-1" />
@@ -603,109 +711,44 @@ export function NorthAI({
 
               <div>
                 <h4 className="text-sm font-bold text-foreground">{domainDiagnosis.prescribedAction.title}</h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                   {domainDiagnosis.prescribedAction.goal}
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-primary/15 text-[11px] text-muted-foreground">
-                <span className="italic line-clamp-1">Neden: {domainDiagnosis.prescribedAction.rationale}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-primary/15 text-[11px]">
+                <span className="text-muted-foreground italic line-clamp-1">
+                  Neden: {domainDiagnosis.prescribedAction.rationale}
+                </span>
+
                 <Button
                   size="sm"
                   onClick={() => handleStartPrescribedAction(domainDiagnosis.prescribedAction!)}
                   className="rounded-xl text-xs font-semibold shadow-xs"
                 >
                   <Play className="size-3 mr-1.5 fill-current" />
-                  Müdahaleyi Başlat
+                  Seansı Başlat
                 </Button>
               </div>
             </div>
           )}
 
-          {/* BENTO METRICS GRID */}
-          {domainDiagnosis && (
-            <div className="rounded-2xl border border-border/80 bg-card/80 p-3.5 shadow-xs space-y-2.5">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-                {domainDiagnosis.archetypeLabel} Metrikleri
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                {domainDiagnosis.metrics.map((metric, idx) => (
-                  <div key={idx} className="rounded-xl border bg-background/60 p-2.5 flex flex-col justify-between shadow-2xs">
-                    <span className="text-[10px] text-muted-foreground truncate">{metric.label}</span>
-                    <div className="flex items-baseline justify-between gap-1 mt-1">
-                      <span className="text-sm font-black font-mono text-foreground">{metric.value}</span>
-                      {metric.change && (
-                        <span
-                          className={cn(
-                            "text-[9px] font-mono inline-flex items-center gap-0.5",
-                            metric.trend === "up" && "text-emerald-500 font-semibold",
-                            metric.trend === "down" && "text-rose-500 font-semibold",
-                            metric.trend === "neutral" && "text-muted-foreground"
-                          )}
-                        >
-                          {metric.trend === "up" && <TrendingUp className="size-2.5" />}
-                          {metric.trend === "down" && <TrendingDown className="size-2.5" />}
-                          {metric.change}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TOP BOTTLENECK FINDINGS */}
-          {domainDiagnosis && domainDiagnosis.findings.length > 0 && (
-            <div className="rounded-2xl border border-border/80 bg-card/80 p-3.5 shadow-xs space-y-2">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-                Teşhis Bulgusu &amp; Röntgen
-              </span>
-              <div
-                className={cn(
-                  "rounded-xl border p-3 flex items-start gap-2.5 text-xs",
-                  domainDiagnosis.findings[0].type === "critical" && "border-rose-500/30 bg-rose-500/5 text-rose-950 dark:text-rose-200",
-                  domainDiagnosis.findings[0].type === "warning" && "border-amber-500/30 bg-amber-500/5 text-amber-950 dark:text-amber-200",
-                  domainDiagnosis.findings[0].type === "optimal" && "border-emerald-500/30 bg-emerald-500/5 text-emerald-950 dark:text-emerald-200",
-                  domainDiagnosis.findings[0].type === "info" && "border-border/60 bg-muted/20 text-foreground"
-                )}
-              >
-                {domainDiagnosis.findings[0].type === "critical" && <AlertOctagon className="size-4 text-rose-500 shrink-0 mt-0.5" />}
-                {domainDiagnosis.findings[0].type === "warning" && <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />}
-                {domainDiagnosis.findings[0].type === "optimal" && <ShieldCheck className="size-4 text-emerald-500 shrink-0 mt-0.5" />}
-                {domainDiagnosis.findings[0].type === "info" && <Lightbulb className="size-4 text-primary shrink-0 mt-0.5" />}
-
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold">{domainDiagnosis.findings[0].title}</span>
-                    {domainDiagnosis.findings[0].metricBadge && (
-                      <Badge variant="outline" className="text-[9px] font-mono px-1.5 py-0">
-                        {domainDiagnosis.findings[0].metricBadge}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-[11px] opacity-90 leading-relaxed">{domainDiagnosis.findings[0].description}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ZERO-PROMPT QUICK SEED ACTIONS */}
-          <div className="rounded-2xl border border-border/80 bg-card/80 p-3.5 shadow-xs space-y-2.5">
+          {/* 6. ZERO-PROMPT QUICK CHIPS */}
+          <div className="rounded-2xl border border-border/80 bg-card/85 p-3 shadow-xs space-y-2">
             <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-              Hızlı Koçluk İstekleri (Tek Tık)
+              Koça Hızlı Danış (Tek Tık)
             </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               {quickActions.map((qa, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => void ask(qa.prompt)}
                   disabled={busy}
-                  className="rounded-xl border border-border/60 bg-background/50 hover:bg-muted/50 p-2.5 text-left transition-all flex items-start gap-2 shadow-2xs group cursor-pointer disabled:opacity-50"
+                  className="rounded-xl border border-border/60 bg-background/50 hover:bg-muted/50 p-2 text-left transition flex items-center gap-2 cursor-pointer shadow-2xs group disabled:opacity-50"
                 >
-                  <span className="mt-0.5 shrink-0">{qa.icon}</span>
-                  <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                  <span className="shrink-0">{qa.icon}</span>
+                  <span className="text-[11px] font-semibold text-foreground group-hover:text-primary transition line-clamp-1">
                     {qa.label}
                   </span>
                 </button>
@@ -720,16 +763,29 @@ export function NorthAI({
         <section
           className={cn(
             "lg:col-span-7 flex flex-col h-full rounded-2xl border border-border/80 bg-card/90 backdrop-blur-sm overflow-hidden shadow-xs",
-            mobileTab === "cockpit" && "hidden lg:flex"
+            mobileTab === "desk" && "hidden lg:flex"
           )}
         >
           {/* Session Header */}
-          <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 border-b border-border/70 shrink-0">
+          <div className="flex items-center justify-between gap-3 p-3 sm:p-3.5 border-b border-border/70 shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="size-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <div className="relative">
+                <CompanionAvatar
+                  size={30}
+                  color={companionSettings.color}
+                  outfit={companionSettings.outfit}
+                  level={2}
+                />
+                <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-card" />
+              </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground tracking-tight">Koçluk Seansı</h3>
-                <p className="text-[11px] text-muted-foreground">Kişiselleştirilmiş strateji ve eylem rehberi</p>
+                <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-1.5">
+                  <span>{userName} &amp; Planorth Koç</span>
+                  <span className="text-[10px] font-normal px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground font-mono">
+                    {coachStyle === "disciplined" ? "Disiplinli" : coachStyle === "tactical" ? "Taktikçi" : "Dengeli"}
+                  </span>
+                </h3>
+                <p className="text-[11px] text-muted-foreground">Kişisel gelişim ve strateji seansı</p>
               </div>
             </div>
 
@@ -771,16 +827,21 @@ export function NorthAI({
             </div>
           </div>
 
-          {/* Conversation Stream */}
+          {/* Conversation Stream: Breathable, Clean, High-Contrast */}
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <Conversation className="flex-1 min-h-0 overflow-y-auto">
-              <ConversationContent className="gap-4 p-3 sm:p-5">
+              <ConversationContent className="gap-3.5 p-3 sm:p-5">
                 {workspace.coachMessages.length ? (
                   workspace.coachMessages.slice(-30).map((message) => {
                     const isAssistant = message.role === "assistant";
                     return isAssistant ? (
-                      <div key={message.id} className="flex items-start gap-3">
-                        <NorthCoachSymbol size={32} variant="avatar" />
+                      <div key={message.id} className="flex items-start gap-2.5 sm:gap-3">
+                        <CompanionAvatar
+                          size={32}
+                          color={companionSettings.color}
+                          outfit={companionSettings.outfit}
+                          level={2}
+                        />
                         <div className="max-w-[85%] space-y-1">
                           <div className="rounded-2xl rounded-tl-xs bg-muted/60 dark:bg-muted/30 border border-border/80 p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed text-foreground shadow-2xs">
                             <MessageResponse>{message.content}</MessageResponse>
@@ -792,7 +853,7 @@ export function NorthAI({
                       </div>
                     ) : (
                       <div key={message.id} className="flex flex-col items-end space-y-1">
-                        <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-primary text-primary-foreground px-4 py-3 text-xs sm:text-sm shadow-sm space-y-2">
+                        <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-primary text-primary-foreground px-4 py-2.5 text-xs sm:text-sm shadow-sm space-y-2">
                           {message.attachments && message.attachments.length > 0 && (
                             <div className="space-y-1.5">
                               {message.attachments.map((att) =>
@@ -833,20 +894,26 @@ export function NorthAI({
                     );
                   })
                 ) : (
-                  /* Proactive Greeting Card */
+                  /* Warm Initial Greeting */
                   <div className="flex items-start gap-3">
-                    <NorthCoachSymbol size={34} variant="avatar" />
+                    <CompanionAvatar
+                      size={34}
+                      color={companionSettings.color}
+                      outfit={companionSettings.outfit}
+                      level={2}
+                      showAura
+                    />
                     <div className="max-w-[88%] space-y-1">
                       <div className="rounded-2xl rounded-tl-xs bg-muted/60 dark:bg-muted/30 border border-border/80 p-4 shadow-2xs space-y-2">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-foreground">Hoş geldin!</h4>
-                          {domainDiagnosis && (
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-primary/10 text-primary font-semibold">
-                              {domainDiagnosis.archetypeLabel}
-                            </span>
-                          )}
+                          <h4 className="text-sm font-bold text-foreground">Hoş geldin, {userName}!</h4>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-primary/10 text-primary font-semibold">
+                            {selectedArea?.name || "Kişisel Gelişim"}
+                          </span>
                         </div>
-                        <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">{proactiveGreeting}</p>
+                        <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">
+                          Bugün seni dinliyorum. İster takıldığın bir konuyu sor, ister günün planını kuralım. Enerjin ve hedefin doğrultusunda yanındayım.
+                        </p>
                       </div>
                       <span className="text-[10px] text-muted-foreground ml-1 block font-mono">
                         {new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
@@ -857,10 +924,15 @@ export function NorthAI({
 
                 {busy && (
                   <div className="flex items-start gap-3">
-                    <NorthCoachSymbol size={32} variant="avatar" />
-                    <div className="inline-flex items-center gap-2 rounded-2xl bg-muted/60 border border-border px-4 py-2.5 text-xs text-foreground shadow-2xs">
+                    <CompanionAvatar
+                      size={30}
+                      color={companionSettings.color}
+                      outfit={companionSettings.outfit}
+                      level={2}
+                    />
+                    <div className="inline-flex items-center gap-2 rounded-2xl bg-muted/60 border border-border px-3.5 py-2 text-xs text-foreground shadow-2xs">
                       <LoaderCircle className="size-3.5 animate-spin text-primary" />
-                      Planorth Koç teşhis koyuyor…
+                      Planorth Koç düşünüyor…
                     </div>
                   </div>
                 )}
@@ -985,8 +1057,8 @@ export function NorthAI({
               <ConversationScrollButton />
             </Conversation>
 
-            {/* COMPOSER INPUT */}
-            <div className="p-3 border-t border-border/70 shrink-0 bg-background/50">
+            {/* Clean, Focused Composer Input */}
+            <div className="p-3 border-t border-border/70 shrink-0 bg-background/60">
               {pendingAttachments.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-muted/60 border border-border">
                   {pendingAttachments.map((att) => (
@@ -1013,7 +1085,7 @@ export function NorthAI({
                 </div>
               )}
 
-              <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-3.5 py-2.5 shadow-2xs focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+              <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-3.5 py-2 shadow-2xs focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
                 <label className="cursor-pointer text-muted-foreground hover:text-foreground transition p-1 shrink-0" title="PDF veya görsel yükle">
                   <Paperclip className="size-4.5 rotate-45" />
                   <input
@@ -1040,7 +1112,7 @@ export function NorthAI({
                       void ask();
                     }
                   }}
-                  placeholder={pendingAttachments.length > 0 ? "Dosyalar eklendi. Soru sor veya gönder..." : "Koçuna bir soru sor veya hedefini paylaş..."}
+                  placeholder={pendingAttachments.length > 0 ? "Dosyalar eklendi. Gönder..." : `Koçuna danış veya hedefini paylaş...`}
                   aria-label="Koçuna mesaj yaz"
                 />
 
@@ -1054,7 +1126,7 @@ export function NorthAI({
                   <Send className="size-3.5" />
                 </Button>
               </div>
-              {error && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive px-1">{error}</p>}
+              {error && <p role="alert" className="mt-1 text-xs font-medium text-destructive px-1">{error}</p>}
             </div>
           </div>
         </section>

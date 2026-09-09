@@ -181,9 +181,16 @@ export function AppFrame({children}:{children:React.ReactNode}) {
         <div className="north-tools"><WorkspaceSearch/><ThemeToggle/><Link href="/data" className="north-profile hidden sm:grid" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link><Link href="/profile" className="north-profile hidden sm:grid" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link></div>
       </div>
     </header>
-    <main id="north-content" className="north-main" tabIndex={-1}>
+    <main
+      id="north-content"
+      className={cn(
+        "north-main",
+        pathname === "/coach" && "!p-0 overflow-hidden h-[calc(100dvh-64px)] max-md:h-[calc(100dvh-124px)]"
+      )}
+      tabIndex={-1}
+    >
       {areaRoutes.some(p=>pathname===p||pathname.startsWith(p+"/"))&&<div className="north-context"><Link href={`/areas/${primaryArea?.id??"cyber"}`}>Alanlar / {primaryArea?.name??"Ana hedef"}</Link><span>/ {titles[pathname]??"Ayrıntı"}</span></div>}
-      <div key={pathname} className="north-route">{children}</div>
+      <div key={pathname} className={cn("north-route", pathname === "/coach" && "h-full overflow-hidden !p-0")}>{children}</div>
     </main>
     <NorthChatPopover/><MobileNavigation pathname={pathname}/>
   </div>;
