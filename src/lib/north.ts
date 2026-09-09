@@ -360,6 +360,230 @@ export function distributePoolTasksToWeek(
   };
 }
 
+export interface MonthDistributionOptions {
+  monthKey: string; // "YYYY-MM", e.g. "2026-09"
+  strategy?: "all_pool" | "rebalance_month" | "area_specific";
+  areaId?: string;
+  skipWeekends?: boolean;
+  respectRestDays?: boolean;
+  respectBlockingEvents?: boolean;
+  maxDailyMinutes?: number;
+  maxDailyTasks?: number;
+  startFromToday?: boolean;
+  today?: string;
+  restDates?: string[];
+  customDayLimits?: Record<string, number>;
+  events?: NorthEvent[];
+  protection?: { areaId: string; date: string; kind: "rest" | "freeze" }[];
+}
+
+export interface MonthDistributionResult {
+  tasks: NorthTask[];
+  distributedCount: number;
+  daysUsedCount: number;
+  summary: string;
+}
+
+export function distributeTasksAcrossMonth(
+  tasks: NorthTask[],
+  options: MonthDistributionOptions
+): MonthDistributionResult {
+  const today = options.today || dayKey();
+  const monthKey = options.monthKey || today.slice(0, 7);
+  const strategy = options.strategy || "all_pool";
+  const skipWeekends = options.skipWeekends ?? true;
+  const respectRestDays = options.respectRestDays ?? true;
+  const respectBlockingEvents = options.respectBlockingEvents ?? true;
+  const maxDailyMinutes = options.maxDailyMinutes || 90;
+  const maxDailyTasks = options.maxDailyTasks || 2;
+  const startFromToday = options.startFromToday ?? true;
+  const restDates = new Set(options.restDates || []);
+  const customDayLimits = options.customDayLimits || {};
+  const events = options.events || [];
+  const protection = options.protection || [];
+
+  if (respectRestDays) {
+    for (const p of protection) {
+      if (p.kind === "rest") {
+        restDates.add(p.date);
+      }
+    }
+  }
+
+  const [yearStr, monthStr] = monthKey.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const daysInMonthCount = new Date(year, month, 0).getDate();
+
+  const allMonthDays: string[] = [];
+  for (let d = 1; d <= daysInMonthCount; d++) {
+    const dayDate = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    allMonthDays.push(dayDate);
+  }
+
+  const isCurrentMonth = today.startsWith(monthKey);
+  let candidateDays = allMonthDays.filter((d) => {
+    if (isCurrentMonth && startFromToday && d < today) {
+      return false;
+    }
+    const dayOfWeek = new Date(`${d}T12:00:00`).getDay();
+    if (skipWeekends && (dayOfWeek === 0 || dayOfWeek === 6)) {
+      return false;
+    }
+    if (respectRestDays && restDates.has(d)) {
+      return false;
+    }
+    if (customDayLimits[d] === 0) {
+      return false;
+    }
+    return true;
+  });
+
+  if (candidateDays.length === 0) {
+    candidateDays = allMonthDays.filter((d) => !isCurrentMonth || !startFromToday || d >= today);
+  }
+
+  const dayMinutes: Record<string, number> = {};
+  const dayTaskCounts: Record<string, number> = {};
+
+  for (const d of candidateDays) {
+    dayMinutes[d] = 0;
+    dayTaskCounts[d] = 0;
+  }
+
+  if (respectBlockingEvents) {
+    for (const ev of events) {
+      if (candidateDays.includes(ev.date) && ["class", "shift", "personal", "block", "exam"].includes(ev.kind)) {
+        dayMinutes[ev.date] = (dayMinutes[ev.date] || 0) + Math.min(ev.minutes, 240);
+      }
+    }
+  }
+
+  const tasksToDistribute: NorthTask[] = [];
+
+  for (const t of tasks) {
+    if (t.status === "done" || t.status === "cancelled") {
+      if (candidateDays.includes(t.date)) {
+        dayMinutes[t.date] = (dayMinutes[t.date] || 0) + t.minutes;
+        dayTaskCounts[t.date] = (dayTaskCounts[t.date] || 0) + 1;
+      }
+      continue;
+    }
+
+    if (strategy === "area_specific" && options.areaId && t.areaId !== options.areaId) {
+      if (candidateDays.includes(t.date)) {
+        dayMinutes[t.date] = (dayMinutes[t.date] || 0) + t.minutes;
+        dayTaskCounts[t.date] = (dayTaskCounts[t.date] || 0) + 1;
+      }
+      continue;
+    }
+
+    if (strategy === "all_pool") {
+      if (!t.date || t.date === "") {
+        tasksToDistribute.push(t);
+      } else {
+        if (candidateDays.includes(t.date)) {
+          dayMinutes[t.date] = (dayMinutes[t.date] || 0) + t.minutes;
+          dayTaskCounts[t.date] = (dayTaskCounts[t.date] || 0) + 1;
+        }
+      }
+      continue;
+    }
+
+    if (strategy === "rebalance_month") {
+      if (!t.date || t.date === "" || (t.date.startsWith(monthKey) && (!startFromToday || !isCurrentMonth || t.date >= today))) {
+        tasksToDistribute.push(t);
+      } else {
+        if (candidateDays.includes(t.date)) {
+          dayMinutes[t.date] = (dayMinutes[t.date] || 0) + t.minutes;
+          dayTaskCounts[t.date] = (dayTaskCounts[t.date] || 0) + 1;
+        }
+      }
+      continue;
+    }
+
+    tasksToDistribute.push(t);
+  }
+
+  if (tasksToDistribute.length === 0) {
+    return {
+      tasks,
+      distributedCount: 0,
+      daysUsedCount: 0,
+      summary: "Dağıtılacak bekleyen görev bulunamadı.",
+    };
+  }
+
+  const tasksByArea: Record<string, NorthTask[]> = {};
+  for (const task of tasksToDistribute) {
+    if (!tasksByArea[task.areaId]) tasksByArea[task.areaId] = [];
+    tasksByArea[task.areaId].push(task);
+  }
+
+  const interleaved: NorthTask[] = [];
+  const areaKeys = Object.keys(tasksByArea);
+  let hasMore = true;
+  let round = 0;
+  while (hasMore) {
+    hasMore = false;
+    for (const aId of areaKeys) {
+      if (round < tasksByArea[aId].length) {
+        interleaved.push(tasksByArea[aId][round]);
+        hasMore = true;
+      }
+    }
+    round++;
+  }
+
+  const assignedDates = new Map<string, string>();
+  const daysUsed = new Set<string>();
+
+  for (const task of interleaved) {
+    const sortedDays = [...candidateDays].sort((a, b) => {
+      const loadA = dayMinutes[a] || 0;
+      const loadB = dayMinutes[b] || 0;
+      if (loadA !== loadB) return loadA - loadB;
+      return (dayTaskCounts[a] || 0) - (dayTaskCounts[b] || 0);
+    });
+
+    let chosenDay = sortedDays[0];
+    for (const d of sortedDays) {
+      const limit = customDayLimits[d] ?? maxDailyMinutes;
+      const currentMins = dayMinutes[d] || 0;
+      const currentCount = dayTaskCounts[d] || 0;
+
+      if (currentCount < maxDailyTasks && currentMins + task.minutes <= limit) {
+        chosenDay = d;
+        break;
+      }
+    }
+
+    assignedDates.set(task.id, chosenDay);
+    daysUsed.add(chosenDay);
+    dayMinutes[chosenDay] = (dayMinutes[chosenDay] || 0) + task.minutes;
+    dayTaskCounts[chosenDay] = (dayTaskCounts[chosenDay] || 0) + 1;
+  }
+
+  const updatedTasks = tasks.map((t) => {
+    if (assignedDates.has(t.id)) {
+      const assignedDay = assignedDates.get(t.id)!;
+      return {
+        ...t,
+        date: assignedDay,
+        week: weekKey(assignedDay),
+      };
+    }
+    return t;
+  });
+
+  return {
+    tasks: updatedTasks,
+    distributedCount: tasksToDistribute.length,
+    daysUsedCount: daysUsed.size,
+    summary: `${tasksToDistribute.length} görev ${monthKey} ayının ${daysUsed.size} gününe dengeli dağıtıldı.`,
+  };
+}
+
 export function rolloverUnfinishedTasks(state: NorthState, today = dayKey()): RolloverResult {
   const currentWeek = weekKey(today);
   const weekEnd = shiftDay(currentWeek, 6);

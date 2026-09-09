@@ -16,6 +16,8 @@ import {
   Play,
   Plus,
   RefreshCw,
+  Sliders,
+  Sparkles,
   Trash2,
   Zap,
 } from "lucide-react";
@@ -25,6 +27,7 @@ import {
   shiftDay,
   weekKey,
   distributePlanTasksToCalendar,
+  distributeTasksAcrossMonth,
   rolloverUnfinishedTasks,
   type NorthEvent,
   type NorthTask,
@@ -44,6 +47,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+export interface CalendarDaySetting {
+  date: string;
+  mode: "normal" | "rest" | "deep_work" | "light" | "busy";
+  maxMinutes?: number;
+  themeNote?: string;
+}
+
+const DAY_SETTINGS_KEY = "north:calendar_day_settings";
+
+function loadDaySettings(): Record<string, CalendarDaySetting> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(DAY_SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveDaySettings(settings: Record<string, CalendarDaySetting>) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(DAY_SETTINGS_KEY, JSON.stringify(settings));
+  } catch {}
+}
 
 const eventKindLabels: Record<
   NorthEvent["kind"],
@@ -108,24 +137,172 @@ export function NorthCalendar() {
     ["class", "shift", "personal", "block"].includes(e.kind)
   );
 
+  // Day Settings & Monthly Distribution state
+  const [daySettings, setDaySettings] = useState<Record<string, CalendarDaySetting>>({});
+  const [daySettingsOpen, setDaySettingsOpen] = useState(false);
+  const [daySettingDraft, setDaySettingDraft] = useState<CalendarDaySetting>({ date, mode: "normal", maxMinutes: 90 });
+  const [distributeModalOpen, setDistributeModalOpen] = useState(false);
+
+  // Distribution options
+  const [distributeStrategy, setDistributeStrategy] = useState<"all_pool" | "rebalance_month" | "area_specific">("all_pool");
+  const [distributeAreaId, setDistributeAreaId] = useState<string>("");
+  const [distSkipWeekends, setDistSkipWeekends] = useState<boolean>(true);
+  const [distRespectRest, setDistRespectRest] = useState<boolean>(true);
+  const [distRespectBlocks, setDistRespectBlocks] = useState<boolean>(true);
+  const [distMaxDailyTasks, setDistMaxDailyTasks] = useState<number>(2);
+  const [distMaxDailyMinutes, setDistMaxDailyMinutes] = useState<number>(90);
+
   useEffect(() => {
-    const today = dayKey();
-    const overdue = state.tasks.filter(
-      (t) => t.date && t.date < today && !["done", "cancelled"].includes(t.status)
-    );
-    if (overdue.length > 0) {
-      const result = rolloverUnfinishedTasks(state, today);
-      if (result.rolledOverCount > 0) {
-        update(() => result.state);
-        const sample = result.details
-          .slice(0, 2)
-          .map((d) => `"${d.taskTitle}" (${d.fromDate} → ${d.toDate})`)
-          .join(", ");
-        setRolloverNotice(
-          `Tamamlanamayan ${result.rolledOverCount} görev, suçluluk hissi olmadan bu haftaya aktarıldı: ${sample}`
-        );
-      }
+    setDaySettings(loadDaySettings());
+  }, []);
+
+  const openDaySettingsModal = (targetDate: string = date) => {
+    const existing = daySettings[targetDate] || { date: targetDate, mode: "normal", maxMinutes: 90, themeNote: "" };
+    setDaySettingDraft({ ...existing, date: targetDate });
+    setDaySettingsOpen(true);
+  };
+
+  const saveCurrentDaySetting = () => {
+    const targetDate = daySettingDraft.date;
+    const nextSettings = { ...daySettings, [targetDate]: daySettingDraft };
+    saveDaySettings(nextSettings);
+    setDaySettings(nextSettings);
+
+    if (daySettingDraft.mode === "rest") {
+      update((curr) => {
+        const filtered = curr.protection.filter((p) => p.date !== targetDate || p.kind !== "rest");
+        return {
+          ...curr,
+          protection: [...filtered, { areaId: "*", date: targetDate, kind: "rest" }],
+        };
+      });
+      toast.success(`${targetDate} günü Dinlenme Günü olarak ayarlandı.`);
+    } else {
+      update((curr) => ({
+        ...curr,
+        protection: curr.protection.filter((p) => p.date !== targetDate || p.kind !== "rest"),
+      }));
+      toast.success(`${targetDate} günü ayarları kaydedildi.`);
     }
+    setDaySettingsOpen(false);
+  };
+
+  const resetCurrentDaySetting = () => {
+    const targetDate = daySettingDraft.date;
+    const nextSettings = { ...daySettings };
+    delete nextSettings[targetDate];
+    saveDaySettings(nextSettings);
+    setDaySettings(nextSettings);
+
+    update((curr) => ({
+      ...curr,
+      protection: curr.protection.filter((p) => p.date !== targetDate || p.kind !== "rest"),
+    }));
+    toast.success(`${targetDate} günü ayarları sıfırlandı.`);
+    setDaySettingsOpen(false);
+  };
+
+  const shiftTasksToTomorrow = () => {
+    const targetDate = daySettingDraft.date;
+    const tomorrow = shiftDay(targetDate, 1);
+    const affectedTasks = state.tasks.filter(
+      (t) => t.date === targetDate && t.status !== "done" && t.status !== "cancelled"
+    );
+    if (affectedTasks.length === 0) {
+      toast.info("Bu günde taşınacak bekleyen görev bulunmuyor.");
+      return;
+    }
+    update((curr) => ({
+      ...curr,
+      tasks: curr.tasks.map((t) =>
+        t.date === targetDate && t.status !== "done" && t.status !== "cancelled"
+          ? { ...t, date: tomorrow, week: weekKey(tomorrow) }
+          : t
+      ),
+    }));
+    toast.success(`${affectedTasks.length} görev ${tomorrow} tarihine aktarıldı.`);
+  };
+
+  const moveTasksToPool = () => {
+    const targetDate = daySettingDraft.date;
+    const affectedTasks = state.tasks.filter(
+      (t) => t.date === targetDate && t.status !== "done" && t.status !== "cancelled"
+    );
+    if (affectedTasks.length === 0) {
+      toast.info("Bu günde havuza alınacak bekleyen görev bulunmuyor.");
+      return;
+    }
+    update((curr) => ({
+      ...curr,
+      tasks: curr.tasks.map((t) =>
+        t.date === targetDate && t.status !== "done" && t.status !== "cancelled"
+          ? { ...t, date: "" }
+          : t
+      ),
+    }));
+    toast.success(`${affectedTasks.length} görev tarihsiz havuza aktarıldı.`);
+  };
+
+  const handleMonthlyDistribution = () => {
+    const monthKey = date.slice(0, 7);
+    const restDates = Object.entries(daySettings)
+      .filter(([_, s]) => s.mode === "rest")
+      .map(([d]) => d);
+    const customLimits = Object.fromEntries(
+      Object.entries(daySettings)
+        .filter(([_, s]) => s.maxMinutes !== undefined)
+        .map(([d, s]) => [d, s.maxMinutes!])
+    );
+
+    const result = distributeTasksAcrossMonth(state.tasks, {
+      monthKey,
+      strategy: distributeStrategy,
+      areaId: distributeAreaId || undefined,
+      skipWeekends: distSkipWeekends,
+      respectRestDays: distRespectRest,
+      respectBlockingEvents: distRespectBlocks,
+      maxDailyTasks: distMaxDailyTasks,
+      maxDailyMinutes: distMaxDailyMinutes,
+      startFromToday: true,
+      today: dayKey(),
+      restDates,
+      customDayLimits: customLimits,
+      events: state.events,
+      protection: state.protection,
+    });
+
+    if (result.distributedCount === 0) {
+      toast.info("Dağıtılacak bekleyen görev bulunamadı.");
+    } else {
+      update((curr) => ({ ...curr, tasks: result.tasks }));
+      toast.success(result.summary);
+    }
+    setDistributeModalOpen(false);
+  };
+
+  const selectedDaySetting = daySettings[date];
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const today = dayKey();
+      const overdue = state.tasks.filter(
+        (t) => t.date && t.date < today && !["done", "cancelled"].includes(t.status)
+      );
+      if (overdue.length > 0) {
+        const result = rolloverUnfinishedTasks(state, today);
+        if (result.rolledOverCount > 0) {
+          update(() => result.state);
+          const sample = result.details
+            .slice(0, 2)
+            .map((d) => `"${d.taskTitle}" (${d.fromDate} → ${d.toDate})`)
+            .join(", ");
+          setRolloverNotice(
+            `Tamamlanamayan ${result.rolledOverCount} görev, suçluluk hissi olmadan bu haftaya aktarıldı: ${sample}`
+          );
+        }
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [state, update]);
 
   const handleRebalance = () => {
@@ -212,13 +389,21 @@ export function NorthCalendar() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Button
+            size="sm"
+            onClick={() => setDistributeModalOpen(true)}
+            className="rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+            title="Aylık Görev Dağıt: Havuzdaki ve plandaki görevleri ayın günlerine dengeli şekilde dağıtır"
+          >
+            <Sparkles className="size-3.5 mr-1.5" /> Aylık Görev Dağıt
+          </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleRebalance}
-            className="rounded-xl text-xs"
-            title="Dengeli Dağıt: Kaçan veya ötelenen görevleri boşluklara akıllıca paylaştırır"
+            className="rounded-xl text-xs hidden sm:inline-flex"
+            title="Dengeli Dağıt: Kaçan veya ötelenen görevleri haftaya akıllıca paylaştırır"
           >
             <RefreshCw className="size-3.5 mr-1.5 text-primary" /> Dengeli Dağıt
           </Button>
@@ -233,6 +418,7 @@ export function NorthCalendar() {
           </Button>
           <Button
             size="sm"
+            variant="outline"
             disabled={!activeAreas.length}
             onClick={() => openNewTaskModal(date)}
             className="rounded-xl text-xs shadow-xs"
@@ -362,6 +548,7 @@ export function NorthCalendar() {
               const dayTasks = state.tasks.filter((t) => t.date === d && t.status !== "cancelled");
               const dayEvents = state.events.filter((e) => e.date === d);
               const totalMins = dayTasks.reduce((acc, t) => acc + t.minutes, 0);
+              const daySetting = daySettings[d];
 
               return (
                 <div
@@ -373,11 +560,19 @@ export function NorthCalendar() {
                       ? "border-primary ring-2 ring-primary/40 bg-primary/[0.04] shadow-xs"
                       : isToday
                       ? "border-primary/40 bg-primary/[0.02]"
+                      : daySetting?.mode === "rest"
+                      ? "border-emerald-500/30 bg-emerald-500/[0.04]"
+                      : daySetting?.mode === "deep_work"
+                      ? "border-indigo-500/30 bg-indigo-500/[0.04]"
+                      : daySetting?.mode === "light"
+                      ? "border-amber-500/30 bg-amber-500/[0.04]"
+                      : daySetting?.mode === "busy"
+                      ? "border-sky-500/30 bg-sky-500/[0.04]"
                       : "border-border/60 hover:bg-muted/30"
                   )}
                 >
                   <div>
-                    {/* Top Row: Day Number + Badge */}
+                    {/* Top Row: Day Number + Setting Badge + Minutes */}
                     <div className="flex items-center justify-between gap-1 pb-1">
                       <span
                         className={cn(
@@ -391,12 +586,43 @@ export function NorthCalendar() {
                       >
                         {dayNum}
                       </span>
-                      {totalMins > 0 && (
-                        <span className="text-[10px] font-mono text-muted-foreground font-semibold">
-                          {totalMins}m
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {daySetting && daySetting.mode !== "normal" && (
+                          <span
+                            className={cn(
+                              "text-[8.5px] font-bold px-1 py-0.2 rounded leading-tight",
+                              daySetting.mode === "rest"
+                                ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                : daySetting.mode === "deep_work"
+                                ? "bg-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+                                : daySetting.mode === "light"
+                                ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                                : "bg-sky-500/20 text-sky-600 dark:text-sky-400"
+                            )}
+                          >
+                            {daySetting.mode === "rest"
+                              ? "🌴 Tatil"
+                              : daySetting.mode === "deep_work"
+                              ? "⚡ Yoğun"
+                              : daySetting.mode === "light"
+                              ? "🕯️ Hafif"
+                              : "💼 Meşgul"}
+                          </span>
+                        )}
+                        {totalMins > 0 && (
+                          <span className="text-[10px] font-mono text-muted-foreground font-semibold">
+                            {totalMins}m
+                          </span>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Theme Note if any */}
+                    {daySetting?.themeNote && (
+                      <p className="text-[9px] italic text-muted-foreground/80 truncate mb-1">
+                        &ldquo;{daySetting.themeNote}&rdquo;
+                      </p>
+                    )}
 
                     {/* Events indicator chips */}
                     {dayEvents.length > 0 && (
@@ -444,8 +670,19 @@ export function NorthCalendar() {
                     )}
                   </div>
 
-                  {/* Hover Quick Add */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end pt-1">
+                  {/* Hover Quick Action */}
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDaySettingsModal(d);
+                      }}
+                      className="text-[9px] font-semibold text-muted-foreground hover:text-primary flex items-center gap-0.5 cursor-pointer"
+                      title="Günü Ayarla"
+                    >
+                      <Sliders className="size-2.5" /> Ayarla
+                    </button>
                     <span className="text-[9px] font-semibold text-primary inline-flex items-center gap-0.5">
                       <Plus className="size-2.5" /> Seç
                     </span>
@@ -478,6 +715,12 @@ export function NorthCalendar() {
             <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-rose-500/20 bg-rose-500/10 text-rose-500">
               📝 Sınav
             </span>
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              🌴 Dinlenme Günü
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+              ⚡ Yoğun Odak
+            </span>
           </div>
         </div>
 
@@ -500,15 +743,86 @@ export function NorthCalendar() {
               </h3>
             </div>
 
-            <div className="text-right">
-              <span className="font-mono text-base font-extrabold text-primary block">
-                {selectedMinutes} dk
-              </span>
-              <span className="text-[10px] text-muted-foreground block">
-                {selectedTasks.length} görev
-              </span>
+            <div className="flex items-center gap-2">
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => openDaySettingsModal(date)}
+                className="rounded-lg text-[11px] h-7 px-2 font-medium border-border/80 hover:border-primary/40 text-foreground shadow-2xs"
+                title="Bu günü özelleştir (Dinlenme, Yoğun Çalışma, Kapasite, Not)"
+              >
+                <Sliders className="size-3 mr-1 text-primary" /> Gün Ayarla
+              </Button>
+              <div className="text-right">
+                <span className="font-mono text-base font-extrabold text-primary block">
+                  {selectedMinutes} dk
+                </span>
+                <span className="text-[10px] text-muted-foreground block">
+                  {selectedTasks.length} görev
+                </span>
+              </div>
             </div>
           </div>
+
+          {/* Day Setting Info Banner if configured */}
+          {selectedDaySetting && (
+            <div
+              className={cn(
+                "rounded-xl border p-2.5 text-xs flex items-center justify-between gap-2 shadow-2xs",
+                selectedDaySetting.mode === "rest"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                  : selectedDaySetting.mode === "deep_work"
+                  ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
+                  : selectedDaySetting.mode === "light"
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                  : selectedDaySetting.mode === "busy"
+                  ? "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                  : "border-border/60 bg-muted/30 text-foreground"
+              )}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-base">
+                  {selectedDaySetting.mode === "rest"
+                    ? "🌴"
+                    : selectedDaySetting.mode === "deep_work"
+                    ? "⚡"
+                    : selectedDaySetting.mode === "light"
+                    ? "🕯️"
+                    : selectedDaySetting.mode === "busy"
+                    ? "💼"
+                    : "🌿"}
+                </span>
+                <div className="min-w-0">
+                  <span className="font-bold block truncate text-xs">
+                    {selectedDaySetting.mode === "rest"
+                      ? "Dinlenme & Mola Günü"
+                      : selectedDaySetting.mode === "deep_work"
+                      ? "Yoğun Odak Günü"
+                      : selectedDaySetting.mode === "light"
+                      ? "Hafif Gün"
+                      : selectedDaySetting.mode === "busy"
+                      ? "Ders / Mesai Günü"
+                      : "Normal Gün"}
+                    {selectedDaySetting.maxMinutes !== undefined &&
+                      ` · Hedef: ${selectedDaySetting.maxMinutes} dk`}
+                  </span>
+                  {selectedDaySetting.themeNote && (
+                    <span className="text-[11px] opacity-85 italic block truncate">
+                      &ldquo;{selectedDaySetting.themeNote}&rdquo;
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => openDaySettingsModal(date)}
+                className="h-6 px-2 text-[10px] shrink-0 hover:bg-background/40"
+              >
+                Düzenle
+              </Button>
+            </div>
+          )}
 
           {/* Conflict Alert if any */}
           {selectedBlockingEvents.length > 0 && selectedTasks.length > 0 && (
@@ -898,6 +1212,340 @@ export function NorthCalendar() {
               className="rounded-xl text-xs"
             >
               Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GÜN AYARLA (DAY SETTINGS) MODAL */}
+      <Dialog open={daySettingsOpen} onOpenChange={setDaySettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2">
+              <Sliders className="size-4 text-primary" />
+              <span>Günü Ayarla</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              <strong className="text-foreground">{selectedDateFormatted}</strong> için kapasite, dinlenme ve odak temasını belirle.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            {/* GÜN TİPİ / MODU */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Gün Modu / Tipi</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { mode: "normal", label: "🌿 Normal Gün", desc: "Standart tempo (60-90 dk)" },
+                  { mode: "rest", label: "🌴 Dinlenme Günü", desc: "Görev atanmaz, mola" },
+                  { mode: "deep_work", label: "⚡ Yoğun Odak", desc: "Derin iş (120-180 dk)" },
+                  { mode: "light", label: "🕯️ Hafif Gün", desc: "Tek küçük adım (30 dk)" },
+                ].map((item) => (
+                  <button
+                    key={item.mode}
+                    type="button"
+                    onClick={() => {
+                      const maxM = item.mode === "rest" ? 0 : item.mode === "light" ? 30 : item.mode === "deep_work" ? 150 : 90;
+                      setDaySettingDraft((prev) => ({ ...prev, mode: item.mode as any, maxMinutes: maxM }));
+                    }}
+                    className={cn(
+                      "rounded-xl border p-2 text-left transition-all cursor-pointer flex flex-col gap-0.5",
+                      daySettingDraft.mode === item.mode
+                        ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
+                        : "border-border/70 hover:bg-muted/40 text-foreground"
+                    )}
+                  >
+                    <span className="text-xs">{item.label}</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">{item.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* GÜNLÜK MAKSİMUM KAPASİTE */}
+            {daySettingDraft.mode !== "rest" && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold">Günlük Maksimum Odak Süresi</Label>
+                  <span className="font-mono text-xs font-bold text-primary">
+                    {daySettingDraft.maxMinutes ?? 90} dakika
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[30, 45, 60, 90, 120, 180].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setDaySettingDraft((prev) => ({ ...prev, maxMinutes: m }))}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg border text-xs font-mono transition-all cursor-pointer",
+                        (daySettingDraft.maxMinutes ?? 90) === m
+                          ? "bg-primary text-primary-foreground border-primary font-bold"
+                          : "border-border/70 text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {m} dk
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* GÜNÜN NOTU / ODAK TEMASI */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Günün Notu veya Teması (İsteğe Bağlı)</Label>
+              <Input
+                value={daySettingDraft.themeNote || ""}
+                onChange={(e) => setDaySettingDraft((prev) => ({ ...prev, themeNote: e.target.value }))}
+                placeholder="Örn: Sadece Türev Soru Çözümü, Sınav Günü, Şehir Dışı vb."
+                className="rounded-xl text-xs"
+              />
+            </div>
+
+            {/* HIZLI GÜN AKSİYONLARI */}
+            {selectedTasks.length > 0 && (
+              <div className="rounded-xl border border-border/80 bg-muted/20 p-2.5 space-y-2">
+                <span className="text-[11px] font-semibold text-foreground block">
+                  Bu Günün Görevleri ({selectedTasks.length} görev · {selectedMinutes} dk)
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    onClick={shiftTasksToTomorrow}
+                    className="text-[11px] h-7 rounded-lg"
+                  >
+                    ⏩ Yarına Kaydır
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    onClick={moveTasksToPool}
+                    className="text-[11px] h-7 rounded-lg"
+                  >
+                    📥 Havuza Gönder
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+            {daySettings[daySettingDraft.date] ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={resetCurrentDaySetting}
+                className="text-muted-foreground hover:text-destructive text-xs"
+              >
+                Ayarları Sıfırla
+              </Button>
+            ) : <div />}
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDaySettingsOpen(false)}
+                className="rounded-xl text-xs"
+              >
+                Vazgeç
+              </Button>
+              <Button
+                size="sm"
+                onClick={saveCurrentDaySetting}
+                className="rounded-xl text-xs font-semibold"
+              >
+                Ayarları Kaydet
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AYLIK GÖREV DAĞIT MODAL */}
+      <Dialog open={distributeModalOpen} onOpenChange={setDistributeModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2">
+              <Sparkles className="size-4 text-primary" />
+              <span>Aylık Görev Dağıtımı & Akıllı Planlama</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Havuzdaki ve plandaki görevleri <strong className="text-foreground capitalize">{monthName}</strong> ayının günlerine kapasite ve dinlenme kurallarına göre dengeli dağıt.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            {/* BİLGİ ÖZET KARTI */}
+            <div className="rounded-xl border border-primary/25 bg-primary/5 p-3 flex items-center justify-between gap-2">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-foreground block">
+                  {distributeStrategy === "all_pool"
+                    ? `${optionalPool.length} Havuz Görevi Dağıtılacak`
+                    : distributeStrategy === "rebalance_month"
+                    ? `${state.tasks.filter((t) => t.status !== "done" && t.status !== "cancelled").length} Görev Baştan Dengelenecek`
+                    : `${state.tasks.filter((t) => t.areaId === distributeAreaId && t.status !== "done").length} Alan Görevi Dağıtılacak`}
+                </span>
+                <span className="text-[11px] text-muted-foreground block">
+                  {monthName} ayı için dinlenme ve blok kurallarına göre dağıtım yapılır.
+                </span>
+              </div>
+              <Badge variant="outline" className="font-mono text-xs text-primary border-primary/30">
+                {distributeStrategy === "all_pool" ? `${optionalPool.length} Görev` : "Akıllı Dağıtım"}
+              </Badge>
+            </div>
+
+            {/* DAĞITIM STRATEJİSİ */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Dağıtım Kapsamı</Label>
+              <div className="space-y-1.5">
+                {[
+                  {
+                    id: "all_pool",
+                    title: "Sadece Havuzdaki Görevleri Dağıt (Tavsiye Edilen)",
+                    desc: "Tarihsiz ve bekleyen görevleri ayın boş günlerine yerleştirir; mevcut planlı günlere dokunmaz.",
+                  },
+                  {
+                    id: "rebalance_month",
+                    title: "Tüm Ayı Baştan Sıfırla & Dengeli Dağıt",
+                    desc: "Bu aydaki tüm bekleyen görevleri ve havuzu sıfırdan tüm aya eşit paylaştırır.",
+                  },
+                  {
+                    id: "area_specific",
+                    title: "Belirli Bir Alanın Görevlerini Dağıt",
+                    desc: "Sadece seçeceğin hedefin görevlerini ay günlerine dağıtır.",
+                  },
+                ].map((s) => (
+                  <label
+                    key={s.id}
+                    className={cn(
+                      "flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all",
+                      distributeStrategy === s.id
+                        ? "border-primary bg-primary/[0.04] text-foreground font-medium"
+                        : "border-border/70 hover:bg-muted/30 text-muted-foreground"
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="distribute_strategy"
+                      checked={distributeStrategy === s.id}
+                      onChange={() => setDistributeStrategy(s.id as any)}
+                      className="mt-0.5 accent-primary"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs font-semibold text-foreground block">{s.title}</span>
+                      <span className="text-[11px] text-muted-foreground block">{s.desc}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* ALAN SEÇİMİ (EĞER AREA_SPECIFIC İSE) */}
+            {distributeStrategy === "area_specific" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Hedef Alan</Label>
+                <select
+                  value={distributeAreaId}
+                  onChange={(e) => setDistributeAreaId(e.target.value)}
+                  className="w-full rounded-xl border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="">Tüm Alanlar</option>
+                  {activeAreas.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({state.tasks.filter((t) => t.areaId === a.id && t.status !== "done").length} bekleyen görev)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* DAĞITIM KURALLARI & KISITLAR */}
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <Label className="text-xs font-semibold">Akıllı Kurallar & Kısıtlamalar</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-border/60 cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={distSkipWeekends}
+                    onChange={(e) => setDistSkipWeekends(e.target.checked)}
+                    className="accent-primary rounded"
+                  />
+                  <span className="text-xs text-foreground">📅 Hafta sonlarını atla</span>
+                </label>
+
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-border/60 cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={distRespectRest}
+                    onChange={(e) => setDistRespectRest(e.target.checked)}
+                    className="accent-primary rounded"
+                  />
+                  <span className="text-xs text-foreground">🌴 Dinlenme günlerini koru</span>
+                </label>
+
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-border/60 cursor-pointer hover:bg-muted/30 col-span-1 sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={distRespectBlocks}
+                    onChange={(e) => setDistRespectBlocks(e.target.checked)}
+                    className="accent-primary rounded"
+                  />
+                  <span className="text-xs text-foreground">💼 Sabit bloklara (mesai/ders) saygı göster</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Maksimum Günlük Görev</Label>
+                  <select
+                    value={distMaxDailyTasks}
+                    onChange={(e) => setDistMaxDailyTasks(Number(e.target.value))}
+                    className="w-full rounded-xl border bg-background px-2.5 py-1 text-xs"
+                  >
+                    <option value={1}>Günde en fazla 1 görev</option>
+                    <option value={2}>Günde en fazla 2 görev</option>
+                    <option value={3}>Günde en fazla 3 görev</option>
+                    <option value={4}>Günde en fazla 4 görev</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Maksimum Günlük Süre</Label>
+                  <select
+                    value={distMaxDailyMinutes}
+                    onChange={(e) => setDistMaxDailyMinutes(Number(e.target.value))}
+                    className="w-full rounded-xl border bg-background px-2.5 py-1 text-xs"
+                  >
+                    <option value={45}>Maksimum 45 dakika</option>
+                    <option value={60}>Maksimum 60 dakika</option>
+                    <option value={90}>Maksimum 90 dakika</option>
+                    <option value={120}>Maksimum 120 dakika</option>
+                    <option value={180}>Maksimum 180 dakika</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDistributeModalOpen(false)}
+              className="rounded-xl text-xs"
+            >
+              Vazgeç
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleMonthlyDistribution}
+              className="rounded-xl text-xs font-semibold shadow-xs"
+            >
+              <Sparkles className="size-3.5 mr-1.5" /> Dağıtımı Başlat
             </Button>
           </DialogFooter>
         </DialogContent>
