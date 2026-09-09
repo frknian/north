@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { NorthAI } from "./ai";
 import { NorthCoachSymbol } from "./north-coach-symbol";
@@ -14,9 +15,14 @@ export function NorthChatPopover({
   onOpenChange?: (open: boolean) => void;
   taskId?: string;
 } = {}) {
+  const pathname = usePathname();
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
+
+  if (pathname === "/coach" || pathname === "/north-ai") {
+    return null;
+  }
 
   const setOpen = (val: boolean | ((prev: boolean) => boolean)) => {
     const next = typeof val === "function" ? val(open) : val;
@@ -30,7 +36,7 @@ export function NorthChatPopover({
     <div className="fixed bottom-20 right-4 z-40 sm:bottom-7 sm:right-7">
       {open ? (
         <section
-          className="mb-3 w-[calc(100vw-2rem)] max-w-[380px] sm:max-w-[390px] h-[860px] max-h-[92dvh] overflow-hidden rounded-[30px] border border-[#141E33] bg-[#070C16] shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200 flex flex-col p-3 sm:p-3.5"
+          className="mb-3 w-[calc(100vw-2rem)] sm:w-[420px] h-[620px] max-h-[85dvh] overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200 flex flex-col p-3 sm:p-4"
           aria-label="Planorth Koç sohbeti"
         >
           <NorthAI embedded taskId={taskId} onClose={() => setOpen(false)} />

@@ -22,7 +22,6 @@ import {
 import { deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
 import {
   ArrowRight,
-  Bot,
   Check,
   Flame,
   Languages,
@@ -33,10 +32,11 @@ import {
   Volume2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { NorthCoachSymbol } from "@/components/north/north-coach-symbol";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { NorthCoachSymbol } from "@/components/north/north-coach-symbol";
 import {
   Dialog,
   DialogContent,
@@ -312,99 +312,84 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative min-h-dvh flex items-center justify-center overflow-x-hidden bg-[#060B15] text-white px-4 py-8 sm:py-12">
-      {/* Ambient background glows */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 size-[620px] rounded-full bg-blue-600/10 blur-[130px] opacity-70" />
-      <div className="pointer-events-none absolute -bottom-32 left-10 size-[450px] rounded-full bg-indigo-600/10 blur-[120px] opacity-40" />
-      <div className="pointer-events-none absolute -bottom-32 right-10 size-[450px] rounded-full bg-cyan-600/10 blur-[120px] opacity-40" />
+    <main className="relative min-h-dvh flex items-center justify-center overflow-x-hidden bg-background text-foreground px-4 py-8 sm:py-12">
+      {/* Theme toggle in top right */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle className="size-9 border border-border bg-card shadow-2xs" />
+      </div>
+
+      {/* Subtle ambient background glow */}
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 size-[500px] rounded-full bg-primary/5 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-32 right-10 size-[350px] rounded-full bg-primary/5 blur-[100px]" />
 
       <div className="relative w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-8 xl:gap-12 z-10">
-        {/* SOL VİTRİN: Canlı Odak & Zen Sayaç Bento Kartları (Web/Masaüstü için - İngilizce & Odak) */}
-        <div className="hidden lg:flex flex-col gap-5 w-[330px] xl:w-[360px] shrink-0">
-          {/* Bento 1: Günlük Odak Kartı (İngilizce C1) */}
-          <div className="rounded-2xl border border-zinc-800/90 bg-[#0B101D]/90 p-5 shadow-2xl backdrop-blur-md transition hover:border-zinc-700/80">
+        {/* SOL VİTRİN: Canlı Odak & Zen Sayaç (Desktop vitrini) */}
+        <div className="hidden lg:flex flex-col gap-5 w-[330px] shrink-0">
+          <div className="rounded-2xl border border-border bg-card/80 p-5 shadow-lg backdrop-blur-md">
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[11px] font-semibold text-blue-400">
-                <Sparkles className="size-3" /> Bugünün Odak Görevi
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                <Sparkles className="size-3" /> Günlük Odak
               </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-400">
-                <Flame className="size-3.5 fill-amber-400" /> 14 Gün Seri
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-500">
+                <Flame className="size-3.5 fill-amber-500" /> 14 Gün Seri
               </span>
             </div>
 
-            <h3 className="text-sm font-bold text-white mb-1.5 leading-snug">
-              C1 İleri Kelime & Dinleme (Listening)
+            <h3 className="text-sm font-bold text-foreground mb-1.5 leading-snug">
+              C1 İleri Kelime &amp; Dinleme
             </h3>
-            <p className="text-xs text-zinc-400 mb-3.5 flex items-center gap-1.5">
-              <Languages className="size-3.5 text-blue-400" />
-              Yabancı Dil · 45 dk derin odak oturumu
+            <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
+              <Languages className="size-3.5 text-primary" />
+              Yabancı Dil · 45 dk derin odak
             </p>
 
-            {/* Checklist */}
-            <div className="space-y-2 mb-3.5 text-xs">
-              <div className="flex items-center gap-2.5 rounded-lg bg-[#131B2E]/60 border border-blue-950/60 px-3 py-2 text-zinc-300">
-                <span className="grid size-4 place-items-center rounded-full bg-emerald-500/20 text-emerald-400">
-                  <Check className="size-3" />
-                </span>
-                <span className="line-through text-zinc-500">20 yeni C1 akademik kelime tekrarı</span>
+            <div className="space-y-2 mb-3 text-xs">
+              <div className="flex items-center gap-2 rounded-lg bg-muted/40 border border-border/50 px-3 py-2 text-muted-foreground">
+                <Check className="size-3.5 text-emerald-500" />
+                <span className="line-through">20 yeni C1 kelime tekrarı</span>
               </div>
-              <div className="flex items-center gap-2.5 rounded-lg bg-[#131B2E]/60 border border-blue-950/60 px-3 py-2 text-zinc-300">
-                <span className="grid size-4 place-items-center rounded-full bg-emerald-500/20 text-emerald-400">
-                  <Check className="size-3" />
-                </span>
-                <span className="line-through text-zinc-500">BBC 6-Minute English dinleme & gölgeleme</span>
-              </div>
-              <div className="flex items-center gap-2.5 rounded-lg bg-[#0E1526] border border-blue-500/30 px-3 py-2 text-white font-medium shadow-xs">
-                <span className="size-2 rounded-full bg-blue-500 animate-pulse ml-1 mr-1" />
-                <span>Günlük konuşma pratiği ve telaffuz kaydı</span>
+              <div className="flex items-center gap-2 rounded-lg bg-card border border-primary/30 px-3 py-2 text-foreground font-medium shadow-2xs">
+                <span className="size-2 rounded-full bg-primary animate-pulse" />
+                <span>Dinleme ve telaffuz pratiği</span>
               </div>
             </div>
 
-            {/* Progress Bar */}
             <div className="space-y-1.5">
-              <div className="flex justify-between text-[11px] text-zinc-400">
-                <span>Tamamlanma Oranı</span>
-                <span className="font-semibold text-blue-400">%75 (3 / 4 Adım)</span>
+              <div className="flex justify-between text-[11px] text-muted-foreground">
+                <span>Tamamlanma</span>
+                <span className="font-semibold text-primary">%75</span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full w-3/4 transition-all duration-500" />
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-full bg-primary rounded-full w-3/4 transition-all duration-500" />
               </div>
             </div>
           </div>
 
-          {/* Bento 2: Zen Sayaç & Ses Mikseri */}
-          <div className="rounded-2xl border border-zinc-800/90 bg-[#0B101D]/90 p-4.5 shadow-2xl backdrop-blur-md transition hover:border-zinc-700/80">
+          <div className="rounded-2xl border border-border bg-card/80 p-4.5 shadow-lg backdrop-blur-md">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
                 Zen Odak Kokpiti
               </span>
-              <span className="text-[11px] text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded-md">
+              <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                 Kilitli Mod
               </span>
             </div>
-
             <div className="flex items-center justify-around py-1">
-              {/* Mini Circular Timer */}
-              <div className="relative grid size-20 place-items-center rounded-full border-2 border-blue-500/30 bg-[#0E1526]">
+              <div className="relative grid size-16 place-items-center rounded-full border-2 border-primary/30 bg-background shadow-2xs">
                 <div className="text-center">
-                  <span className="font-mono text-lg font-bold text-white">25:00</span>
-                  <span className="block text-[9px] text-blue-400 font-medium">ZEN</span>
+                  <span className="font-mono text-base font-bold text-foreground">25:00</span>
+                  <span className="block text-[8px] text-primary font-medium">ZEN</span>
                 </div>
               </div>
-
-              {/* Status details */}
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-1.5 text-zinc-300">
-                  <Volume2 className="size-3.5 text-blue-400" />
-                  <span>🌧️ Yağmur Sesi (%60)</span>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Volume2 className="size-3.5 text-primary" />
+                  <span>🌧️ Yağmur Sesi</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-medium">
-                  <span className="size-1.5 rounded-full bg-emerald-400" />
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
                   Demir İrade: Aktif
-                </div>
-                <div className="text-[10px] text-zinc-400">
-                  Sekmeler ve bildirimler engelli
                 </div>
               </div>
             </div>
@@ -415,365 +400,345 @@ export default function LoginPage() {
         <div className="w-full max-w-md shrink-0">
           <Brand />
 
-          <Card className="border border-zinc-800/90 bg-[#0B101D]/95 shadow-2xl backdrop-blur-xl rounded-3xl overflow-hidden">
-            <CardContent className="p-5 sm:p-7 space-y-4">
-              {!firebaseReady ? (
-                <LocalMode />
-              ) : pending ? (
-                <Verification
-                  busy={busy}
-                  onResend={resend}
-                  onDone={() => {
-                    setPending(false);
-                    setMode("signin");
-                  }}
-                />
-              ) : (
-                <>
-                  {/* SEKMELER: GİRİŞ YAP & KAYIT OL */}
-                  <div className="grid grid-cols-2 rounded-xl bg-[#0E1526] p-1 border border-zinc-800/90 mb-4" role="tablist">
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={mode === "signin"}
-                      className={cn(
-                        "rounded-lg py-2 text-xs sm:text-sm font-semibold transition-all",
-                        mode === "signin"
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-zinc-400 hover:text-zinc-200"
-                      )}
-                      onClick={() => setMode("signin")}
-                    >
-                      Giriş Yap
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={mode === "signup"}
-                      className={cn(
-                        "rounded-lg py-2 text-xs sm:text-sm font-semibold transition-all",
-                        mode === "signup"
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-zinc-400 hover:text-zinc-200"
-                      )}
-                      onClick={() => setMode("signup")}
-                    >
-                      Kayıt Ol
-                    </button>
-                  </div>
+          <Card className="w-full border border-border bg-card text-card-foreground shadow-xl rounded-2xl overflow-hidden">
+          <CardContent className="p-5 sm:p-7 space-y-4">
+            {!firebaseReady ? (
+              <LocalMode />
+            ) : pending ? (
+              <Verification
+                busy={busy}
+                onResend={resend}
+                onDone={() => {
+                  setPending(false);
+                  setMode("signin");
+                }}
+              />
+            ) : (
+              <>
+                {/* SEKMELER: GİRİŞ YAP & KAYIT OL */}
+                <div className="grid grid-cols-2 rounded-xl bg-muted p-1 border border-border mb-4" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={mode === "signin"}
+                    className={cn(
+                      "rounded-lg py-2 text-xs sm:text-sm font-semibold transition-all",
+                      mode === "signin"
+                        ? "bg-background text-foreground shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => setMode("signin")}
+                  >
+                    Giriş Yap
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={mode === "signup"}
+                    className={cn(
+                      "rounded-lg py-2 text-xs sm:text-sm font-semibold transition-all",
+                      mode === "signup"
+                        ? "bg-background text-foreground shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => setMode("signup")}
+                  >
+                    Kayıt Ol
+                  </button>
+                </div>
 
-                  {/* GOOGLE BUTONU */}
-                  <div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      className="w-full h-12 border-zinc-800 bg-[#0E1526] hover:bg-[#131B2E] hover:border-blue-500/40 text-white font-medium shadow-sm transition-all flex items-center justify-center gap-3 rounded-2xl"
-                      disabled={busy || googleBusy}
-                      onClick={signInWithGoogle}
-                    >
-                      {googleBusy ? (
-                        <span className="inline-flex items-center gap-2 text-xs text-zinc-300">
-                          <LoaderCircle className="size-4 animate-spin text-blue-500" />
-                          Google ile bağlanıyor…
+                {/* GOOGLE BUTONU */}
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="w-full h-11 border-border bg-background hover:bg-muted text-foreground font-medium shadow-2xs transition-all flex items-center justify-center gap-3 rounded-xl"
+                    disabled={busy || googleBusy}
+                    onClick={signInWithGoogle}
+                  >
+                    {googleBusy ? (
+                      <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                        <LoaderCircle className="size-4 animate-spin text-primary" />
+                        Google ile bağlanıyor…
+                      </span>
+                    ) : (
+                      <>
+                        <GoogleMark />
+                        <span className="text-sm font-medium">
+                          {mode === "signup" ? "Google ile Kayıt Ol" : "Google ile Giriş Yap"}
                         </span>
-                      ) : (
-                        <>
-                          <GoogleMark />
-                          <span className="text-sm font-semibold tracking-wide">
-                            {mode === "signup" ? "Google ile Kayıt Ol" : "Google ile Giriş Yap"}
-                          </span>
-                        </>
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* VEYA E-POSTA AYIRICI */}
+                <div className="relative my-4 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <span className="relative bg-card px-3 text-[11px] font-medium text-muted-foreground">
+                    veya e-posta ile {mode === "signup" ? "kayıt ol" : "devam et"}
+                  </span>
+                </div>
+
+                {/* FORM ALANLARI */}
+                <div className="space-y-3.5">
+                  {/* E-posta */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="auth-email" className="text-xs font-medium text-foreground">
+                      E-posta Adresi
+                    </Label>
+                    <Input
+                      id="auth-email"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="ornek@alanadi.com"
+                      className="h-10 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20"
+                    />
+                  </div>
+
+                  {/* Şifre */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="auth-password" className="text-xs font-medium text-foreground">
+                        Şifre
+                      </Label>
+                      {mode === "signin" && (
+                        <button
+                          type="button"
+                          className="text-xs font-medium text-primary hover:underline"
+                          disabled={busy}
+                          onClick={resetPassword}
+                        >
+                          Şifremi unuttum
+                        </button>
                       )}
-                    </Button>
-                  </div>
-
-                  {/* VEYA E-POSTA AYIRICI */}
-                  <div className="relative my-4 flex items-center justify-center">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-zinc-800" />
                     </div>
-                    <span className="relative bg-[#0B101D] px-3 text-[11px] font-medium text-zinc-400">
-                      veya e-posta ile {mode === "signup" ? "kayıt ol" : "devam et"}
-                    </span>
+                    <Input
+                      id="auth-password"
+                      type="password"
+                      autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="h-10 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20"
+                    />
+                    {mode === "signup" && (
+                      <p className="text-[11px] text-muted-foreground">En az 6 karakter.</p>
+                    )}
                   </div>
 
-                  {/* FORM ALANLARI */}
-                  <div className="space-y-3.5">
-                    {/* E-posta */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="auth-email" className="text-xs font-medium text-zinc-300">
-                        E-posta Adresi
+                  {/* Şifre Tekrarı (Sadece Kayıt Ol modunda) */}
+                  {mode === "signup" && (
+                    <div className="space-y-1.5 animate-in fade-in duration-200">
+                      <Label htmlFor="auth-confirm-password" className="text-xs font-medium text-foreground">
+                        Şifre Tekrarı
                       </Label>
                       <Input
-                        id="auth-email"
-                        type="email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="ornek@alanadi.com"
-                        className="h-10 rounded-xl border-zinc-800 bg-[#0E1526] text-white placeholder:text-zinc-600 focus-visible:border-blue-500/60 focus-visible:ring-blue-500/20"
-                      />
-                    </div>
-
-                    {/* Şifre */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="auth-password" className="text-xs font-medium text-zinc-300">
-                          Şifre
-                        </Label>
-                        {mode === "signin" && (
-                          <button
-                            type="button"
-                            className="text-xs font-medium text-blue-400 hover:text-blue-300 hover:underline"
-                            disabled={busy}
-                            onClick={resetPassword}
-                          >
-                            Şifremi unuttum
-                          </button>
-                        )}
-                      </div>
-                      <Input
-                        id="auth-password"
+                        id="auth-confirm-password"
                         type="password"
-                        autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="h-10 rounded-xl border-zinc-800 bg-[#0E1526] text-white placeholder:text-zinc-600 focus-visible:border-blue-500/60 focus-visible:ring-blue-500/20"
-                      />
-                      {mode === "signup" && (
-                        <p className="text-[11px] text-zinc-400">En az 6 karakter.</p>
-                      )}
-                    </div>
-
-                    {/* Şifre Tekrarı (Sadece Kayıt Ol modunda) */}
-                    {mode === "signup" && (
-                      <div className="space-y-1.5 animate-in fade-in duration-200">
-                        <Label htmlFor="auth-confirm-password" className="text-xs font-medium text-zinc-300">
-                          Şifre Tekrarı
-                        </Label>
-                        <Input
-                          id="auth-confirm-password"
-                          type="password"
-                          autoComplete="new-password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className={cn(
-                            "h-10 rounded-xl border-zinc-800 bg-[#0E1526] text-white placeholder:text-zinc-600 focus-visible:border-blue-500/60 focus-visible:ring-blue-500/20",
-                            confirmPassword && password !== confirmPassword && "border-destructive focus-visible:border-destructive"
-                          )}
-                        />
-                        {confirmPassword && password !== confirmPassword && (
-                          <p className="text-[11px] font-medium text-destructive">
-                            Şifreler eşleşmiyor.
-                          </p>
+                        className={cn(
+                          "h-10 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20",
+                          confirmPassword && password !== confirmPassword && "border-destructive focus-visible:border-destructive"
                         )}
-                      </div>
-                    )}
-
-                    {/* Beni Hatırla (Sadece Giriş Yap modunda) */}
-                    {mode === "signin" && (
-                      <div className="flex items-center justify-between pt-1">
-                        <label className="flex items-center gap-2.5 text-xs text-zinc-300 cursor-pointer select-none">
-                          <Checkbox
-                            checked={rememberMe}
-                            onCheckedChange={(checked) => setRememberMe(checked === true)}
-                            className="border-zinc-700 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                          />
-                          <span>Beni hatırla</span>
-                        </label>
-                      </div>
-                    )}
-
-
-
-                    {/* KVKK Onay Kutusu (Sadece Kayıt Ol modunda - Alta alındı) */}
-                    {mode === "signup" && (
-                      <div className="space-y-1.5 pt-1 animate-in fade-in duration-200">
-                        <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-zinc-800/90 bg-[#0E1526]/80 p-2.5 sm:p-3 text-xs text-zinc-300 select-none transition hover:border-zinc-700">
-                          <Checkbox
-                            checked={noticeRead}
-                            onCheckedChange={(checked) => setNoticeRead(checked === true)}
-                            className="mt-0.5 border-zinc-700 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                          />
-                          <span className="leading-relaxed">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setKvkkOpen(true);
-                              }}
-                              className="font-semibold text-blue-400 hover:text-blue-300 hover:underline inline"
-                            >
-                              KVKK Aydınlatma Metni
-                            </button>
-                            &apos;ni okudum, anladım ve kabul ediyorum.
-                          </span>
-                        </label>
-                        <p className="text-[11px] text-zinc-500 px-1 leading-normal">
-                          * Hesap oluşturabilmek için KVKK onayını vermen gerekir.
+                      />
+                      {confirmPassword && password !== confirmPassword && (
+                        <p className="text-[11px] font-medium text-destructive">
+                          Şifreler eşleşmiyor.
                         </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  )}
 
-                    {/* Ana Buton */}
-                    <Button
-                      className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all shadow-md mt-2 disabled:opacity-50"
-                      disabled={
-                        busy ||
-                        !email ||
-                        password.length < 6 ||
-                        (mode === "signup" && (!noticeRead || password !== confirmPassword))
-                      }
-                      onClick={submit}
-                    >
-                      {busy ? (
-                        <span className="inline-flex items-center gap-2">
-                          <LoaderCircle className="size-4 animate-spin text-white" />
-                          İşlem yapılıyor…
+                  {/* Beni Hatırla (Sadece Giriş Yap modunda) */}
+                  {mode === "signin" && (
+                    <div className="flex items-center justify-between pt-1">
+                      <label className="flex items-center gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
+                        <Checkbox
+                          checked={rememberMe}
+                          onCheckedChange={(checked) => setRememberMe(checked === true)}
+                        />
+                        <span>Beni hatırla</span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* KVKK Onay Kutusu (Sadece Kayıt Ol modunda) */}
+                  {mode === "signup" && (
+                    <div className="space-y-1.5 pt-1 animate-in fade-in duration-200">
+                      <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-muted/30 p-2.5 sm:p-3 text-xs text-foreground select-none transition hover:bg-muted/50">
+                        <Checkbox
+                          checked={noticeRead}
+                          onCheckedChange={(checked) => setNoticeRead(checked === true)}
+                          className="mt-0.5"
+                        />
+                        <span className="leading-relaxed text-muted-foreground">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setKvkkOpen(true);
+                            }}
+                            className="font-semibold text-primary hover:underline inline"
+                          >
+                            KVKK Aydınlatma Metni
+                          </button>
+                          &apos;ni okudum, anladım ve kabul ediyorum.
                         </span>
-                      ) : mode === "signup" ? (
-                        <>
-                          Hesap Oluştur ve Doğrula
-                          <ArrowRight className="size-4 ml-1.5" />
-                        </>
-                      ) : (
-                        <>
+                      </label>
+                      <p className="text-[11px] text-muted-foreground px-1 leading-normal">
+                        * Hesap oluşturabilmek için KVKK onayını vermen gerekir.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Ana Buton */}
+                  <Button
+                    className="w-full h-11 font-semibold rounded-xl transition-all shadow-2xs mt-2 disabled:opacity-50"
+                    disabled={
+                      busy ||
+                      !email ||
+                      password.length < 6 ||
+                      (mode === "signup" && (!noticeRead || password !== confirmPassword))
+                    }
+                    onClick={submit}
+                  >
+                    {busy ? (
+                      <span className="inline-flex items-center gap-2">
+                        <LoaderCircle className="size-4 animate-spin" />
+                        İşlem yapılıyor…
+                      </span>
+                    ) : mode === "signup" ? (
+                      <>
+                        Hesap Oluştur ve Doğrula
+                        <ArrowRight className="size-4 ml-1.5" />
+                      </>
+                    ) : (
+                      <>
+                        Giriş Yap
+                        <ArrowRight className="size-4 ml-1.5" />
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Alt Değiştirici Link */}
+                  <div className="pt-2 text-center text-xs text-muted-foreground">
+                    {mode === "signin" ? (
+                      <p>
+                        Hesabın yok mu?{" "}
+                        <button
+                          type="button"
+                          onClick={() => setMode("signup")}
+                          className="font-semibold text-primary hover:underline transition"
+                        >
+                          Kayıt Ol
+                        </button>
+                      </p>
+                    ) : (
+                      <p>
+                        Zaten bir hesabın var mı?{" "}
+                        <button
+                          type="button"
+                          onClick={() => setMode("signin")}
+                          className="font-semibold text-primary hover:underline transition"
+                        >
                           Giriş Yap
-                          <ArrowRight className="size-4 ml-1.5" />
-                        </>
-                      )}
-                    </Button>
-
-                    {/* Alt Değiştirici Link */}
-                    <div className="pt-2 text-center text-xs text-zinc-400">
-                      {mode === "signin" ? (
-                        <p>
-                          Hesabın yok mu?{" "}
-                          <button
-                            type="button"
-                            onClick={() => setMode("signup")}
-                            className="font-semibold text-blue-400 hover:text-blue-300 hover:underline transition"
-                          >
-                            Kayıt Ol
-                          </button>
-                        </p>
-                      ) : (
-                        <p>
-                          Zaten bir hesabın var mı?{" "}
-                          <button
-                            type="button"
-                            onClick={() => setMode("signin")}
-                            className="font-semibold text-blue-400 hover:text-blue-300 hover:underline transition"
-                          >
-                            Giriş Yap
-                          </button>
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Alt Bilgi: KVKK Modal Butonu */}
-                    <div className="pt-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setKvkkOpen(true)}
-                        className="text-[11px] text-zinc-500 hover:text-zinc-400 hover:underline transition"
-                      >
-                        KVKK Aydınlatma Metni
-                      </button>
-                    </div>
+                        </button>
+                      </p>
+                    )}
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* SAĞ VİTRİN: North AI Koç & Satranç/Beceri İlerleme Bento Kartları (Web/Masaüstü için) */}
-        <div className="hidden lg:flex flex-col gap-5 w-[330px] xl:w-[360px] shrink-0">
-          {/* Bento 3: Planorth Koç Canlı Sohbet Görünümü */}
-          <div className="rounded-2xl border border-zinc-800/90 bg-[#0B101D]/90 p-5 shadow-2xl backdrop-blur-md transition hover:border-zinc-700/80">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-3 mb-3.5">
-              <div className="flex items-center gap-2.5">
-                <NorthCoachSymbol size={32} variant="avatar" />
+                  {/* Alt Bilgi: KVKK Modal Butonu */}
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setKvkkOpen(true)}
+                      className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition"
+                    >
+                      KVKK Aydınlatma Metni
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+        {/* SAĞ VİTRİN: North AI Koç & Gelişim (Desktop vitrini) */}
+        <div className="hidden lg:flex flex-col gap-5 w-[330px] shrink-0">
+          <div className="rounded-2xl border border-border bg-card/80 p-5 shadow-lg backdrop-blur-md">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <NorthCoachSymbol size={28} variant="avatar" />
                 <div>
-                  <h4 className="text-xs font-bold text-white">Planorth Koç</h4>
-                  <p className="text-[10px] text-zinc-400">Kişisel AI Rehberin</p>
+                  <h4 className="text-xs font-bold text-foreground">Planorth Koç</h4>
+                  <p className="text-[10px] text-muted-foreground">Kişisel AI Rehberin</p>
                 </div>
               </div>
-              <span className="rounded-full bg-[#0E1A33] border border-blue-500/30 px-2 py-0.5 text-[10px] font-semibold text-blue-400">
-                ✨ Limit: 20 / 20
+              <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                ✨ 20 / 20
               </span>
             </div>
 
-            {/* Mesaj Balonu (İsimsiz, tarafsız karşılama) */}
-            <div className="rounded-2xl rounded-tl-xs bg-[#131B2E] border border-blue-950/70 p-3.5 shadow-xs mb-3">
-              <h5 className="text-xs font-bold text-white mb-1">Merhaba!</h5>
-              <p className="text-xs text-zinc-300 leading-relaxed">
-                Haftalık hedeflerine göre bugün için 2 derin odak bloğu öneriyorum. İngilizce kelime çalışması veya satranç taktik analiziyle başlayabilirsin.
+            <div className="rounded-xl bg-muted/40 border border-border/60 p-3 shadow-2xs mb-3">
+              <p className="text-xs text-foreground leading-relaxed">
+                Haftalık hedeflerine göre bugün için 2 derin odak bloğu öneriyorum. Planını inceleyebiliriz.
               </p>
-              <span className="text-[10px] text-zinc-400 mt-2 block text-right">12:41</span>
+              <span className="text-[10px] text-muted-foreground mt-1.5 block text-right">12:41</span>
             </div>
 
-            {/* Hızlı Aksiyon Hapları */}
             <div className="flex flex-wrap gap-1.5">
-              <span className="rounded-full bg-[#0E1526] border border-zinc-800 hover:border-blue-500/40 px-2.5 py-1 text-[11px] text-zinc-300 cursor-default">
+              <span className="rounded-full bg-background border border-border px-2.5 py-1 text-[11px] text-muted-foreground">
                 ⚡ Görevi Başlat
               </span>
-              <span className="rounded-full bg-[#0E1526] border border-zinc-800 hover:border-blue-500/40 px-2.5 py-1 text-[11px] text-zinc-300 cursor-default">
+              <span className="rounded-full bg-background border border-border px-2.5 py-1 text-[11px] text-muted-foreground">
                 🔍 Planı İncele
               </span>
             </div>
           </div>
 
-          {/* Bento 4: Satranç & Beceri Gelişim İvmesi */}
-          <div className="rounded-2xl border border-zinc-800/90 bg-[#0B101D]/90 p-4.5 shadow-2xl backdrop-blur-md transition hover:border-zinc-700/80">
+          <div className="rounded-2xl border border-border bg-card/80 p-4.5 shadow-lg backdrop-blur-md">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-zinc-200">
+              <span className="text-xs font-semibold text-foreground">
                 Haftalık Beceri Gelişimi
               </span>
-              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                %92 Hedef Tutarlılığı
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                %92 Tutarlılık
               </span>
             </div>
 
-            <div className="space-y-2.5 text-xs">
+            <div className="space-y-2 text-xs">
               <div>
                 <div className="flex justify-between text-[11px] mb-1">
-                  <span className="text-zinc-300">İngilizce Akıcılık (C1)</span>
-                  <span className="font-semibold text-blue-400">%88</span>
+                  <span className="text-muted-foreground">İngilizce Akıcılık (C1)</span>
+                  <span className="font-semibold text-primary">%88</span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full w-[88%]" />
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-primary rounded-full w-[88%]" />
                 </div>
               </div>
-
               <div>
                 <div className="flex justify-between text-[11px] mb-1">
-                  <span className="text-zinc-300">Satranç Taktik & Çözüm (1850 Elo)</span>
-                  <span className="font-semibold text-cyan-400">%76</span>
+                  <span className="text-muted-foreground">Zaman &amp; Odak Disiplini</span>
+                  <span className="font-semibold text-emerald-500">%94</span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
-                  <div className="h-full bg-cyan-500 rounded-full w-[76%]" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] mb-1">
-                  <span className="text-zinc-300">Zaman & Odaklanma Disiplini</span>
-                  <span className="font-semibold text-emerald-400">%94</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full w-[94%]" />
                 </div>
               </div>
             </div>
 
-            <p className="mt-3 text-[11px] text-zinc-400 text-center flex items-center justify-center gap-1">
-              <Trophy className="size-3 text-amber-400" /> Bu hafta 38 saat kesintisiz derin odak sağlandı.
+            <p className="mt-3 text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1">
+              <Trophy className="size-3 text-amber-500" /> Bu hafta 38 saat derin odak sağlandı.
             </p>
           </div>
         </div>
@@ -781,59 +746,59 @@ export default function LoginPage() {
 
       {/* KVKK AYDINLATMA METNİ POP-UP (MODAL) */}
       <Dialog open={kvkkOpen} onOpenChange={setKvkkOpen}>
-        <DialogContent className="max-w-2xl max-h-[85dvh] flex flex-col bg-[#0B101D] border-zinc-800 text-white rounded-2xl p-6">
+        <DialogContent className="max-w-2xl max-h-[85dvh] flex flex-col bg-card border-border text-card-foreground rounded-2xl p-6">
           <DialogHeader className="space-y-1">
-            <DialogTitle className="text-base sm:text-lg font-bold text-white">
+            <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
               KVKK Aydınlatma Metni
             </DialogTitle>
-            <DialogDescription className="text-xs text-zinc-400">
+            <DialogDescription className="text-xs text-muted-foreground">
               Sürüm: 6 Eylül 2026
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto pr-2 space-y-4 text-xs text-zinc-300 leading-relaxed">
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4 text-xs text-muted-foreground leading-relaxed">
             <section className="space-y-1">
-              <h4 className="font-bold text-white text-xs">1. İşlenen veriler</h4>
-              <p className="text-zinc-400">
+              <h4 className="font-bold text-foreground text-xs">1. İşlenen veriler</h4>
+              <p>
                 North; hesap oluştururken e-posta adresi, Firebase kullanıcı kimliği ve oturum sağlayıcısını işler. Uygulamayı kullandığında hedeflerin, değerlendirme yanıtların ve sonuçların, çalışma planların, görevlerin, odak kayıtların, beceri ve kanıtların, notların ve koç görüşmelerin hesabına bağlı olarak saklanabilir.
               </p>
             </section>
 
             <section className="space-y-1">
-              <h4 className="font-bold text-white text-xs">2. İşleme amaçları ve hukuki sebep</h4>
-              <p className="text-zinc-400">
+              <h4 className="font-bold text-foreground text-xs">2. İşleme amaçları ve hukuki sebep</h4>
+              <p>
                 Bu veriler hesabı oluşturmak ve güvenli oturum açmayı sağlamak, ilerlemeyi cihazlar arasında eşitlemek, kişiselleştirilmiş plan ve analiz üretmek, AI koç özelliklerini sunmak ve hizmet güvenliğini korumak amacıyla işlenir. Hesap ve temel çalışma alanı verileri hizmetin kurulması ve ifası kapsamında işlenir.
               </p>
             </section>
 
             <section className="space-y-1">
-              <h4 className="font-bold text-white text-xs">3. Verilerin aktarılması</h4>
-              <p className="text-zinc-400">
+              <h4 className="font-bold text-foreground text-xs">3. Verilerin aktarılması</h4>
+              <p>
                 Kimlik doğrulama ve veri saklama için Google Firebase, uygulamanın barındırılması için Vercel ve yalnızca AI özelliklerini kullandığında yanıt üretimi için OpenAI hizmetlerinden yararlanılır. Bu sağlayıcıların sunucuları Türkiye dışında bulunabileceğinden veriler yurt dışına aktarılabilir. North, burada açıklanan amaç dışında veri satışı yapmaz.
               </p>
             </section>
 
             <section className="space-y-1">
-              <h4 className="font-bold text-white text-xs">4. Saklama ve güvenlik</h4>
-              <p className="text-zinc-400">
+              <h4 className="font-bold text-foreground text-xs">4. Saklama ve güvenlik</h4>
+              <p>
                 Veriler hesabın açık olduğu süre boyunca veya hizmetin sunulması ve yasal yükümlülükler için gerekli süre boyunca saklanır. Hesabını profil ve ayarlar ekranından silebilirsin. Aktarım sırasında güvenli bağlantılar ve hizmet sağlayıcıların erişim kontrolleri kullanılır.
               </p>
             </section>
 
             <section className="space-y-1">
-              <h4 className="font-bold text-white text-xs">5. KVKK kapsamındaki hakların</h4>
-              <p className="text-zinc-400">
+              <h4 className="font-bold text-foreground text-xs">5. KVKK kapsamındaki hakların</h4>
+              <p>
                 6698 sayılı Kanun&apos;un 11. maddesi kapsamında verilerinin işlenip işlenmediğini öğrenme, bilgi isteme, işleme amacını ve amaca uygun kullanılıp kullanılmadığını öğrenme, aktarılan tarafları bilme, eksik veya yanlış verilerin düzeltilmesini isteme, şartları oluştuğunda silme veya yok etme talep etme, otomatik analiz sonucuna itiraz etme ve zararın giderilmesini isteme haklarına sahipsin.
               </p>
             </section>
           </div>
 
-          <DialogFooter className="flex-row items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+          <DialogFooter className="flex-row items-center justify-end gap-2 pt-3 border-t border-border">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-xl border-zinc-800 bg-[#0E1526] hover:bg-[#131B2E] text-zinc-300"
+              className="rounded-xl border-border"
               onClick={() => setKvkkOpen(false)}
             >
               Kapat
@@ -841,7 +806,7 @@ export default function LoginPage() {
             <Button
               type="button"
               size="sm"
-              className="rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+              className="rounded-xl font-semibold"
               onClick={() => {
                 setNoticeRead(true);
                 setKvkkOpen(false);
@@ -861,13 +826,13 @@ function Brand() {
     <div className="text-center mb-6 space-y-2">
       <div className="inline-flex items-center justify-center gap-2.5">
         <NorthLogo size={42} priority />
-        <span className="font-planorth text-2xl tracking-[0.04em] text-white">PLANORTH</span>
+        <span className="font-planorth text-2xl tracking-[0.04em] text-foreground">PLANORTH</span>
       </div>
-      <h1 className="text-base sm:text-lg font-bold text-zinc-100 tracking-tight">
+      <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
         Daha az karar. Daha iyi odak. Net hedefler.
       </h1>
-      <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
-        Kişiselleştirilmiş AI rehberliği ve derin odaklanma kokpiti ile gelişimini hızlandır.
+      <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+        Kişiselleştirilmiş AI koçluk ve derin odaklanma ile hedeflerine adım adım ulaş.
       </p>
     </div>
   );
@@ -899,13 +864,13 @@ function GoogleMark() {
 function LocalMode() {
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm text-amber-200">
-        <p className="font-semibold text-amber-300">Yerel Mod Aktif</p>
-        <p className="mt-1 text-xs text-amber-300/80 leading-relaxed">
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm text-amber-600 dark:text-amber-200">
+        <p className="font-semibold">Yerel Mod Aktif</p>
+        <p className="mt-1 text-xs opacity-80 leading-relaxed">
           Firebase ayarları henüz yapılandırılmadı. Yerel demo çalışma alanını açabilirsiniz.
         </p>
       </div>
-      <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-11" size="lg" asChild>
+      <Button className="w-full rounded-xl h-11" size="lg" asChild>
         <Link href="/">
           Yerel Çalışma Alanını Aç <ArrowRight className="size-4 ml-1.5" />
         </Link>
@@ -925,15 +890,15 @@ function Verification({
 }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-blue-950 bg-[#131B2E] p-4 text-sm text-zinc-300">
-        <MailCheck className="mb-2 size-6 text-blue-400" />
-        <p className="font-bold text-white">Doğrulama Bağlantısını Aç</p>
-        <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
+      <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-foreground">
+        <MailCheck className="mb-2 size-6 text-primary" />
+        <p className="font-bold">Doğrulama Bağlantısını Aç</p>
+        <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
           E-postana bir doğrulama bağlantısı gönderdik. Gelen kutunu (veya spam klasörünü) kontrol edip bağlantıya tıkla.
         </p>
       </div>
       <Button
-        className="w-full rounded-xl border-zinc-800 bg-[#0E1526] hover:bg-[#131B2E] text-white"
+        className="w-full rounded-xl"
         variant="outline"
         disabled={busy}
         onClick={onResend}
@@ -941,7 +906,7 @@ function Verification({
         {busy ? "Gönderiliyor…" : "Doğrulama e-postasını yeniden gönder"}
       </Button>
       <Button
-        className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+        className="w-full rounded-xl font-semibold"
         onClick={onDone}
       >
         Doğruladım, Giriş Yap

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, CalendarDays, ChevronDown, ClipboardList, Home, Layers3, MoreHorizontal, ShieldCheck, UserRound } from "lucide-react";
+import { BarChart3, CalendarDays, ChevronDown, ClipboardList, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { NorthChatPopover } from "@/components/north/north-chat-popover";
 import { WorkspaceSearch } from "@/components/features/workspace-search";
 import { useWorkspace } from "@/components/features/workspace-provider";
@@ -19,26 +19,28 @@ import { Button } from "@/components/ui/button";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
+  { href: "/coach", label: "Koç", icon: Sparkles },
   { href: "/week", label: "Plan", icon: ClipboardList },
-  { href: "/progress", label: "İlerleme", icon: BarChart3 },
 ];
 const areaRoutes = ["/labs", "/skills", "/resources", "/career", "/evidence", "/knowledge", "/certifications", "/plan"];
 const moreNavigation = [
-  { href: "/areas", label: "Alanlar", icon: Layers3 },
+  { href: "/areas", label: "Alanlarım", icon: Layers3 },
+  { href: "/progress", label: "İlerleme & Analiz", icon: BarChart3 },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
-  { href: "/reviews", label: "Haftalık değerlendirme", icon: ClipboardList },
+  { href: "/reviews", label: "Haftalık Değerlendirme", icon: ClipboardList },
   { href: "/labs", label: "Lablar", icon: Layers3 },
   { href: "/evidence", label: "Kanıtlar", icon: ShieldCheck },
-  { href: "/profile", label: "Profil ve ayarlar", icon: UserRound },
+  { href: "/profile", label: "Profil ve Ayarlar", icon: UserRound },
 ];
-const titles: Record<string,string> = {"/":"Bugün","/calendar":"Takvim","/areas":"Alanlar","/progress":"İlerleme","/north-ai":"North sohbeti","/week":"Plan","/coach":"North sohbeti","/profile":"Profil ve ayarlar","/data":"Verilerim ve güvenlik","/labs":"Lablar","/skills":"Beceriler","/resources":"Kaynaklar","/career":"Kariyer","/evidence":"Kanıtlar","/knowledge":"Bilgi bankası","/certifications":"Sertifikalar","/plan":"Plan","/reviews":"Değerlendirmeler","/insights":"İçgörüler","/login":"Giriş","/kvkk":"KVKK Aydınlatma Metni","/onboarding":"Başlangıç kurulumu"};
+const titles: Record<string,string> = {"/":"Bugün","/calendar":"Takvim","/areas":"Alanlar","/progress":"İlerleme","/north-ai":"Planorth Koç","/week":"Plan","/coach":"Planorth Koç","/profile":"Profil ve ayarlar","/data":"Verilerim ve güvenlik","/labs":"Lablar","/skills":"Beceriler","/resources":"Kaynaklar","/career":"Kariyer","/evidence":"Kanıtlar","/knowledge":"Bilgi bankası","/certifications":"Sertifikalar","/plan":"Plan","/reviews":"Değerlendirmeler","/insights":"İçgörüler","/login":"Giriş","/kvkk":"KVKK Aydınlatma Metni","/onboarding":"Başlangıç kurulumu"};
 function activeTab(path: string) {
-  if(path === "/week")return "/week";
-  if(areaRoutes.some(route=>path===route||path.startsWith(route+"/")))return "more";
-  if(path==="/reviews"||path==="/insights")return "/progress";
-  if(path==="/coach"||path==="/north-ai")return "";
-  if(moreNavigation.some(route=>path===route.href||path.startsWith(route.href+"/")))return "more";
-  return navigation.find(n=>n.href!=="/"&&path.startsWith(n.href))?.href ?? (path==="/" ? "/" : "");
+  if (path === "/") return "/";
+  if (path === "/coach" || path === "/north-ai") return "/coach";
+  if (path === "/week") return "/week";
+  if (areaRoutes.some((route) => path === route || path.startsWith(route + "/"))) return "more";
+  if (path === "/reviews" || path === "/insights") return "more";
+  if (moreNavigation.some((route) => path === route.href || path.startsWith(route.href + "/"))) return "more";
+  return navigation.find((n) => n.href !== "/" && path.startsWith(n.href))?.href ?? (path === "/" ? "/" : "");
 }
 export function AppFrame({children}:{children:React.ReactNode}) {
   const pathname=usePathname(); const router=useRouter(); const workspace=useWorkspace(); const {syncMode,north}=workspace;  const [scrolled,setScrolled]=useState(false);

@@ -64,61 +64,51 @@ export function NorthToday() {
       </div>
     </header>
 
-    <div className="rounded-2xl border border-border/60 bg-card/40 px-4 py-3 text-xs flex items-start gap-2.5 shadow-xs">
-      <Feather className="size-4 text-primary shrink-0 mt-0.5" />
-      <div>
-        <p className="italic text-foreground font-serif text-[13px] leading-relaxed">
-          &ldquo;{wisdom.quote}&rdquo;
-        </p>
-        <span className="text-[10px] text-muted-foreground font-sans mt-0.5 block">— {wisdom.author}</span>
-      </div>
-    </div>
-
-    {adaptation && <section className="north-adaptation" aria-live="polite">
-      <Sparkles size={17}/><div><p>North gününü yeniden okudu</p><span>{adaptation.message}</span></div>
-      <div className="north-adaptation-actions">
-        {adaptation.taskId && adaptation.recommendedMinutes && <Button size="sm" onClick={() => update(currentState => ({ ...currentState, tasks: currentState.tasks.map(task => task.id === adaptation.taskId ? { ...task, minutes: adaptation.recommendedMinutes! } : task), dailyAdaptation: undefined }))}>Öneriyi uygula</Button>}
-        <Button size="sm" variant="ghost" onClick={() => update(currentState => ({ ...currentState, dailyAdaptation: undefined }))}>Planı koru</Button>
-      </div>
-    </section>}
-
-    <section className="north-ai-nudge flex flex-col sm:flex-row sm:items-center justify-between gap-3" aria-label="North önerisi">
-      <div className="flex items-start gap-2.5 min-w-0">
-        <Sparkles size={17} className="text-primary shrink-0 mt-0.5" />
-        <div>
-          <p className="text-xs font-semibold text-foreground">North&apos;un bugünkü önerisi</p>
-          <span className="text-xs text-muted-foreground block mt-0.5">
-            {current ? `${current.title} ile başla; ardından planını gerçek enerjine göre güncelleyelim.` : "Takviminde net bir başlangıç yok. Bir sonraki küçük adımı birlikte seçelim."}
-          </span>
+    {/* AKILLI UYARI VEYA GÜNLÜK İLHAM (TEK, TEMİZ ŞERİT) */}
+    {adaptation ? (
+      <section className="north-adaptation" aria-live="polite">
+        <Sparkles size={17}/><div><p>North gününü yeniden okudu</p><span>{adaptation.message}</span></div>
+        <div className="north-adaptation-actions">
+          {adaptation.taskId && adaptation.recommendedMinutes && <Button size="sm" onClick={() => update(currentState => ({ ...currentState, tasks: currentState.tasks.map(task => task.id === adaptation.taskId ? { ...task, minutes: adaptation.recommendedMinutes! } : task), dailyAdaptation: undefined }))}>Öneriyi uygula</Button>}
+          <Button size="sm" variant="ghost" onClick={() => update(currentState => ({ ...currentState, dailyAdaptation: undefined }))}>Planı koru</Button>
         </div>
+      </section>
+    ) : (
+      <div className="rounded-xl border border-border/50 bg-card/40 px-3.5 py-2.5 text-xs flex items-center justify-between gap-2 shadow-2xs">
+        <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+          <Feather className="size-3.5 text-primary shrink-0" />
+          <p className="italic text-foreground truncate text-xs">
+            &ldquo;{wisdom.quote}&rdquo; <span className="text-muted-foreground font-normal">— {wisdom.author}</span>
+          </p>
+        </div>
+        <Button asChild size="xs" variant="ghost" className="shrink-0 text-[11px] h-7 px-2">
+          <Link href="/coach">Koça Danış</Link>
+        </Button>
       </div>
-      <Button asChild size="sm" variant="outline" className="w-full sm:w-auto shrink-0">
-        <Link href="/north-ai">North&apos;a sor</Link>
-      </Button>
-    </section>
+    )}
 
     {current ? (
-      <section className="north-now-card rounded-2xl border border-border bg-card p-5 sm:p-7 shadow-xs">
+      <section className="north-now-card rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs">
         <div className="north-now-label flex items-center justify-between text-xs font-semibold text-primary">
           <span className="uppercase tracking-wider">ŞİMDİ</span>
           <span className="font-medium text-muted-foreground">{currentArea?.icon} {currentArea?.name}</span>
         </div>
-        <div className="north-now-content mt-4 sm:mt-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div className="north-now-content mt-3 sm:mt-4 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">{current.title}</h2>
-            <p className="north-now-goal text-xs sm:text-sm text-muted-foreground mt-2">{current.goal}</p>
-            <p className="north-now-reason text-xs text-muted-foreground/80 mt-2.5 pl-3 border-l-2 border-primary/40 leading-relaxed">{current.why || "Bu görev, haftalık yönündeki en etkili sonraki adım."}</p>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">{current.title}</h2>
+            {current.goal && (
+              <p className="north-now-goal text-xs sm:text-sm text-muted-foreground mt-1.5">{current.goal}</p>
+            )}
           </div>
-          <div className="north-now-time flex md:flex-col items-baseline md:items-end gap-1.5 shrink-0 bg-muted/40 md:bg-transparent p-2.5 md:p-0 rounded-xl">
-            <strong className="text-2xl sm:text-3xl md:text-4xl font-black text-primary font-mono">{current.minutes}</strong>
-            <span className="text-xs text-muted-foreground">dakika</span>
+          <div className="north-now-time flex md:flex-col items-baseline md:items-end gap-1 shrink-0 bg-muted/40 md:bg-transparent px-3 py-1.5 md:p-0 rounded-xl">
+            <strong className="text-2xl sm:text-3xl font-black text-primary font-mono">{current.minutes}</strong>
+            <span className="text-[11px] text-muted-foreground">dakika</span>
           </div>
         </div>
-        <div className="north-now-actions mt-5 flex flex-col sm:flex-row sm:items-center gap-3">
-          <Button asChild size="lg" className="w-full sm:w-auto h-11 px-6 text-sm font-semibold justify-center">
-            <Link href={`/focus/${current.id}`}><Play size={17} className="fill-current"/>Odaklanmaya başla</Link>
+        <div className="north-now-actions mt-5 flex items-center gap-3">
+          <Button asChild size="lg" className="h-10 px-5 text-sm font-semibold">
+            <Link href={`/focus/${current.id}`}><Play size={16} className="fill-current mr-1.5"/>Odaklanmaya başla</Link>
           </Button>
-          <details className="text-xs text-muted-foreground"><summary className="cursor-pointer hover:text-foreground">Neden bu görev?</summary><p className="mt-1.5 pl-2 text-xs leading-relaxed">{current.why || "Hedefin, bu haftaki planın ve tamamlanmamış işlerin dikkate alınarak seçildi."}</p></details>
         </div>
       </section>
     ) : completed > 0 ? (

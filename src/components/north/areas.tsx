@@ -832,11 +832,9 @@ function AreaWorkspace({
   };
 
   const tabList = [
-    ["tasks", "📋 Görevler (Yapacağım & Yaptığım)"],
-    ["skills", "🧠 Konular & Beceriler"],
-    ["roadmap", "🗺️ Yol Haritası"],
-    ["records", /yks|tyt|kpss|banka|sınav|ayt|ales|dgs/i.test(`${area.name} ${area.goal}`) ? "📑 Sınav & Kanıtlar" : "📑 Kayıt & Kanıtlar"],
-    ["notes", "📝 Notlar & Kaynaklar"],
+    ["tasks", "1. Eylemler & Rutinler"],
+    ["coach", "2. Koçluk & Konu Analizi"],
+    ["records", "3. Sonuçlar & Kanıtlar"],
   ];
 
   return (
@@ -1318,154 +1316,179 @@ function AreaWorkspace({
       )}
 
       {/* ----------------------------------------------------------- */}
-      {/* TAB 2: SKILLS & SUB-TOPICS (KONULAR VE BECERİLER)             */}
+      {/* TAB 2: KOÇLUK & KONU ANALİZİ (COACH, SKILLS & ROADMAP)       */}
       {/* ----------------------------------------------------------- */}
-      {tab === "skills" && (
-        <div className="space-y-4">
-          <div className="rounded-2xl border bg-card/60 p-5 shadow-xs space-y-2">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Award className="size-4 text-primary" />
-              {area.name} Konu ve Beceri Haritası
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Bu alanda ustalaşırken kat ettiğin somut seviyeler ve doğrulanabilir beceri puanları (1-10 skalası).
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {areaSkills.map((skill) => {
-              const score = skill.score ?? 5;
-              const pct = score * 10;
-              return (
-                <div key={skill.id} className="rounded-2xl border bg-card/60 p-4 shadow-xs space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-foreground">{skill.name}</span>
-                    <span className="text-xs font-mono font-bold text-primary">{score} / 10</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    {skill.evidence || "Düzenli pratikler ve çözülen problemlerle beceri puanı artırılır."}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ----------------------------------------------------------- */}
-      {/* TAB 3: ROADMAP & PERIOD MILESTONES (YOL HARİTASI)            */}
-      {/* ----------------------------------------------------------- */}
-      {tab === "roadmap" && (
-        <div className="space-y-4">
-          <div className="rounded-2xl border bg-card/60 p-5 shadow-xs space-y-2">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Compass className="size-4 text-primary" />
-              {area.name} Stratejik Dönem Yol Haritası
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Sıfırdan zirveye giden 5 aşamalı gelişim mimarisi ve başarı kriterleri.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-5">
-            {[
-              { step: 1, title: "1. Başlangıç & Harita", desc: "Ön koşullar, kaynaklar ve temel çalışma rutini.", status: "Aktif Aşama", active: true },
-              { step: 2, title: "2. Ara Kontrol & Ritim", desc: "İlk pratik çıktıları ve çalışma ritminin doğrulanması.", status: "Planlandı", active: false },
-              { step: 3, title: "3. Yoğun Uygulama", desc: "Bağımsız problem çözme, lablar ve derin odak.", status: "Planlandı", active: false },
-              { step: 4, title: "4. Tekrar & Pekiştirme", desc: "Zayıf halkalar, aralıklı tekrar ve hata analizi.", status: "Planlandı", active: false },
-              { step: 5, title: "5. Final Zirve & Kanıt", desc: "Nihai portföy çıktısı, deneme veya sertifikasyon.", status: "Planlandı", active: false },
-            ].map((phase) => (
-              <div
-                key={phase.step}
-                className={cn(
-                  "rounded-2xl border p-4 flex flex-col justify-between min-h-[140px] shadow-xs",
-                  phase.active
-                    ? "border-primary/60 bg-primary/5 ring-1 ring-primary/30"
-                    : "bg-card/60"
-                )}
-              >
-                <div>
-                  <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="font-bold text-primary">{phase.step}. Aşama</span>
-                    {phase.active && (
-                      <span className="px-1.5 py-0.2 bg-primary/20 text-primary rounded text-[9px] font-bold">
-                        ŞU ANDA
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="text-xs font-bold text-foreground mb-1">{phase.title}</h4>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">{phase.desc}</p>
-                </div>
-                <div className="pt-2 border-t border-border/40 text-[10px] text-muted-foreground">
-                  {phase.status}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {deadlines.length > 0 && (
-            <div className="rounded-2xl border bg-card/60 p-4 space-y-2">
-              <h4 className="text-xs font-bold text-foreground">Bu Alana Ait Kritik Tarihler &amp; Teslimler</h4>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {deadlines.map((dl) => (
-                  <div key={dl.id} className="p-2.5 rounded-xl border bg-background/50 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-semibold text-foreground">{dl.title}</span>
-                      <span className="text-[10px] text-muted-foreground block">{dl.date}</span>
-                    </div>
-                    <Badge variant="outline" className="text-[10px]">
-                      {dl.kind}
-                    </Badge>
-                  </div>
-                ))}
+      {tab === "coach" && (
+        <div className="space-y-6">
+          {/* Domain Coach Guidance Card */}
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <Sparkles className="size-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-bold text-foreground">
+                  {area.name} Koçluk Rehberi &amp; Tavsiyeler
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-xl">
+                  {/yks|tyt|ayt|kpss|ales|dgs|sınav|tus/i.test(`${area.name} ${area.goal}`)
+                    ? "Altın Üçlü Stratejisi: Yanlış yaptığın konuları tespit et, her hafta 1 deneme analizi yap ve günlük 30-40 soru ile eksikleri kapat."
+                    : /kod|yazılım|cyber|siber|programlama|developer|web|flutter/i.test(`${area.name} ${area.goal}`)
+                    ? "Build & Ship İlkesi: Sadece video izleme; çalışan küçük bir kod modülü yaz, GitHub'a commit at ve hata ayıklama (debug) notu tut."
+                    : /ingilizce|almanca|fransızca|dil|satranç/i.test(`${area.name} ${area.goal}`)
+                    ? "Aktif Maruziyet: Günde 20 dk gölgeleme (shadowing), Anki aralıklı tekrar ve refleks geliştiren taktik alıştırmaları yap."
+                    : "Feynman Tekniği: Yeni öğrendiğin kavramları basitleştirerek açıkla, eksik kaldığın noktaları tespit et ve vaka analizleriyle pekiştir."}
+                </p>
               </div>
             </div>
-          )}
+            <Button asChild size="sm" className="shrink-0 text-xs rounded-xl shadow-xs">
+              <Link href="/coach">
+                <Sparkles className="size-3.5 mr-1.5" />
+                Koç ile Konuş
+              </Link>
+            </Button>
+          </div>
+
+          {/* Konu ve Beceri Haritası */}
+          <div className="rounded-2xl border bg-card/60 p-5 shadow-xs space-y-4">
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Award className="size-4 text-primary" />
+                {area.name} Konu ve Beceri Haritası
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Bu alanda ustalaşırken kat ettiğin somut seviyeler ve doğrulanabilir beceri puanları (1-10 skalası).
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {areaSkills.map((skill) => {
+                const score = skill.score ?? 5;
+                const pct = score * 10;
+                return (
+                  <div key={skill.id} className="rounded-xl border bg-background/50 p-3.5 shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">{skill.name}</span>
+                      <span className="text-xs font-mono font-bold text-primary">{score} / 10</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {skill.evidence || "Düzenli pratikler ve çözülen problemlerle beceri puanı artırılır."}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Stratejik Dönem Yol Haritası */}
+          <div className="rounded-2xl border bg-card/60 p-5 shadow-xs space-y-4">
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Compass className="size-4 text-primary" />
+                {area.name} Stratejik Yol Haritası
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Sıfırdan zirveye giden 5 aşamalı gelişim mimarisi ve başarı kriterleri.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-5">
+              {[
+                { step: 1, title: "1. Başlangıç & Harita", desc: "Ön koşullar, kaynaklar ve temel çalışma rutini.", status: "Aktif Aşama", active: true },
+                { step: 2, title: "2. Ara Kontrol & Ritim", desc: "İlk pratik çıktıları ve çalışma ritminin doğrulanması.", status: "Planlandı", active: false },
+                { step: 3, title: "3. Yoğun Uygulama", desc: "Bağımsız problem çözme, lablar ve derin odak.", status: "Planlandı", active: false },
+                { step: 4, title: "4. Tekrar & Pekiştirme", desc: "Zayıf halkalar, aralıklı tekrar ve hata analizi.", status: "Planlandı", active: false },
+                { step: 5, title: "5. Final Zirve & Kanıt", desc: "Nihai portföy çıktısı, deneme veya sertifikasyon.", status: "Planlandı", active: false },
+              ].map((phase) => (
+                <div
+                  key={phase.step}
+                  className={cn(
+                    "rounded-xl border p-3.5 flex flex-col justify-between min-h-[130px] shadow-2xs",
+                    phase.active
+                      ? "border-primary/60 bg-primary/5 ring-1 ring-primary/30"
+                      : "bg-background/40"
+                  )}
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="font-bold text-primary">{phase.step}. Aşama</span>
+                      {phase.active && (
+                        <span className="px-1.5 py-0.2 bg-primary/20 text-primary rounded text-[9px] font-bold">
+                          ŞU ANDA
+                        </span>
+                      )}
+                    </div>
+                    <h5 className="text-xs font-bold text-foreground mb-1">{phase.title}</h5>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{phase.desc}</p>
+                  </div>
+                  <div className="pt-2 border-t border-border/40 text-[10px] text-muted-foreground">
+                    {phase.status}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {deadlines.length > 0 && (
+              <div className="pt-3 border-t border-border/40 space-y-2">
+                <h5 className="text-xs font-bold text-foreground">Kritik Tarihler &amp; Teslimler</h5>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {deadlines.map((dl) => (
+                    <div key={dl.id} className="p-2.5 rounded-xl border bg-background/50 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-semibold text-foreground">{dl.title}</span>
+                        <span className="text-[10px] text-muted-foreground block">{dl.date}</span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px]">
+                        {dl.kind}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* ----------------------------------------------------------- */}
-      {/* TAB 4: RECORDS, LABS & PROOFS                                */}
+      {/* TAB 3: SONUÇLAR, KANITLAR & NOTLAR                           */}
       {/* ----------------------------------------------------------- */}
       {tab === "records" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <AreaModules key={area.id + area.kind} area={area} />
-        </div>
-      )}
 
-      {/* ----------------------------------------------------------- */}
-      {/* TAB 5: NOTES & RESOURCES                                     */}
-      {/* ----------------------------------------------------------- */}
-      {tab === "notes" && (
-        <div className="space-y-4">
-          <AreaText
-            key={"notes" + area.id}
-            area={area}
-            field="notes"
-            onSave={(text) =>
-              update((workspaceState) => ({
-                ...workspaceState,
-                areas: workspaceState.areas.map((item) => (item.id === area.id ? { ...item, notes: text } : item)),
-              }))
-            }
-          />
-          <AreaText
-            key={"resources" + area.id}
-            area={area}
-            field="resources"
-            onSave={(text) =>
-              update((workspaceState) => ({
-                ...workspaceState,
-                areas: workspaceState.areas.map((item) => (item.id === area.id ? { ...item, resources: text } : item)),
-              }))
-            }
-          />
+          <div className="rounded-2xl border bg-card/60 p-5 shadow-xs space-y-4">
+            <h4 className="text-sm font-bold text-foreground">
+              Notlar &amp; Kaynaklar
+            </h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <AreaText
+                key={"notes" + area.id}
+                area={area}
+                field="notes"
+                onSave={(text) =>
+                  update((workspaceState) => ({
+                    ...workspaceState,
+                    areas: workspaceState.areas.map((item) => (item.id === area.id ? { ...item, notes: text } : item)),
+                  }))
+                }
+              />
+              <AreaText
+                key={"resources" + area.id}
+                area={area}
+                field="resources"
+                onSave={(text) =>
+                  update((workspaceState) => ({
+                    ...workspaceState,
+                    areas: workspaceState.areas.map((item) => (item.id === area.id ? { ...item, resources: text } : item)),
+                  }))
+                }
+              />
+            </div>
+          </div>
         </div>
       )}
 

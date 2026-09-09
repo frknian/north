@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { NorthLogo } from "@/components/layout/north-logo";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Compass, DollarSign, Info, Plus, ShieldCheck, Target, Trash2, University } from "lucide-react";
@@ -228,7 +229,11 @@ export default function OnboardingPage() {
   const primaryTargetWeeks = form.areaGoals[form.interests[0]]?.targetWeeks ?? 12;
 
   return (
-    <main className="min-h-dvh bg-background px-4 py-6 sm:py-10">
+    <main className="relative min-h-dvh bg-background px-4 py-6 sm:py-10">
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle className="size-9 border border-border bg-card shadow-2xs" />
+      </div>
+
       <div className="mx-auto w-full max-w-3xl">
         <div className="mb-8 flex items-center justify-center gap-3">
           <NorthLogo size={42} priority />

@@ -263,113 +263,119 @@ export function NorthAI({
   const cardContent = (
     <div
       className={cn(
-        "flex flex-col overflow-hidden text-zinc-100 bg-[#070C16]",
+        "flex flex-col overflow-hidden text-foreground bg-card transition-colors",
         focusDocked
-          ? "h-full w-full min-h-0 p-2.5 sm:p-3"
+          ? "h-full w-full min-h-0 p-2 sm:p-3"
           : embedded
           ? "h-full w-full"
-          : "w-full max-w-[380px] sm:max-w-[390px] h-[860px] max-h-[92dvh] rounded-[30px] border border-[#141E33] shadow-2xl p-3 sm:p-3.5"
+          : "w-full max-w-3xl h-[calc(100dvh-6.5rem)] rounded-2xl border border-border shadow-sm p-3 sm:p-5"
       )}
     >
-      {/* HEADER matching user's uploaded reference */}
-      <div className="flex items-start justify-between gap-2 px-1 pt-1 pb-3 shrink-0">
+      {/* HEADER: Clean, spacious coach identity */}
+      <div className="flex items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <NorthCoachSymbol size={44} variant="avatar-rounded" priority />
+          <NorthCoachSymbol size={40} variant="avatar-rounded" priority />
           <div className="flex flex-col justify-center min-w-0">
-            <h3 className="text-base font-bold text-white tracking-tight leading-tight">Planorth Koç</h3>
-            <p className="text-[11px] text-zinc-400 leading-tight mt-0.5 max-w-[170px]">
-              Sade, kişiye özel ve eyleme dönüştürülebilir koçluk.
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-tight">Planorth Koç</h2>
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] text-primary font-medium">
+                Aktif
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground truncate">
+              Kişiselleştirilmiş gelişim ve strateji rehberin.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col items-end justify-between h-11 shrink-0">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="text-zinc-400 hover:text-white transition p-0.5 rounded-md hover:bg-zinc-800/60"
-            title="Kapat"
-            aria-label="Kapat"
-          >
-            <X className="size-4" />
-          </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Limit Badge */}
+          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground font-medium">
+            <Sparkles className="size-3 text-primary shrink-0" />
+            <span>Kullanım: <strong className="text-foreground">{usageCount}</strong> / {dailyLimit}</span>
+          </span>
 
-          <div className="flex items-center gap-1.5">
-            {/* Limit Badge matching user's image */}
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-[#0C152B] px-2.5 py-0.5 text-[11px] text-blue-400 font-medium tracking-tight shadow-xs">
-              <Sparkles className="size-3 text-blue-400 shrink-0" />
-              <span>Limit: <strong className="text-white font-bold">{usageCount}</strong> <span className="text-zinc-500">/</span> <span className="text-blue-400">{dailyLimit}</span></span>
-            </span>
+          {/* Options Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="size-8 rounded-lg text-muted-foreground hover:text-foreground"
+                title="Seçenekler"
+                aria-label="Seçenekler"
+              >
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 shadow-lg">
+              <DropdownMenuItem
+                onClick={handleStartNewChat}
+                disabled={workspace.coachMessages.length === 0}
+                className="gap-2 text-xs cursor-pointer"
+              >
+                <RotateCcw className="size-3.5" />
+                <span>Yeni Sohbet Başlat</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
+                <Link href="/profile?tab=memory">
+                  <History className="size-3.5" />
+                  <span>Sohbet Geçmişi</span>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {/* Options Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="text-zinc-400 hover:text-white transition p-0.5 rounded-md hover:bg-zinc-800/60"
-                  title="Seçenekler"
-                  aria-label="Seçenekler"
-                >
-                  <MoreHorizontal className="size-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-[#0E1526] border-zinc-800 text-zinc-200 shadow-xl">
-                <DropdownMenuItem
-                  onClick={handleStartNewChat}
-                  disabled={workspace.coachMessages.length === 0}
-                  className="gap-2 text-xs cursor-pointer hover:bg-blue-600 hover:text-white focus:bg-blue-600 focus:text-white"
-                >
-                  <RotateCcw className="size-3.5" />
-                  <span>Yeni Sohbet Başlat</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer hover:bg-blue-600 hover:text-white focus:bg-blue-600 focus:text-white">
-                  <Link href="/profile?tab=memory">
-                    <History className="size-3.5" />
-                    <span>Sohbet Geçmişi</span>
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={handleClose}
+              className="size-8 rounded-lg text-muted-foreground hover:text-foreground"
+              title="Kapat"
+              aria-label="Kapat"
+            >
+              <X className="size-4" />
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* INNER CARD ENCLOSING CONVERSATION AND INPUT */}
-      <div className="flex-1 min-h-0 rounded-[22px] border border-[#141E33] bg-[#070C16] flex flex-col overflow-hidden">
-        {/* CONVERSATION MESSAGES */}
-        <Conversation className="flex-1 min-h-0 overflow-y-auto bg-[#070C16]">
-          <ConversationContent className="gap-3.5 p-3.5 sm:p-4">
+      {/* CONVERSATION AREA */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2">
+        <Conversation className="flex-1 min-h-0 overflow-y-auto">
+          <ConversationContent className="gap-4 p-2 sm:p-4">
             {workspace.coachMessages.length ? (
               workspace.coachMessages.slice(-30).map((message) => {
                 const isAssistant = message.role === "assistant";
                 return isAssistant ? (
-                  <div key={message.id} className="flex items-start gap-2.5">
+                  <div key={message.id} className="flex items-start gap-3">
                     <NorthCoachSymbol size={32} variant="avatar" />
-                    <div className="max-w-[86%] space-y-1">
-                      <div className="rounded-2xl rounded-tl-xs bg-[#10192A] border border-[#17233B] p-3.5 text-xs sm:text-sm leading-relaxed text-zinc-200 shadow-xs">
+                    <div className="max-w-[85%] space-y-1">
+                      <div className="rounded-2xl rounded-tl-xs bg-muted/60 dark:bg-muted/30 border border-border/80 p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed text-foreground shadow-2xs">
                         <MessageResponse>{message.content}</MessageResponse>
                       </div>
-                      <span className="text-[10px] text-zinc-500 ml-1 block font-mono">
+                      <span className="text-[10px] text-muted-foreground ml-1 block font-mono">
                         {new Date(message.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
                   </div>
                 ) : (
                   <div key={message.id} className="flex flex-col items-end space-y-1">
-                    <div className="max-w-[86%] rounded-2xl rounded-tr-xs bg-blue-600 text-white px-3.5 py-2.5 text-xs sm:text-sm shadow-sm space-y-2">
+                    <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-primary text-primary-foreground px-4 py-3 text-xs sm:text-sm shadow-sm space-y-2">
                       {/* Attached PDFs and Images */}
                       {message.attachments && message.attachments.length > 0 && (
                         <div className="space-y-1.5">
                           {message.attachments.map((att) =>
                             att.type === "image" ? (
-                              <div key={att.id} className="relative group overflow-hidden rounded-xl border border-white/20 bg-black/40">
+                              <div key={att.id} className="relative group overflow-hidden rounded-xl border border-white/20 bg-black/20">
                                 <img
                                   src={att.url}
                                   alt={att.name}
                                   className="max-h-52 w-auto max-w-full rounded-xl object-contain cursor-pointer hover:opacity-95 transition"
                                   onClick={() => window.open(att.url, "_blank")}
                                 />
-                                <div className="p-1.5 flex items-center justify-between text-[10px] text-white/90 bg-black/50">
+                                <div className="p-1.5 flex items-center justify-between text-[10px] text-white/90 bg-black/40">
                                   <span className="truncate max-w-[150px] font-medium">{att.name}</span>
                                   {att.size && (
                                     <span className="text-[9px] opacity-75 font-mono ml-1 shrink-0">
@@ -385,14 +391,14 @@ export function NorthAI({
                                 target="_blank"
                                 rel="noreferrer"
                                 download={att.name}
-                                className="flex items-center gap-2.5 rounded-xl border border-white/25 bg-blue-700/70 hover:bg-blue-700 p-2.5 text-left transition group shadow-xs"
+                                className="flex items-center gap-2.5 rounded-xl border border-white/25 bg-white/10 hover:bg-white/20 p-2.5 text-left transition group shadow-xs"
                               >
                                 <div className="grid size-8 place-items-center rounded-lg bg-red-500 text-white shrink-0 shadow-xs">
-                                  <FileText className="size-4.5" />
+                                  <FileText className="size-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <span className="text-xs font-semibold text-white truncate block">{att.name}</span>
-                                  <p className="text-[10px] text-blue-200/90 font-mono">
+                                  <p className="text-[10px] opacity-80 font-mono">
                                     {att.size ? formatFileSize(att.size) : "PDF Belgesi"} • Aç / İndir
                                   </p>
                                 </div>
@@ -404,45 +410,45 @@ export function NorthAI({
                       )}
                       {message.content && <p className="whitespace-pre-wrap">{message.content}</p>}
                     </div>
-                    <span className="text-[10px] text-zinc-500 mr-1 block font-mono text-right">
+                    <span className="text-[10px] text-muted-foreground mr-1 block font-mono text-right">
                       {new Date(message.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
                 );
               })
             ) : (
-              /* Initial Greeting matching reference image */
-              <div className="flex items-start gap-2.5">
+              /* Initial Greeting */
+              <div className="flex items-start gap-3">
                 <NorthCoachSymbol size={32} variant="avatar" />
-                <div className="max-w-[86%] space-y-1">
-                  <div className="rounded-2xl rounded-tl-xs bg-[#10192A] border border-[#17233B] p-3.5 shadow-xs">
-                    <h4 className="text-sm font-bold text-white mb-1 tracking-tight">Merhaba!</h4>
-                    <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">{greeting}</p>
+                <div className="max-w-[85%] space-y-1">
+                  <div className="rounded-2xl rounded-tl-xs bg-muted/60 dark:bg-muted/30 border border-border/80 p-3.5 sm:p-4 shadow-2xs">
+                    <h3 className="text-sm font-bold text-foreground mb-1 tracking-tight">Merhaba!</h3>
+                    <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">{greeting}</p>
                   </div>
-                  <span className="text-[10px] text-zinc-500 ml-1 block font-mono">{currentTimeStr}</span>
+                  <span className="text-[10px] text-muted-foreground ml-1 block font-mono">{currentTimeStr}</span>
                 </div>
               </div>
             )}
 
             {busy && (
-              <div className="flex items-start gap-2.5">
+              <div className="flex items-start gap-3">
                 <NorthCoachSymbol size={32} variant="avatar" />
-                <div className="inline-flex items-center gap-2 rounded-2xl bg-[#10192A] border border-[#17233B] px-3.5 py-2.5 text-xs text-zinc-300 shadow-xs">
-                  <LoaderCircle className="size-3.5 animate-spin text-blue-500" />
-                  North düşünüyor…
+                <div className="inline-flex items-center gap-2 rounded-2xl bg-muted/60 border border-border px-4 py-2.5 text-xs text-foreground shadow-2xs">
+                  <LoaderCircle className="size-3.5 animate-spin text-primary" />
+                  Planorth Koç düşünüyor…
                 </div>
               </div>
             )}
 
-            {/* ACTIONABLE CHANGE PROPOSALS INSIDE CONVERSATION */}
+            {/* ACTIONABLE CHANGE PROPOSALS */}
             {answer && answer.changes && answer.changes.length > 0 && (
-              <section className="space-y-2.5 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-3.5 my-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-blue-400">
+              <section className="space-y-2.5 rounded-2xl border border-primary/30 bg-primary/5 p-3.5 sm:p-4 my-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-primary">
                   <Lightbulb className="size-3.5" />
-                  <span>North Plan Önerisi ({answer.changes.length} Adım)</span>
+                  <span>Koç Plan Önerisi ({answer.changes.length} Adım)</span>
                 </div>
-                <p className="text-[11px] text-zinc-400">
-                  Onay verdiğin değişiklikler takvimine ve havuzuna aktarılır.
+                <p className="text-xs text-muted-foreground">
+                  Onayladığın adımlar otomatik olarak takvimine işlenir.
                 </p>
 
                 <div className="space-y-2 pt-1">
@@ -469,19 +475,19 @@ export function NorthAI({
                     return (
                       <div
                         key={i}
-                        className="flex flex-col gap-2 rounded-xl border border-zinc-800/80 bg-[#10192A] p-2.5 shadow-xs"
+                        className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-2xs"
                       >
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded-md bg-blue-950/60 border border-blue-800/40 px-1.5 py-0.5 text-[10px] font-semibold text-blue-300">
-                              <IconComp className="size-3 text-blue-400" />
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                              <IconComp className="size-3" />
                               {meta.label}
                             </span>
-                            <span className="text-xs font-semibold text-white truncate">
+                            <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
                               {task?.title || change.title}
                             </span>
                           </div>
-                          <p className="text-[11px] text-zinc-400">
+                          <p className="text-xs text-muted-foreground">
                             {change.why} {!["complete", "skip"].includes(change.action) ? `· ${change.minutes} dk` : ""}
                           </p>
                         </div>
@@ -490,7 +496,7 @@ export function NorthAI({
                           size="sm"
                           variant={applied.includes(i) ? "secondary" : "default"}
                           disabled={!valid || applied.includes(i)}
-                          className="w-full text-xs h-7"
+                          className="w-full text-xs h-8"
                           onClick={() => {
                             const planned = state.tasks
                               .filter((t) => t.week === weekKey() && !["done", "cancelled"].includes(t.status))
@@ -559,27 +565,27 @@ export function NorthAI({
           <ConversationScrollButton />
         </Conversation>
 
-        {/* COMPOSER FOOTER matching user's image */}
-        <div className="p-3 border-t border-[#141E33] bg-[#070C16] shrink-0">
+        {/* COMPOSER INPUT */}
+        <div className="pt-3 border-t border-border shrink-0">
           {/* Pending Attachments preview */}
           {pendingAttachments.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-[#0E1526] border border-blue-900/40">
+            <div className="mb-2 flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-muted/60 border border-border">
               {pendingAttachments.map((att) => (
                 <div
                   key={att.id}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#141D30] border border-blue-700/40 px-2 py-1 text-xs text-zinc-200 shadow-xs"
+                  className="flex items-center gap-1.5 rounded-lg bg-card border border-border px-2 py-1 text-xs text-foreground shadow-2xs"
                 >
                   {att.type === "image" ? (
                     <img src={att.url} alt={att.name} className="size-5 rounded object-cover" />
                   ) : (
-                    <FileText className="size-3.5 text-red-400 shrink-0" />
+                    <FileText className="size-3.5 text-red-500 shrink-0" />
                   )}
                   <span className="max-w-[130px] truncate text-[11px] font-medium">{att.name}</span>
-                  <span className="text-[9px] text-zinc-400 font-mono">({formatFileSize(att.size)})</span>
+                  <span className="text-[9px] text-muted-foreground font-mono">({formatFileSize(att.size)})</span>
                   <button
                     type="button"
                     onClick={() => setPendingAttachments((prev) => prev.filter((a) => a.id !== att.id))}
-                    className="p-0.5 rounded-full hover:bg-zinc-700 text-zinc-400 hover:text-white transition ml-0.5"
+                    className="p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition ml-0.5"
                     title="Kaldır"
                   >
                     <X className="size-3" />
@@ -589,8 +595,8 @@ export function NorthAI({
             </div>
           )}
 
-          <div className="flex items-center gap-2 rounded-2xl border border-[#18243E] bg-[#0A101D] px-3.5 py-2 shadow-inner focus-within:border-blue-500/50 transition-all">
-            <label className="cursor-pointer text-zinc-400 hover:text-white transition p-1 shrink-0" title="PDF veya görsel yükle">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3.5 py-2.5 shadow-2xs focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+            <label className="cursor-pointer text-muted-foreground hover:text-foreground transition p-1 shrink-0" title="PDF veya görsel yükle">
               <Paperclip className="size-4.5 rotate-45" />
               <input
                 type="file"
@@ -606,7 +612,7 @@ export function NorthAI({
 
             <input
               type="text"
-              className="flex-1 bg-transparent text-xs sm:text-sm text-white placeholder:text-zinc-500 outline-none"
+              className="flex-1 bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground outline-none"
               maxLength={3000}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
@@ -616,18 +622,18 @@ export function NorthAI({
                   void ask();
                 }
               }}
-              placeholder={pendingAttachments.length > 0 ? "Dosyalar eklendi. Soru sor veya gönder..." : "North'a soru sor, planını paylaş..."}
-              aria-label="North'a mesaj yaz"
+              placeholder={pendingAttachments.length > 0 ? "Dosyalar eklendi. Soru sor veya gönder..." : "Koçuna bir soru sor veya hedefini paylaş..."}
+              aria-label="Koçuna mesaj yaz"
             />
 
             <Button
               size="icon"
-              className="size-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 transition shadow-sm shrink-0 disabled:opacity-40"
+              className="size-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition shadow-xs shrink-0 disabled:opacity-40"
               disabled={busy || (!question.trim() && pendingAttachments.length === 0)}
               onClick={() => void ask()}
-              aria-label={busy ? "North düşünüyor" : "Gönder"}
+              aria-label={busy ? "Düşünüyor" : "Gönder"}
             >
-              <Send className="size-3.5 translate-x-[-0.5px] translate-y-[-0.5px]" />
+              <Send className="size-3.5" />
             </Button>
           </div>
           {error && <p role="alert" className="mt-1.5 text-xs font-medium text-destructive px-1">{error}</p>}
@@ -641,7 +647,7 @@ export function NorthAI({
   }
 
   return (
-    <div className="w-full min-h-[calc(100dvh-5rem)] flex items-center justify-center p-3 sm:p-6">
+    <div className="w-full min-h-[calc(100dvh-4.5rem)] flex items-center justify-center p-3 sm:p-6 bg-background">
       {cardContent}
     </div>
   );

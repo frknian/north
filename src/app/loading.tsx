@@ -1,2 +1,13 @@
-import { Skeleton } from "@/components/ui/skeleton";
-export default function Loading() { return <div className="space-y-5 p-4 sm:p-8"><div className="space-y-2"><Skeleton className="h-7 w-52" /><Skeleton className="h-4 w-full max-w-lg" /></div><Skeleton className="h-64 w-full" /><div className="grid gap-5 md:grid-cols-2"><Skeleton className="h-40" /><Skeleton className="h-40" /></div></div>; }
+import { NorthLogo } from "@/components/layout/north-logo";
+
+export default function Loading() {
+  return (
+    <div className="grid min-h-[70dvh] place-items-center px-6 text-center" aria-label="Planorth yükleniyor" aria-busy="true">
+      <div className="flex flex-col items-center gap-3">
+        <NorthLogo size={64} priority />
+        <p className="font-planorth text-lg tracking-[0.08em]">PLANORTH</p>
+        <p className="text-sm text-muted-foreground">Hazırlanıyor…</p>
+      </div>
+    </div>
+  );
+}

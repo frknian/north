@@ -10,7 +10,7 @@ interface NorthCoachSymbolProps {
 }
 
 /**
- * Planorth Koç özel pusula ve vizör monogram sembolü.
+ * Planorth Koç özel pusula ve vizör/maskot sembolü.
  * - `symbol`: Şeffaf arka planlı salt sembol.
  * - `avatar`: Mesaj balonları ve butonlar için daire mavi gradyan rozet içinde sembol.
  * - `avatar-rounded`: Başlıklar için yuvarlatılmış (squircle) mavi gradyan rozet içinde sembol.
@@ -32,12 +32,12 @@ export function NorthCoachSymbol({
         )}
       >
         <Image
-          src="/planorth-coach-symbol.png?v=4"
+          src="/planorth-coach-symbol.png"
           alt={alt}
           width={size}
           height={size}
           priority={priority}
-          className="size-[78%] object-contain drop-shadow-xs select-none pointer-events-none"
+          className="size-[84%] object-contain drop-shadow-xs select-none pointer-events-none"
         />
       </span>
     );
@@ -53,39 +53,28 @@ export function NorthCoachSymbol({
         )}
       >
         <Image
-          src="/planorth-coach-symbol.png?v=4"
+          src="/planorth-coach-symbol.png"
           alt={alt}
           width={size}
           height={size}
           priority={priority}
-          className="size-[78%] object-contain drop-shadow-xs select-none pointer-events-none"
+          className="size-[84%] object-contain drop-shadow-xs select-none pointer-events-none"
         />
       </span>
     );
   }
 
   return (
-    <span className={cn("relative inline-flex shrink-0 items-center justify-center select-none", className)} style={{ width: size, height: size }}>
-      <Image
-        src="/planorth-mark-dark.png?v=4"
-        alt={alt}
-        width={size}
-        height={size}
-        priority={priority}
-        className="north-logo-light dark:hidden object-contain"
-      />
-      <Image
-        src="/planorth-mark-white.png?v=4"
-        alt={alt}
-        width={size}
-        height={size}
-        priority={priority}
-        className="north-logo-dark hidden dark:block object-contain"
-      />
-    </span>
+    <Image
+      src="/planorth-coach-symbol.png"
+      alt={alt}
+      width={size}
+      height={size}
+      priority={priority}
+      className={cn("object-contain select-none", className)}
+      style={{ width: size, height: size }}
+    />
   );
 }
 
 export const PlanorthCoachSymbol = NorthCoachSymbol;
-
-
