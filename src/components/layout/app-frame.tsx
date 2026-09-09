@@ -3,13 +3,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, CalendarDays, ChevronDown, ClipboardList, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Award, BarChart3, CalendarDays, ClipboardList, FlaskConical, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { NorthChatPopover } from "@/components/north/north-chat-popover";
 import { WorkspaceSearch } from "@/components/features/workspace-search";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { isFirebaseConfigured } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { NorthLogo } from "@/components/layout/north-logo";
 import { isCurrentTabLocked, FOCUS_LOCK_KEY, BROADCAST_CHANNEL_NAME, type ActiveFocusLock } from "@/lib/focus-lock";
@@ -21,26 +20,46 @@ const navigation = [
   { href: "/", label: "Bugün", icon: Home },
   { href: "/coach", label: "Koç", icon: Sparkles },
   { href: "/week", label: "Plan", icon: ClipboardList },
-];
-const areaRoutes = ["/labs", "/skills", "/resources", "/career", "/evidence", "/knowledge", "/certifications", "/plan"];
-const moreNavigation = [
-  { href: "/areas", label: "Alanlarım", icon: Layers3 },
-  { href: "/progress", label: "İlerleme & Analiz", icon: BarChart3 },
+  { href: "/areas", label: "Alanlar", icon: Layers3 },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
-  { href: "/reviews", label: "Haftalık Değerlendirme", icon: ClipboardList },
-  { href: "/labs", label: "Lablar", icon: Layers3 },
+  { href: "/progress", label: "İlerleme", icon: BarChart3 },
+  { href: "/reviews", label: "Değerlendirme", icon: Award },
+  { href: "/labs", label: "Lablar", icon: FlaskConical },
   { href: "/evidence", label: "Kanıtlar", icon: ShieldCheck },
-  { href: "/profile", label: "Profil ve Ayarlar", icon: UserRound },
 ];
-const titles: Record<string,string> = {"/":"Bugün","/calendar":"Takvim","/areas":"Alanlar","/progress":"İlerleme","/north-ai":"Planorth Koç","/week":"Plan","/coach":"Planorth Koç","/profile":"Profil ve ayarlar","/data":"Verilerim ve güvenlik","/labs":"Lablar","/skills":"Beceriler","/resources":"Kaynaklar","/career":"Kariyer","/evidence":"Kanıtlar","/knowledge":"Bilgi bankası","/certifications":"Sertifikalar","/plan":"Plan","/reviews":"Değerlendirmeler","/insights":"İçgörüler","/login":"Giriş","/kvkk":"KVKK Aydınlatma Metni","/onboarding":"Başlangıç kurulumu"};
+const areaRoutes = ["/skills", "/resources", "/career", "/knowledge", "/certifications", "/plan"];
+const titles: Record<string, string> = {
+  "/": "Bugün",
+  "/coach": "Planorth Koç",
+  "/north-ai": "Planorth Koç",
+  "/week": "Haftalık Plan",
+  "/areas": "Hedef Alanları",
+  "/calendar": "Takvim & Zaman Blokları",
+  "/progress": "İlerleme & Analiz",
+  "/reviews": "Haftalık Değerlendirme",
+  "/labs": "Pratik Lab Günlüğü",
+  "/evidence": "Kanıtlar & Portföy",
+  "/profile": "Profil ve Ayarlar",
+  "/data": "Verilerim ve Güvenlik",
+  "/skills": "Beceriler",
+  "/resources": "Kaynaklar",
+  "/career": "Kariyer",
+  "/knowledge": "Bilgi Bankası",
+  "/certifications": "Sertifikalar",
+  "/plan": "Plan",
+  "/insights": "İçgörüler",
+  "/login": "Giriş",
+  "/kvkk": "KVKK Aydınlatma Metni",
+  "/onboarding": "Başlangıç Kurulumu",
+};
 function activeTab(path: string) {
   if (path === "/") return "/";
   if (path === "/coach" || path === "/north-ai") return "/coach";
-  if (path === "/week") return "/week";
-  if (areaRoutes.some((route) => path === route || path.startsWith(route + "/"))) return "more";
-  if (path === "/reviews" || path === "/insights") return "more";
-  if (moreNavigation.some((route) => path === route.href || path.startsWith(route.href + "/"))) return "more";
-  return navigation.find((n) => n.href !== "/" && path.startsWith(n.href))?.href ?? (path === "/" ? "/" : "");
+  const matched = navigation.find((n) => n.href !== "/" && (path === n.href || path.startsWith(n.href + "/")));
+  if (matched) return matched.href;
+  if (path.startsWith("/areas/")) return "/areas";
+  if (path.startsWith("/focus/")) return "/";
+  return "";
 }
 export function AppFrame({children}:{children:React.ReactNode}) {
   const pathname=usePathname(); const router=useRouter(); const workspace=useWorkspace(); const {syncMode,north}=workspace;  const [scrolled,setScrolled]=useState(false);
@@ -169,48 +188,76 @@ export function AppFrame({children}:{children:React.ReactNode}) {
     <NorthChatPopover/><MobileNavigation pathname={pathname}/>
   </div>;
 }
-function TopNavigation({pathname}:{pathname:string}) {
- return <nav className="north-desktop-tabs" aria-label="Ana navigasyon">{navigation.map(n=><Link key={n.href} href={n.href} className={cn("north-top-tab",activeTab(pathname)===n.href&&"is-active")} aria-current={activeTab(pathname)===n.href?"page":undefined}>{n.label}</Link>)}<DropdownMenu><DropdownMenuTrigger className={cn("north-top-tab north-more-trigger",activeTab(pathname)==="more"&&"is-active")} aria-label="Diğer sayfalar">Diğer <ChevronDown size={14}/></DropdownMenuTrigger><DropdownMenuContent align="start">{moreNavigation.map(item=><DropdownMenuItem key={item.href} asChild><Link href={item.href}><item.icon size={15}/>{item.label}</Link></DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu></nav>;
+function TopNavigation({ pathname }: { pathname: string }) {
+  const current = activeTab(pathname);
+  return (
+    <nav className="north-desktop-tabs" aria-label="Ana navigasyon">
+      {navigation.map((n) => {
+        const isActive = current === n.href;
+        return (
+          <Link
+            key={n.href}
+            href={n.href}
+            className={cn("north-top-tab", isActive && "is-active")}
+            aria-current={isActive ? "page" : undefined}
+          >
+            {n.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }
+
 function MobileNavigation({ pathname }: { pathname: string }) {
   const [open, setOpen] = useState(false);
-  const isMoreActive = activeTab(pathname) === "more";
+  const current = activeTab(pathname);
+  const isSheetActive = !["/", "/coach", "/week"].includes(current);
+
+  const mobilePrimary = [
+    { href: "/", label: "Bugün", icon: Home },
+    { href: "/coach", label: "Koç", icon: Sparkles },
+    { href: "/week", label: "Plan", icon: ClipboardList },
+  ];
 
   return (
     <nav className="north-mobile-tabs safe-bottom" aria-label="Mobil navigasyon">
-      {navigation.map((n) => (
-        <Link
-          key={n.href}
-          href={n.href}
-          className={cn(activeTab(pathname) === n.href && "is-active")}
-          aria-current={activeTab(pathname) === n.href ? "page" : undefined}
-        >
-          <n.icon size={19} />
-          <span>{n.label}</span>
-        </Link>
-      ))}
+      {mobilePrimary.map((n) => {
+        const isActive = current === n.href;
+        return (
+          <Link
+            key={n.href}
+            href={n.href}
+            className={cn(isActive && "is-active")}
+            aria-current={isActive ? "page" : undefined}
+          >
+            <n.icon size={19} />
+            <span>{n.label}</span>
+          </Link>
+        );
+      })}
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <button
             type="button"
-            className={cn(isMoreActive && "is-active")}
-            aria-label="Diğer sayfalar menüsü"
+            className={cn(isSheetActive && "is-active")}
+            aria-label="Tüm sayfalar ve araçlar menüsü"
             aria-expanded={open}
           >
             <MoreHorizontal size={19} />
-            <span>Diğer</span>
+            <span>Menü</span>
           </button>
         </SheetTrigger>
         <SheetContent side="bottom" className="rounded-t-3xl px-5 pt-5 pb-8 max-h-[85vh] overflow-y-auto bg-card border-t border-border">
           <SheetHeader className="pb-3 border-b border-border/60 text-left">
             <SheetTitle className="text-base font-bold text-foreground">
-              Diğer Sayfalar &amp; Araçlar
+              Tüm Sayfalar &amp; Araçlar
             </SheetTitle>
           </SheetHeader>
           <div className="grid grid-cols-2 gap-2.5 py-4">
-            {moreNavigation.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            {navigation.map((item) => {
+              const isActive = current === item.href;
               return (
                 <Link
                   key={item.href}
@@ -233,6 +280,14 @@ function MobileNavigation({ pathname }: { pathname: string }) {
           </div>
 
           <div className="pt-3 border-t border-border/60 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <Link
+              href="/profile"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-1.5 hover:text-foreground font-medium p-1"
+            >
+              <UserRound size={15} className="text-primary" />
+              <span>Profil ve Ayarlar</span>
+            </Link>
             <Link
               href="/data"
               onClick={() => setOpen(false)}

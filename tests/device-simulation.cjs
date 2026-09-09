@@ -446,10 +446,10 @@ function auditDeviceCSSAndLayout(deviceType) {
     assert.ok(loginContent.includes('hidden lg:flex'), 'Login left and right showcases visible on desktop');
     findings.push('Login left (English C1/Zen) & right (Chess/Scores) bento showcases visible');
 
-    // 4. Desktop dropdown menu & search shortcut
-    assert.ok(appFrameContent.includes('north-more-trigger'), 'Dropdown menu present for more items on desktop');
+    // 4. Desktop side-by-side tabs & search shortcut
+    assert.ok(appFrameContent.includes('north-desktop-tabs') && appFrameContent.includes('navigation.map'), 'Side-by-side desktop navigation tabs present');
     assert.ok(appFrameContent.includes('WorkspaceSearch'), 'Workspace search with hotkey active on desktop');
-    findings.push('Full desktop navigation with dropdown and search shortcut');
+    findings.push('Full desktop side-by-side navigation tabs and search shortcut');
   }
 
   return findings;

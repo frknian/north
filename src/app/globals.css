@@ -149,7 +149,7 @@ button, input, select, textarea { transition:background-color 180ms ease,border-
 input, select, textarea { min-width:0; }
 :focus-visible { outline:2px solid var(--primary); outline-offset:4px; }
 .north-topbar { position:sticky; top:0; z-index:40; background:rgba(255,255,255,0.85); border-bottom:1px solid rgba(0,0,0,0.07); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); transition:border-color 200ms ease,box-shadow 200ms ease,background-color 200ms ease; }
-.north-topbar-inner { max-width:1240px; height:64px; padding:0 32px; margin:auto; display:flex; align-items:center; gap:40px; }
+.north-topbar-inner { max-width:1280px; height:64px; padding:0 24px; margin:auto; display:flex; align-items:center; gap:20px; }
 .north-topbar.is-scrolled { border-bottom-color:rgba(0,0,0,0.12); box-shadow:0 4px 20px -2px rgba(0,0,0,0.06); background:rgba(255,255,255,0.96); }
 .north-brand { display:flex; align-items:center; gap:10px; font-size:16px; flex-shrink:0; color:var(--foreground); text-decoration:none; }
 .north-brand span { font-family:var(--font-sora), "Sora", sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; }
@@ -161,11 +161,12 @@ input, select, textarea { min-width:0; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.north-desktop-tabs { display:flex; align-items:center; gap:6px; height:100%; }
-.north-top-tab { position:relative; display:flex; align-items:center; justify-content:center; min-height:42px; padding:0 15px; font-size:13px; color:var(--muted-foreground); border-radius:8px; transition:color 180ms,background 180ms; white-space:nowrap; }
+.north-desktop-tabs { display:flex; align-items:center; gap:3px; height:100%; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
+.north-desktop-tabs::-webkit-scrollbar { display:none; }
+.north-top-tab { position:relative; display:flex; align-items:center; justify-content:center; min-height:38px; padding:0 11px; font-size:13px; color:var(--muted-foreground); border-radius:8px; transition:color 180ms,background 180ms; white-space:nowrap; }
 .north-top-tab:hover { color:var(--foreground); background:rgba(0,0,0,0.04); }
-.north-top-tab.is-active { color:var(--foreground); font-weight:550; background:rgba(0,0,0,0.05); }
-.north-top-tab::after { content:""; position:absolute; bottom:0; left:15px; right:15px; height:2px; background:var(--primary); transform:scaleX(0); opacity:0; transition:transform 220ms ease,opacity 180ms ease; }
+.north-top-tab.is-active { color:var(--foreground); font-weight:600; background:rgba(0,0,0,0.05); }
+.north-top-tab::after { content:""; position:absolute; bottom:0; left:11px; right:11px; height:2px; background:var(--primary); transform:scaleX(0); opacity:0; transition:transform 220ms ease,opacity 180ms ease; }
 .north-top-tab.is-active::after { transform:scaleX(1); opacity:1; }
 .north-tools { margin-left:auto; display:flex; align-items:center; gap:12px; }
 .north-tools [data-slot=button] { font-size:12px; }
