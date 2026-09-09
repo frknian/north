@@ -1,14 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
   CalendarPlus,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Clock,
+  ExternalLink,
   Pencil,
+  Play,
   Plus,
   RefreshCw,
   Trash2,
@@ -55,7 +60,7 @@ const eventKindLabels: Record<
 export function NorthCalendar() {
   const { state, update } = useNorth();
   const [date, setDate] = useState(dayKey());
-  const [view, setView] = useState<"day" | "week" | "month">("week");
+  const [view, setView] = useState<"day" | "week" | "month">("month");
   const [eventDraft, setEventDraft] = useState<NorthEvent | null>(null);
   const [taskDraft, setTaskDraft] = useState<NorthTask | null>(null);
   const [rolloverNotice, setRolloverNotice] = useState<string | null>(null);
@@ -70,6 +75,25 @@ export function NorthCalendar() {
       : new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)), 0).getDate();
   const days = Array.from({ length: count }, (_, index) => shiftDay(start, index));
   const leading = view === "month" ? (new Date(start + "T12:00:00").getDay() + 6) % 7 : 0;
+  const trailing = view === "month" ? (7 - ((leading + count) % 7)) % 7 : 0;
+
+  const monthDate = new Date(`${date.slice(0, 7)}-01T12:00:00`);
+  const monthName = monthDate.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  const selectedDateFormatted = new Date(`${date}T12:00:00`).toLocaleDateString("tr-TR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    weekday: "long",
+  });
+
+  const navigateMonth = (delta: -1 | 1) => {
+    const currentYear = Number(date.slice(0, 4));
+    const currentMonth = Number(date.slice(5, 7));
+    const newDate = new Date(currentYear, currentMonth - 1 + delta, 1);
+    const y = newDate.getFullYear();
+    const m = String(newDate.getMonth() + 1).padStart(2, "0");
+    setDate(`${y}-${m}-01`);
+  };
 
   const dateTasks = state.tasks.filter((task) => task.date && task.status !== "cancelled");
   const optionalPool = state.tasks.filter(
@@ -116,6 +140,25 @@ export function NorthCalendar() {
     toast.success("Plan günlere ve haftaya dengeli şekilde dağıtıldı.");
   };
 
+  const toggleTaskDone = (taskId: string) => {
+    update((curr) => ({
+      ...curr,
+      tasks: curr.tasks.map((t) =>
+        t.id === taskId ? { ...t, status: t.status === "done" ? "pending" : "done" } : t
+      ),
+    }));
+  };
+
+  const assignPoolTaskToDate = (taskId: string, targetDate: string) => {
+    update((curr) => ({
+      ...curr,
+      tasks: curr.tasks.map((t) =>
+        t.id === taskId ? { ...t, date: targetDate, week: weekKey(targetDate) } : t
+      ),
+    }));
+    toast.success("Görev seçili güne taksim edildi.");
+  };
+
   const openNewTaskModal = (plannedDate = date) => {
     const area = activeAreas[0];
     if (!area) return;
@@ -151,25 +194,39 @@ export function NorthCalendar() {
   };
 
   return (
-    <div className="page-content space-y-6 pb-20">
+    <div className="page-content space-y-5 pb-20 md:pb-10">
       {/* HEADER */}
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">Zaman Bloklama &amp; Takvim</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Dersler, mesailer, sınavlar ve odak blokları tek çatı altında. Çakışmalar otomatik hesaplanır.
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="outline" className="text-[10px] font-bold tracking-wider uppercase text-primary">
+              Aylık Takvim & Taksim
+            </Badge>
+            <span className="text-xs text-muted-foreground">· Haftalık Kapasite: {state.weeklyHours} saat</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Takvim & Zaman Blokları
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Derslerini, mesaini ve serbest zamanlarını gör; odak görevlerini günlere dengeli taksim et.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRebalance} className="rounded-xl text-xs">
-            <Zap className="size-3.5 mr-1.5 text-amber-500" /> Planı Günlere Dengele
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRebalance}
+            className="rounded-xl text-xs"
+            title="Dengeli Dağıt: Kaçan veya ötelenen görevleri boşluklara akıllıca paylaştırır"
+          >
+            <RefreshCw className="size-3.5 mr-1.5 text-primary" /> Dengeli Dağıt
           </Button>
           <Button
             variant="outline"
             size="sm"
             disabled={!activeAreas.length}
-            onClick={() => openNewEventModal()}
+            onClick={() => openNewEventModal(date)}
             className="rounded-xl text-xs"
           >
             <CalendarPlus className="size-3.5 mr-1.5 text-sky-400" /> + Blok Ekle
@@ -177,7 +234,7 @@ export function NorthCalendar() {
           <Button
             size="sm"
             disabled={!activeAreas.length}
-            onClick={() => openNewTaskModal()}
+            onClick={() => openNewTaskModal(date)}
             className="rounded-xl text-xs shadow-xs"
           >
             <Plus className="size-3.5 mr-1.5" /> + Görev Planla
@@ -185,43 +242,70 @@ export function NorthCalendar() {
         </div>
       </header>
 
-      {/* CONTROLS HUD */}
+      {/* CONTROLS & NAVIGATION HUD */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card/60 p-3 shadow-xs">
-        <div className="flex items-center gap-1 rounded-xl border bg-muted/40 p-1 text-xs">
-          {(["day", "week", "month"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setView(mode)}
-              className={cn(
-                "rounded-lg px-3 py-1 font-medium transition-all",
-                view === mode
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {mode === "day" ? "Gün" : mode === "week" ? "Hafta" : "Ay"}
-            </button>
-          ))}
-        </div>
+        {/* Month Navigator */}
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => navigateMonth(-1)}
+            className="size-8 rounded-lg"
+            title="Önceki Ay"
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="font-bold text-sm sm:text-base text-foreground capitalize px-2 min-w-[130px] text-center">
+            {monthName}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => navigateMonth(1)}
+            className="size-8 rounded-lg"
+            title="Sonraki Ay"
+          >
+            <ChevronRight className="size-4" />
+          </Button>
 
-        <div className="flex items-center gap-2">
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => e.target.value && setDate(e.target.value)}
-            className="w-auto text-xs rounded-xl h-8"
-          />
           {date !== dayKey() && (
             <Button
               variant="outline"
               size="xs"
               onClick={() => setDate(dayKey())}
-              className="rounded-xl text-[11px]"
+              className="rounded-xl text-[11px] ml-2 h-7"
             >
               Bugün
             </Button>
           )}
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 rounded-xl border bg-muted/40 p-1 text-xs">
+            {(["month", "week", "day"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setView(mode)}
+                className={cn(
+                  "rounded-lg px-3 py-1 font-medium transition-all cursor-pointer",
+                  view === mode
+                    ? "bg-background text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {mode === "month" ? "Aylık Taksim" : mode === "week" ? "Hafta" : "Gün"}
+              </button>
+            ))}
+          </div>
+
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
+            className="w-auto text-xs rounded-xl h-8 hidden sm:inline-flex"
+          />
         </div>
       </div>
 
@@ -243,176 +327,381 @@ export function NorthCalendar() {
         </div>
       )}
 
-      {/* SELECTED DAY SUMMARY HUD */}
-      <div className="rounded-2xl border bg-card/60 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4 text-xs">
-        <div className="flex items-center gap-4">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Seçili Gün</span>
-            <p className="font-semibold text-foreground text-sm font-mono mt-0.5">{date}</p>
+      {/* AYLIK TAKSİM: 2-COLUMN SPLIT PARTITION LAYOUT */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* LEFT PARTITION: 7-COLUMN CALENDAR (col-span-8) */}
+        <div className="lg:col-span-8 space-y-2">
+          {/* Weekday Labels */}
+          <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-bold text-muted-foreground py-1 px-1">
+            <span>Pzt</span>
+            <span>Sal</span>
+            <span>Çar</span>
+            <span>Per</span>
+            <span>Cum</span>
+            <span className="text-amber-500/90">Cmt</span>
+            <span className="text-rose-500/90">Paz</span>
           </div>
-          <div className="h-7 w-px bg-border/60" />
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Planlanan Süre</span>
-            <p className="font-semibold text-foreground text-sm font-mono mt-0.5">
-              {selectedMinutes} dk <span className="text-xs font-normal text-muted-foreground">({selectedTasks.length} görev)</span>
-            </p>
-          </div>
-        </div>
 
-        {/* Legend */}
-        <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-primary/20 bg-primary/10 text-primary">
-            ⏱ Odak
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-sky-500/20 bg-sky-500/10 text-sky-500">
-            🎓 Ders
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-amber-500/20 bg-amber-500/10 text-amber-500">
-            💼 İş
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-rose-500/20 bg-rose-500/10 text-rose-500">
-            📝 Sınav
-          </span>
-        </div>
-      </div>
+          {/* Grid */}
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+            {/* Leading Empty Slots for Month Alignment */}
+            {view === "month" &&
+              Array.from({ length: leading }).map((_, i) => (
+                <div
+                  key={`leading-${i}`}
+                  className="rounded-xl border border-dashed border-border/30 bg-muted/10 min-h-[90px] sm:min-h-[105px] opacity-30 pointer-events-none"
+                />
+              ))}
 
-      {/* CONFLICT WARNING */}
-      {selectedBlockingEvents.length > 0 && selectedTasks.length > 0 && (
-        <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 px-4 py-2.5 text-xs text-muted-foreground flex items-center gap-2">
-          <span className="size-2 rounded-full bg-sky-500 shrink-0" />
-          <span>
-            <strong className="text-foreground">Akıllı Çakışma Koruması:</strong> Bu günde{" "}
-            {selectedBlockingEvents.map((e) => e.title || eventKindLabels[e.kind].label).join(", ")} bulunuyor.
-            North seansları bu saatlerin dışındaki boşluklara yerleştirir.
-          </span>
-        </div>
-      )}
+            {/* Days in Range */}
+            {days.map((d) => {
+              const isToday = d === dayKey();
+              const isSelected = d === date;
+              const dayDate = new Date(`${d}T12:00:00`);
+              const dayNum = dayDate.getDate();
+              const dayTasks = state.tasks.filter((t) => t.date === d && t.status !== "cancelled");
+              const dayEvents = state.events.filter((e) => e.date === d);
+              const totalMins = dayTasks.reduce((acc, t) => acc + t.minutes, 0);
 
-      {/* CALENDAR GRID */}
-      <div
-        className={cn(
-          "grid gap-3",
-          view === "day"
-            ? "grid-cols-1"
-            : view === "week"
-            ? "grid-cols-1 md:grid-cols-7"
-            : "grid-cols-2 sm:grid-cols-7"
-        )}
-      >
-        {days.map((d) => {
-          const isToday = d === dayKey();
-          const isSelected = d === date;
-          const dayDate = new Date(`${d}T12:00:00`);
-          const dayName = dayDate.toLocaleDateString("tr-TR", { weekday: "short" });
-          const dayNum = dayDate.getDate();
-          const dayTasks = state.tasks.filter((t) => t.date === d && t.status !== "cancelled");
-          const dayEvents = state.events.filter((e) => e.date === d);
-
-          return (
-            <div
-              key={d}
-              onClick={() => setDate(d)}
-              className={cn(
-                "rounded-2xl border p-3 flex flex-col justify-between gap-3 min-h-[220px] transition-all cursor-pointer bg-card/40",
-                isSelected
-                  ? "border-primary ring-1 ring-primary/30 shadow-xs bg-primary/[0.02]"
-                  : isToday
-                  ? "border-primary/40 bg-primary/[0.01]"
-                  : "border-border/60 hover:border-border"
-              )}
-            >
-              <div>
-                <div className="flex items-center justify-between border-b border-border/40 pb-1.5 mb-2">
-                  <span className={cn("text-xs font-bold uppercase", isToday ? "text-primary" : "text-foreground")}>
-                    {dayName} {dayNum}
-                  </span>
-                  {dayTasks.length > 0 && (
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      {dayTasks.reduce((acc, t) => acc + t.minutes, 0)} dk
-                    </span>
+              return (
+                <div
+                  key={d}
+                  onClick={() => setDate(d)}
+                  className={cn(
+                    "rounded-xl border p-2 sm:p-2.5 flex flex-col justify-between min-h-[95px] sm:min-h-[110px] transition-all cursor-pointer bg-card/60 relative group hover:border-primary/50",
+                    isSelected
+                      ? "border-primary ring-2 ring-primary/40 bg-primary/[0.04] shadow-xs"
+                      : isToday
+                      ? "border-primary/40 bg-primary/[0.02]"
+                      : "border-border/60 hover:bg-muted/30"
                   )}
-                </div>
-
-                {/* Events list */}
-                <div className="space-y-1 mb-2">
-                  {dayEvents.map((evt) => {
-                    const meta = eventKindLabels[evt.kind] || eventKindLabels.block;
-                    return (
-                      <div
-                        key={evt.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEventDraft({ ...evt });
-                        }}
-                        className={cn("rounded-lg border px-2 py-1 text-[10px] font-medium truncate flex items-center justify-between", meta.badgeClass)}
-                        title={`${evt.title} (${meta.label})`}
-                      >
-                        <span className="truncate">
-                          {meta.icon} {evt.title || meta.label}
-                        </span>
-                        {evt.time && <span className="font-mono text-[9px] ml-1">{evt.time}</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Tasks list */}
-                <div className="space-y-1">
-                  {dayTasks.map((t) => {
-                    const isDone = t.status === "done";
-                    return (
-                      <div
-                        key={t.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTaskDraft({ ...t });
-                        }}
+                >
+                  <div>
+                    {/* Top Row: Day Number + Badge */}
+                    <div className="flex items-center justify-between gap-1 pb-1">
+                      <span
                         className={cn(
-                          "rounded-lg border p-1.5 text-[11px] flex items-center justify-between gap-1 transition-all",
-                          isDone
-                            ? "border-emerald-500/20 bg-emerald-500/5 line-through opacity-60 text-muted-foreground"
-                            : "border-border/70 bg-card hover:border-primary/40 text-foreground"
+                          "size-5 sm:size-6 rounded-full flex items-center justify-center text-xs font-bold font-mono",
+                          isToday
+                            ? "bg-primary text-primary-foreground"
+                            : isSelected
+                            ? "bg-primary/20 text-primary"
+                            : "text-foreground"
                         )}
                       >
-                        <span className="truncate font-medium">{t.title}</span>
-                        <span className="font-mono text-[9px] text-muted-foreground shrink-0">{t.minutes}m</span>
+                        {dayNum}
+                      </span>
+                      {totalMins > 0 && (
+                        <span className="text-[10px] font-mono text-muted-foreground font-semibold">
+                          {totalMins}m
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Events indicator chips */}
+                    {dayEvents.length > 0 && (
+                      <div className="space-y-0.5 my-1">
+                        {dayEvents.slice(0, 2).map((evt) => {
+                          const meta = eventKindLabels[evt.kind] || eventKindLabels.block;
+                          return (
+                            <div
+                              key={evt.id}
+                              className={cn(
+                                "rounded px-1 py-0.5 text-[9px] font-medium truncate flex items-center gap-1 border",
+                                meta.badgeClass
+                              )}
+                              title={`${evt.title} (${meta.label})`}
+                            >
+                              <span className="truncate">{evt.title || meta.label}</span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    )}
 
-                  {dayEvents.length === 0 && dayTasks.length === 0 && (
-                    <p className="text-[10px] text-muted-foreground/40 text-center py-6">Boş gün</p>
-                  )}
+                    {/* Tasks mini pills */}
+                    {dayTasks.length > 0 && (
+                      <div className="space-y-0.5 mt-1">
+                        {dayTasks.slice(0, 2).map((t) => (
+                          <div
+                            key={t.id}
+                            className={cn(
+                              "text-[10px] truncate rounded px-1 py-0.2",
+                              t.status === "done"
+                                ? "line-through text-muted-foreground/60 bg-muted/40"
+                                : "text-foreground font-medium bg-muted/70"
+                            )}
+                          >
+                            {t.title}
+                          </div>
+                        ))}
+                        {dayTasks.length > 2 && (
+                          <span className="text-[9px] text-primary font-medium block">
+                            +{dayTasks.length - 2} görev
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Hover Quick Add */}
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end pt-1">
+                    <span className="text-[9px] font-semibold text-primary inline-flex items-center gap-0.5">
+                      <Plus className="size-2.5" /> Seç
+                    </span>
+                  </div>
                 </div>
-              </div>
+              );
+            })}
 
-              {/* Quick Add Buttons */}
-              <div className="flex items-center gap-1 border-t border-border/30 pt-1.5">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openNewTaskModal(d);
-                  }}
-                  className="flex-1 rounded-lg border border-dashed border-border/60 py-1 text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
-                >
-                  + Görev
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openNewEventModal(d);
-                  }}
-                  className="rounded-lg border border-dashed border-border/60 p-1 text-[10px] text-muted-foreground hover:text-sky-400 hover:border-sky-400/40 transition-colors"
-                  title="Blok ekle"
-                >
-                  <CalendarPlus className="size-3" />
-                </button>
+            {/* Trailing Empty Slots to Complete Row */}
+            {view === "month" &&
+              Array.from({ length: trailing }).map((_, i) => (
+                <div
+                  key={`trailing-${i}`}
+                  className="rounded-xl border border-dashed border-border/30 bg-muted/10 min-h-[90px] sm:min-h-[105px] opacity-30 pointer-events-none"
+                />
+              ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 text-[10px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-primary/20 bg-primary/10 text-primary">
+              ⏱ Odak Bloğu
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-sky-500/20 bg-sky-500/10 text-sky-500">
+              🎓 Ders / Okul
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-amber-500/20 bg-amber-500/10 text-amber-500">
+              💼 İş / Mesai
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 border-rose-500/20 bg-rose-500/10 text-rose-500">
+              📝 Sınav
+            </span>
+          </div>
+        </div>
+
+        {/* RIGHT PARTITION: SEÇİLİ GÜNÜN TAKSİMİ (col-span-4) */}
+        <div className="lg:col-span-4 space-y-3.5 rounded-2xl border border-border bg-card p-4 shadow-xs">
+          {/* Partition Header */}
+          <div className="flex items-start justify-between gap-2 border-b border-border/60 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <CalendarDays className="size-4 text-primary" />
+                <span className="text-xs font-bold text-foreground">Günün Taksimi</span>
+                {date === dayKey() && (
+                  <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30">
+                    Bugün
+                  </span>
+                )}
+              </div>
+              <h3 className="text-sm font-bold text-foreground mt-1 capitalize font-sans">
+                {selectedDateFormatted}
+              </h3>
+            </div>
+
+            <div className="text-right">
+              <span className="font-mono text-base font-extrabold text-primary block">
+                {selectedMinutes} dk
+              </span>
+              <span className="text-[10px] text-muted-foreground block">
+                {selectedTasks.length} görev
+              </span>
+            </div>
+          </div>
+
+          {/* Conflict Alert if any */}
+          {selectedBlockingEvents.length > 0 && selectedTasks.length > 0 && (
+            <div className="rounded-xl border border-sky-500/25 bg-sky-500/10 p-2 text-xs text-muted-foreground flex items-center gap-2">
+              <span className="size-2 rounded-full bg-sky-500 shrink-0" />
+              <span className="text-[11px] leading-snug">
+                Bu günde <strong>{selectedBlockingEvents.map((e) => e.title || eventKindLabels[e.kind].label).join(", ")}</strong> var. Odaklar boş saatlere dağıtılır.
+              </span>
+            </div>
+          )}
+
+          {/* Scheduled Events of the Day */}
+          {selectedEvents.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Sabit Bloklar & Etkinlikler
+              </span>
+              <div className="space-y-1">
+                {selectedEvents.map((evt) => {
+                  const meta = eventKindLabels[evt.kind] || eventKindLabels.block;
+                  return (
+                    <div
+                      key={evt.id}
+                      onClick={() => setEventDraft({ ...evt })}
+                      className={cn(
+                        "rounded-xl border p-2 text-xs flex items-center justify-between gap-2 cursor-pointer transition hover:opacity-90",
+                        meta.badgeClass
+                      )}
+                    >
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <span>{meta.icon}</span>
+                        <span className="font-semibold truncate">{evt.title}</span>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-2 text-[10px] font-mono">
+                        {evt.time && <span>{evt.time}</span>}
+                        <span>{evt.minutes} dk</span>
+                        <Pencil className="size-3 opacity-60" />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          );
-        })}
+          )}
+
+          {/* Scheduled Tasks of the Day */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Planlanan Odak Görevleri
+              </span>
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => openNewTaskModal(date)}
+                className="text-[11px] h-6 px-1.5 text-primary hover:text-primary"
+              >
+                <Plus className="size-3 mr-0.5" /> Ekle
+              </Button>
+            </div>
+
+            {selectedTasks.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border/70 p-4 text-center text-xs text-muted-foreground space-y-2">
+                <p>Bu güne atanmış bir görev bulunmuyor.</p>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={() => openNewTaskModal(date)}
+                  className="rounded-lg text-xs"
+                >
+                  <Plus className="size-3 mr-1" /> Bu Güne Görev Ekle
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {selectedTasks.map((t) => {
+                  const area = state.areas.find((a) => a.id === t.areaId);
+                  const isDone = t.status === "done";
+                  return (
+                    <div
+                      key={t.id}
+                      className={cn(
+                        "rounded-xl border p-2.5 text-xs flex items-start justify-between gap-2 transition-all group",
+                        isDone
+                          ? "border-emerald-500/25 bg-emerald-500/5 opacity-70"
+                          : "border-border/80 bg-background/80 hover:border-primary/40"
+                      )}
+                    >
+                      <div className="flex items-start gap-2 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleTaskDone(t.id)}
+                          className={cn(
+                            "size-4 rounded mt-0.5 flex items-center justify-center border transition-colors cursor-pointer shrink-0",
+                            isDone
+                              ? "bg-emerald-500 border-emerald-500 text-white"
+                              : "border-border hover:border-primary bg-card"
+                          )}
+                          title={isDone ? "Görevi aç" : "Tamamla"}
+                        >
+                          {isDone && <Check className="size-3 stroke-[3]" />}
+                        </button>
+                        <div className="min-w-0">
+                          <p
+                            className={cn(
+                              "font-semibold text-foreground leading-snug",
+                              isDone && "line-through text-muted-foreground"
+                            )}
+                          >
+                            {t.title}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5 font-medium">
+                            <span>{area?.name}</span>
+                            <span>•</span>
+                            <span className="font-mono">{t.minutes} dk</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          asChild
+                          size="icon-xs"
+                          className="size-7 rounded-lg"
+                          title="Odaklan"
+                        >
+                          <Link href={`/focus/${t.id}`}>
+                            <Play className="size-3 fill-current" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => setTaskDraft({ ...t })}
+                          className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
+                          title="Düzenle"
+                        >
+                          <Pencil className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Actions for Selected Day */}
+          <div className="pt-2 border-t border-border/60 grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNewTaskModal(date)}
+              className="text-xs rounded-xl h-8 font-semibold"
+            >
+              <Plus className="size-3.5 mr-1" /> + Görev
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNewEventModal(date)}
+              className="text-xs rounded-xl h-8 font-semibold text-sky-500 hover:text-sky-600"
+            >
+              <CalendarPlus className="size-3.5 mr-1" /> + Blok
+            </Button>
+          </div>
+
+          {/* Optional Pool (Esnek Havuzdan Bu Güne Çek) */}
+          {optionalPool.length > 0 && (
+            <div className="pt-2 border-t border-border/60 space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Esnek Havuz ({optionalPool.length} Görev)
+              </span>
+              <div className="space-y-1 max-h-36 overflow-y-auto pr-0.5">
+                {optionalPool.slice(0, 4).map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-2 py-1.5 text-xs gap-1"
+                  >
+                    <span className="truncate text-[11px] text-foreground font-medium">{p.title}</span>
+                    <button
+                      type="button"
+                      onClick={() => assignPoolTaskToDate(p.id, date)}
+                      className="shrink-0 text-[10px] font-semibold text-primary hover:underline px-1 py-0.5 rounded cursor-pointer"
+                    >
+                      Bu Güne Ata
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* EVENT MODAL */}

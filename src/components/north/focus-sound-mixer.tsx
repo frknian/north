@@ -392,10 +392,10 @@ export function FocusSoundMixer({
           <div className="grid grid-cols-2 gap-1.5 content-start">
             {([
               ["none", "Kapalı", "Sessiz ortam"],
-              ["rain", "🌧️ Yağmur", "Hafif yağmur"],
-              ["cafe", "☕ Kafe", "Kafe uğultusu"],
-              ["noise", "📻 Beyaz", "White noise"],
-              ["drone", "🧘 432Hz Zen", "Derin odak"],
+              ["rain", "🌧️ Yağmur", "Hafif yağmur akışı"],
+              ["cafe", "☕ Kafe & Fısıltı", "Fısıltı & bardak tıkırtısı"],
+              ["noise", "📻 Berrak Beyaz", "Arıtılmış pürüzsüz ses"],
+              ["drone", "🧘 432Hz Zen", "Derin alfa dalgası"],
             ] as const).map(([val, label, sub]) => (
               <button
                 key={val}

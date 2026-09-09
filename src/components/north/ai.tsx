@@ -485,8 +485,10 @@ export function NorthAI({
               level={actualLevel}
             />
             <div className="min-w-0">
-              <span className="text-xs font-bold text-foreground block truncate">Planorth Koç</span>
-              <span className="text-[10px] text-muted-foreground truncate block">
+              <span className="text-xs font-bold text-foreground block truncate">
+                Merhaba, {userName}! 👋
+              </span>
+              <span className="text-[10px] text-muted-foreground truncate block font-medium">
                 {currentTask ? currentTask.title : selectedArea?.name || "Odak Rehberi"}
               </span>
             </div>
@@ -501,7 +503,38 @@ export function NorthAI({
         {/* Conversation */}
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden pt-2">
           <Conversation className="flex-1 min-h-0 overflow-y-auto">
-            <ConversationContent className="gap-3 p-1 sm:p-2">
+            <ConversationContent className="gap-2.5 p-1 sm:p-2">
+              {workspace.coachMessages.length === 0 && (
+                <div className="rounded-2xl border border-primary/20 bg-primary/[0.03] p-3 text-xs space-y-2">
+                  <div className="flex items-center gap-1.5 text-primary font-bold">
+                    <Sparkles className="size-3.5" />
+                    <span>Merhaba, {userName}!</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Bu oturumda yanındayım. Takıldığın bir kavramı, çözüm yöntemini veya aklındakini hemen sorabilirsin.
+                  </p>
+                  <div className="flex flex-col gap-1.5 pt-1">
+                    {[
+                      "💡 Bu görevi 3 mikro adıma böl",
+                      "❓ Şu an nereden başlamalıyım?",
+                      "🔍 Konuyla ilgili video veya kaynak öner",
+                      "⏱️ Kalan süreyi nasıl yöneteyim?",
+                    ].map((promptText, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setQuestion(promptText);
+                        }}
+                        className="text-left text-[11px] px-2.5 py-1.5 rounded-xl border border-border/70 bg-background/90 hover:bg-primary/10 hover:border-primary/40 text-foreground transition cursor-pointer"
+                      >
+                        {promptText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {workspace.coachMessages.slice(-20).map((message) => (
                 <div
                   key={message.id}
@@ -509,12 +542,21 @@ export function NorthAI({
                 >
                   <div
                     className={cn(
-                      "max-w-[90%] rounded-xl p-2.5 leading-relaxed",
+                      "max-w-[92%] rounded-xl p-2.5 leading-relaxed shadow-2xs",
                       message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/70 text-foreground border border-border/70"
                     )}
                   >
                     <MessageResponse>{message.content}</MessageResponse>
                   </div>
+                  {message.resources && message.resources.length > 0 && (
+                    <div className="w-full">
+                      <CoachResourceCards
+                        resources={message.resources}
+                        onAttachToTask={handleAttachResourceToTask}
+                        onCreateTask={handleCreateTaskFromResource}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
               {busy && (
@@ -528,7 +570,7 @@ export function NorthAI({
 
           {/* Compact Input */}
           <div className="pt-2 border-t border-border shrink-0">
-            <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 py-1.5">
+            <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
               <input
                 type="text"
                 className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
@@ -540,7 +582,7 @@ export function NorthAI({
                     void ask();
                   }
                 }}
-                placeholder="Koça danış..."
+                placeholder={`Merhaba ${userName}! Aklındakini sor...`}
               />
               <Button size="icon-xs" className="size-6 rounded-md" disabled={busy || !question.trim()} onClick={() => void ask()}>
                 <Send className="size-2.5" />

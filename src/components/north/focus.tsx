@@ -49,6 +49,7 @@ import { ambientSound } from "@/lib/ambient-sound";
 import { PipTimerController } from "@/lib/pip-timer";
 import { BreathworkModal } from "./breathwork-modal";
 import { NorthAI } from "./ai";
+import { SanalKutuphaneBadge } from "./sanal-kutuphane";
 import { FocusSoundMixer, type AmbientSoundType } from "./focus-sound-mixer";
 import {
   setFocusLock,
@@ -722,6 +723,7 @@ export function NorthFocus({ id }: { id: string }) {
             <span className="hidden 2xl:inline">{ironWill ? "Demir İrade" : "Standart"}</span>
           </button>
 
+          <SanalKutuphaneBadge className="hidden xl:inline-flex h-8 shrink-0" />
           <Companion state={state} compact />
         </div>
       </header>

@@ -15,6 +15,7 @@ import { isCurrentTabLocked, FOCUS_LOCK_KEY, BROADCAST_CHANNEL_NAME, type Active
 import { FocusLockBarrier } from "@/components/features/focus-lock-barrier";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { SanalKutuphaneBadge } from "@/components/north/sanal-kutuphane";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
@@ -178,7 +179,13 @@ export function AppFrame({children}:{children:React.ReactNode}) {
       <div className="north-topbar-inner">
         <Link href="/" aria-label="Planorth — Bugün" className="north-brand"><NorthLogo size={34} priority/><span className="font-planorth text-base tracking-[0.04em]">PLANORTH</span></Link>
         <TopNavigation pathname={pathname}/>
-        <div className="north-tools"><WorkspaceSearch/><ThemeToggle/><Link href="/data" className="north-profile hidden sm:grid" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link><Link href="/profile" className="north-profile hidden sm:grid" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link></div>
+        <div className="north-tools">
+          <SanalKutuphaneBadge />
+          <WorkspaceSearch/>
+          <ThemeToggle/>
+          <Link href="/data" className="north-profile hidden sm:grid" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link>
+          <Link href="/profile" className="north-profile hidden sm:grid" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link>
+        </div>
       </div>
     </header>
     <main
