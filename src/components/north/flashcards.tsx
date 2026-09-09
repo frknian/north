@@ -48,7 +48,7 @@ const STARTER_CARDS: Flashcard[] = [
 ];
 
 export function FlashcardsModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [cards, setCards] = useState<Flashcard[]>(STARTER_CARDS);
+  const [cards, setCards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -59,15 +59,19 @@ export function FlashcardsModal({ open, onOpenChange }: { open: boolean; onOpenC
   const [newTag, setNewTag] = useState("Genel");
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          setCards(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setCards(parsed);
+          return;
         }
-      } catch {}
-    }, 0);
-    return () => window.clearTimeout(timer);
+      }
+      setCards([]);
+    } catch {
+      setCards([]);
+    }
   }, []);
 
   const saveCards = (next: Flashcard[]) => {
@@ -139,9 +143,26 @@ export function FlashcardsModal({ open, onOpenChange }: { open: boolean; onOpenC
           <div>
             <div className="flex items-center justify-between text-xs text-muted-foreground my-2">
               <span>Kart {cards.length ? currentIndex + 1 : 0} / {cards.length}</span>
-              <Button size="xs" variant="outline" onClick={() => setIsAdding(true)} className="rounded-lg text-[11px]">
-                <Plus className="mr-1 size-3" /> Yeni Kart Ekle
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Button size="xs" variant="outline" onClick={() => setIsAdding(true)} className="rounded-lg text-[11px]">
+                  <Plus className="mr-1 size-3" /> Yeni Kart Ekle
+                </Button>
+                {cards.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Tüm bilgi kartlarını silmek istediğinizden emin misiniz?")) {
+                        saveCards([]);
+                        toast.info("Tüm kartlar temizlendi.");
+                      }
+                    }}
+                    className="text-[11px] text-muted-foreground hover:text-red-500 px-1"
+                    title="Tümünü Temizle"
+                  >
+                    Tümünü Temizle
+                  </button>
+                )}
+              </div>
             </div>
 
             {currentCard ? (
@@ -199,11 +220,24 @@ export function FlashcardsModal({ open, onOpenChange }: { open: boolean; onOpenC
                 </div>
               </div>
             ) : (
-              <div className="py-10 text-center text-xs text-muted-foreground">
+              <div className="py-10 text-center text-xs text-muted-foreground space-y-2">
                 <p>Henüz kayıtlı bilgi kartı yok.</p>
-                <Button size="sm" variant="outline" onClick={() => setIsAdding(true)} className="mt-3 rounded-xl">
-                  İlk Kartı Ekle
-                </Button>
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  <Button size="sm" onClick={() => setIsAdding(true)} className="rounded-xl text-xs">
+                    <Plus className="mr-1 size-3" /> İlk Kartı Ekle
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      saveCards(STARTER_CARDS);
+                      toast.success("Örnek kartlar yüklendi.");
+                    }}
+                    className="rounded-xl text-xs"
+                  >
+                    Örnek Kartları Yükle
+                  </Button>
+                </div>
               </div>
             )}
           </div>

@@ -87,19 +87,43 @@ export const STARTER_PAGE_RANGES: SavedPageRange[] = [
   },
 ];
 
+const STARTER_RANGE_IDS = new Set(["range-1", "range-2"]);
+const STARTER_PIN_IDS = new Set(["pin-ad-cheatsheet", "pin-owasp-top10"]);
+
 export function loadSavedPageRanges(): SavedPageRange[] {
-  if (typeof window === "undefined") return STARTER_PAGE_RANGES;
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(PAGE_RANGES_KEY);
-    if (!raw) {
-      saveSavedPageRanges(STARTER_PAGE_RANGES);
-      return STARTER_PAGE_RANGES;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : STARTER_PAGE_RANGES;
+    if (!Array.isArray(parsed)) return [];
+
+    // One-time cleanup of auto-injected starter ranges from personal workspace
+    const cleanedFlag = localStorage.getItem("north:cleaned_starter_ranges_v1");
+    if (!cleanedFlag) {
+      localStorage.setItem("north:cleaned_starter_ranges_v1", "true");
+      const userCreatedOnly = parsed.filter((r) => !STARTER_RANGE_IDS.has(r.id));
+      if (userCreatedOnly.length !== parsed.length) {
+        saveSavedPageRanges(userCreatedOnly);
+        return userCreatedOnly;
+      }
+    }
+
+    return parsed;
   } catch {
-    return STARTER_PAGE_RANGES;
+    return [];
   }
+}
+
+export function clearAllSavedPageRanges(): void {
+  saveSavedPageRanges([]);
+}
+
+export function loadStarterPageRanges(): void {
+  const current = loadSavedPageRanges();
+  const currentIds = new Set(current.map((r) => r.id));
+  const toAdd = STARTER_PAGE_RANGES.filter((r) => !currentIds.has(r.id));
+  saveSavedPageRanges([...current, ...toAdd]);
 }
 
 export function saveSavedPageRanges(ranges: SavedPageRange[]): void {
@@ -170,18 +194,39 @@ export const STARTER_PINNED_DOCS: PinnedSourceDoc[] = [
 ];
 
 export function loadPinnedDocs(): PinnedSourceDoc[] {
-  if (typeof window === "undefined") return STARTER_PINNED_DOCS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(PINNED_DOCS_KEY);
-    if (!raw) {
-      savePinnedDocs(STARTER_PINNED_DOCS);
-      return STARTER_PINNED_DOCS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : STARTER_PINNED_DOCS;
+    if (!Array.isArray(parsed)) return [];
+
+    // One-time cleanup of auto-injected starter pinned docs from personal workspace
+    const cleanedFlag = localStorage.getItem("north:cleaned_starter_pins_v1");
+    if (!cleanedFlag) {
+      localStorage.setItem("north:cleaned_starter_pins_v1", "true");
+      const userCreatedOnly = parsed.filter((d) => !STARTER_PIN_IDS.has(d.id));
+      if (userCreatedOnly.length !== parsed.length) {
+        savePinnedDocs(userCreatedOnly);
+        return userCreatedOnly;
+      }
+    }
+
+    return parsed;
   } catch {
-    return STARTER_PINNED_DOCS;
+    return [];
   }
+}
+
+export function clearAllPinnedDocs(): void {
+  savePinnedDocs([]);
+}
+
+export function loadStarterPinnedDocs(): void {
+  const current = loadPinnedDocs();
+  const currentIds = new Set(current.map((p) => p.id));
+  const toAdd = STARTER_PINNED_DOCS.filter((p) => !currentIds.has(p.id));
+  savePinnedDocs([...current, ...toAdd]);
 }
 
 export function savePinnedDocs(docs: PinnedSourceDoc[]): void {

@@ -416,19 +416,42 @@ export const STARTER_BOOKS: NorthBook[] = [
   },
 ];
 
+const STARTER_BOOK_IDS = new Set(["book-deep-work", "book-atomic-habits", "book-sandworm"]);
+
 export function loadBooks(): NorthBook[] {
-  if (typeof window === "undefined") return STARTER_BOOKS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(BOOKS_STORAGE_KEY);
-    if (!raw) {
-      saveBooks(STARTER_BOOKS);
-      return STARTER_BOOKS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : STARTER_BOOKS;
+    if (!Array.isArray(parsed)) return [];
+
+    // One-time cleanup for users whose personal shelf was automatically populated with starter mock books
+    const cleanedFlag = localStorage.getItem("north:cleaned_starter_books_v1");
+    if (!cleanedFlag) {
+      localStorage.setItem("north:cleaned_starter_books_v1", "true");
+      const userCreatedOnly = parsed.filter((b) => !STARTER_BOOK_IDS.has(b.id));
+      if (userCreatedOnly.length !== parsed.length) {
+        saveBooks(userCreatedOnly);
+        return userCreatedOnly;
+      }
+    }
+
+    return parsed;
   } catch {
-    return STARTER_BOOKS;
+    return [];
   }
+}
+
+export function clearAllBooks(): void {
+  saveBooks([]);
+}
+
+export function loadStarterBooks(): void {
+  const current = loadBooks();
+  const currentIds = new Set(current.map((b) => b.id));
+  const toAdd = STARTER_BOOKS.filter((b) => !currentIds.has(b.id));
+  saveBooks([...current, ...toAdd]);
 }
 
 export function saveBooks(books: NorthBook[]): void {

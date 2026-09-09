@@ -35,6 +35,7 @@ import {
   addBook,
   updateBook,
   deleteBook,
+  clearAllBooks,
   filterRecommendations,
   BOOK_CATEGORIES,
   BOOK_GOAL_MOODS,
@@ -286,14 +287,32 @@ export function BookLibraryModal({
                   ))}
                 </div>
 
-                <Button
-                  size="xs"
-                  variant="outline"
-                  onClick={() => setTab("recommendations")}
-                  className="text-xs h-7 rounded-lg text-primary border-primary/30 shrink-0 hidden sm:inline-flex"
-                >
-                  <Sparkles className="size-3 mr-1 text-amber-500" /> Kitap Öner
-                </Button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={() => setTab("recommendations")}
+                    className="text-xs h-7 rounded-lg text-primary border-primary/30 shrink-0 hidden sm:inline-flex"
+                  >
+                    <Sparkles className="size-3 mr-1 text-amber-500" /> Kitap Öner
+                  </Button>
+                  {books.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm("Kitaplığınızdaki tüm kitapları silmek istediğinizden emin misiniz?")) {
+                          clearAllBooks();
+                          refreshShelf();
+                          toast.info("Kitaplığınız temizlendi.");
+                        }
+                      }}
+                      className="px-2 py-1 text-xs text-muted-foreground hover:text-red-500 transition-colors rounded-lg"
+                      title="Kitaplığı Temizle"
+                    >
+                      Tümünü Temizle
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Books List */}
@@ -302,10 +321,14 @@ export function BookLibraryModal({
                   <div className="size-12 rounded-2xl bg-primary/10 text-primary mx-auto grid place-items-center">
                     <BookOpen className="size-6 opacity-80" />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground">Bu filtrede kitap bulunmuyor</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Kitaplığa yeni bir kitap ekleyebilir veya tavsiye kataloğundan tek tıkla seçebilirsin.
+                  <div className="max-w-md mx-auto">
+                    <h3 className="text-sm font-bold text-foreground">
+                      {books.length === 0 ? "Kişisel Kitaplığınız Boş" : "Bu filtrede kitap bulunmuyor"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      {books.length === 0
+                        ? "Burası sizin kişisel alanınızdır. Dilediğiniz kitabı ekleyebilir veya tavsiyeler sekmesinden beğendiklerinizi tek tıkla kitaplığınıza dahil edebilirsiniz."
+                        : "Filtre kriterlerine uygun kitap bulunamadı. Tüm kitapları görüntülemek için 'Tümü' filtresini seçebilirsiniz."}
                     </p>
                   </div>
                   <div className="flex items-center justify-center gap-2 pt-1">

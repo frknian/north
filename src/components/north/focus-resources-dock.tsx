@@ -27,9 +27,11 @@ import {
   updateSavedPageRange,
   addSavedPageRange,
   deleteSavedPageRange,
+  loadStarterPageRanges,
   loadPinnedDocs,
   addPinnedDoc,
   deletePinnedDoc,
+  loadStarterPinnedDocs,
   getLibgenSearchUrl,
   getNotebookLMSavedUrl,
   setNotebookLMSavedUrl,
@@ -780,74 +782,111 @@ export function FocusResourcesModal({
               )}
 
               {/* Grid of Pinned Docs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {pinnedDocs.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="group rounded-2xl border bg-background/80 overflow-hidden flex flex-col justify-between transition-all hover:border-indigo-500/50 hover:shadow-xs"
-                  >
-                    <div
-                      onClick={() => setLightboxDoc(doc)}
-                      className="h-32 w-full cursor-pointer bg-muted/40 border-b flex items-center justify-center relative overflow-hidden"
+              {pinnedDocs.length === 0 ? (
+                <div className="text-center py-8 px-4 border border-dashed rounded-2xl bg-card/40 space-y-2.5">
+                  <div className="size-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 mx-auto grid place-items-center">
+                    <FileText className="size-5 opacity-80" />
+                  </div>
+                  <div className="max-w-sm mx-auto space-y-0.5">
+                    <h4 className="text-xs font-bold text-foreground">Pinli Belge Bulunmuyor</h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Bu seans sırasında incelemek istediğin mimari şemaları veya notları pinleyebilirsin.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => setPinFormOpen(true)}
+                      className="rounded-xl text-xs h-7"
                     >
-                      {doc.type === "image" ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={doc.url} alt={doc.title} className="size-full object-cover group-hover:scale-105 transition-transform" />
-                      ) : (
-                        <div className="p-3 text-center space-y-1">
-                          <FileText className="size-8 mx-auto text-sky-500" />
-                          <p className="text-[11px] font-semibold truncate text-foreground">{doc.title}</p>
-                        </div>
-                      )}
-                      <span className="absolute top-2 right-2 rounded-lg bg-black/60 backdrop-blur-md px-1.5 py-0.5 text-[9px] font-bold text-white flex items-center gap-1">
-                        <Maximize2 className="size-2.5" />
-                        Büyüt
-                      </span>
-                    </div>
-
-                    <div className="p-2.5 space-y-1.5">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold px-1.5 py-0.2">
-                          {doc.type.toUpperCase()}
+                      <Plus className="mr-1 size-3" />
+                      Yeni Görsel Pinle
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        loadStarterPinnedDocs();
+                        refreshAll();
+                        toast.success("Örnek belgeler yüklendi.");
+                      }}
+                      className="rounded-xl text-xs h-7 text-sky-600 dark:text-sky-400 border-sky-500/30"
+                    >
+                      <Sparkles className="mr-1 size-3" />
+                      Örnek Şema Yükle
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {pinnedDocs.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="group rounded-2xl border bg-background/80 overflow-hidden flex flex-col justify-between transition-all hover:border-indigo-500/50 hover:shadow-xs"
+                    >
+                      <div
+                        onClick={() => setLightboxDoc(doc)}
+                        className="h-32 w-full cursor-pointer bg-muted/40 border-b flex items-center justify-center relative overflow-hidden"
+                      >
+                        {doc.type === "image" ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={doc.url} alt={doc.title} className="size-full object-cover group-hover:scale-105 transition-transform" />
+                        ) : (
+                          <div className="p-3 text-center space-y-1">
+                            <FileText className="size-8 mx-auto text-sky-500" />
+                            <p className="text-[11px] font-semibold truncate text-foreground">{doc.title}</p>
+                          </div>
+                        )}
+                        <span className="absolute top-2 right-2 rounded-lg bg-black/60 backdrop-blur-md px-1.5 py-0.5 text-[9px] font-bold text-white flex items-center gap-1">
+                          <Maximize2 className="size-2.5" />
+                          Büyüt
                         </span>
-                        {doc.pageRange && (
-                          <span className="font-mono text-muted-foreground">{doc.pageRange}</span>
+                      </div>
+
+                      <div className="p-2.5 space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold px-1.5 py-0.2">
+                            {doc.type.toUpperCase()}
+                          </span>
+                          {doc.pageRange && (
+                            <span className="font-mono text-muted-foreground">{doc.pageRange}</span>
+                          )}
+                        </div>
+                        <h4 className="text-xs font-bold text-foreground truncate">{doc.title}</h4>
+                        {doc.notes && (
+                          <p className="text-[10px] text-muted-foreground line-clamp-2 italic bg-muted/20 p-1 rounded">
+                            {doc.notes}
+                          </p>
                         )}
                       </div>
-                      <h4 className="text-xs font-bold text-foreground truncate">{doc.title}</h4>
-                      {doc.notes && (
-                        <p className="text-[10px] text-muted-foreground line-clamp-2 italic bg-muted/20 p-1 rounded">
-                          {doc.notes}
-                        </p>
-                      )}
-                    </div>
 
-                    <div className="px-2.5 pb-2.5 pt-1 border-t border-border/30 flex items-center justify-between gap-1">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setLightboxDoc(doc)}
-                        className="rounded-xl text-[10px] h-6 px-2 flex-1"
-                      >
-                        <Maximize2 className="mr-1 size-2.5" />
-                        İncele
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          deletePinnedDoc(doc.id);
-                          refreshAll();
-                          toast.info("Belge pinlerden kaldırıldı.");
-                        }}
-                        className="p-1 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
-                        title="Sil"
-                      >
-                        <Trash2 className="size-3" />
-                      </button>
+                      <div className="px-2.5 pb-2.5 pt-1 border-t border-border/30 flex items-center justify-between gap-1">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setLightboxDoc(doc)}
+                          className="rounded-xl text-[10px] h-6 px-2 flex-1"
+                        >
+                          <Maximize2 className="mr-1 size-2.5" />
+                          İncele
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            deletePinnedDoc(doc.id);
+                            refreshAll();
+                            toast.info("Belge pinlerden kaldırıldı.");
+                          }}
+                          className="p-1 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
+                          title="Sil"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -942,92 +981,129 @@ export function FocusResourcesModal({
               )}
 
               {/* Grid of Page Ranges */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {pageRanges.map((range) => {
-                  const isSelected = activeRange?.id === range.id;
-                  return (
-                    <div
-                      key={range.id}
-                      className={cn(
-                        "rounded-2xl border p-3.5 space-y-2.5 flex flex-col justify-between transition-all",
-                        isSelected
-                          ? "border-indigo-500 bg-indigo-500/10 shadow-xs"
-                          : "bg-background/80 border-border/70 hover:border-indigo-500/40"
-                      )}
+              {pageRanges.length === 0 ? (
+                <div className="text-center py-8 px-4 border border-dashed rounded-2xl bg-card/40 space-y-2.5">
+                  <div className="size-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto grid place-items-center">
+                    <Bookmark className="size-5 opacity-80" />
+                  </div>
+                  <div className="max-w-sm mx-auto space-y-0.5">
+                    <h4 className="text-xs font-bold text-foreground">Kayıtlı Sayfa Aralığı Bulunmuyor</h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Bu odak seansında hedeflemek istediğin kitap veya döküman sayfalarını kaydedebilirsin.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => setRangeFormOpen(true)}
+                      className="rounded-xl text-xs h-7"
                     >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 rounded-lg px-2 py-0.5">
-                            Sayfa {range.startPage}–{range.endPage}
-                          </span>
-                          <span
-                            className={cn(
-                              "rounded-md px-2 py-0.5 text-[10px] font-semibold",
-                              range.status === "important"
-                                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                                : range.status === "completed"
-                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                                : "bg-muted text-muted-foreground"
-                            )}
-                          >
-                            {range.status === "important" ? "Kritik" : range.status === "completed" ? "Bitti" : "Okunuyor"}
-                          </span>
+                      <Plus className="mr-1 size-3" />
+                      Sayfa Aralığı Ekle
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        loadStarterPageRanges();
+                        refreshAll();
+                        toast.success("Örnek sayfa aralıkları yüklendi.");
+                      }}
+                      className="rounded-xl text-xs h-7 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                    >
+                      <Sparkles className="mr-1 size-3" />
+                      Örnek Aralık Yükle
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {pageRanges.map((range) => {
+                    const isSelected = activeRange?.id === range.id;
+                    return (
+                      <div
+                        key={range.id}
+                        className={cn(
+                          "rounded-2xl border p-3.5 space-y-2.5 flex flex-col justify-between transition-all",
+                          isSelected
+                            ? "border-indigo-500 bg-indigo-500/10 shadow-xs"
+                            : "bg-background/80 border-border/70 hover:border-indigo-500/40"
+                        )}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 rounded-lg px-2 py-0.5">
+                              Sayfa {range.startPage}–{range.endPage}
+                            </span>
+                            <span
+                              className={cn(
+                                "rounded-md px-2 py-0.5 text-[10px] font-semibold",
+                                range.status === "important"
+                                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                  : range.status === "completed"
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {range.status === "important" ? "Kritik" : range.status === "completed" ? "Bitti" : "Okunuyor"}
+                            </span>
+                          </div>
+
+                          <h4 className="font-bold text-xs sm:text-sm text-foreground">{range.topic}</h4>
+                          <p className="text-xs text-muted-foreground">{range.resourceTitle}</p>
+
+                          {range.notes && (
+                            <p className="text-[11px] text-muted-foreground italic bg-muted/30 p-2 rounded-xl">
+                              &ldquo;{range.notes}&rdquo;
+                            </p>
+                          )}
                         </div>
 
-                        <h4 className="font-bold text-xs sm:text-sm text-foreground">{range.topic}</h4>
-                        <p className="text-xs text-muted-foreground">{range.resourceTitle}</p>
+                        <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+                          <Button
+                            size="sm"
+                            variant={isSelected ? "default" : "outline"}
+                            onClick={() => {
+                              onSelectRange?.(range);
+                              toast.success(`"${range.topic}" bu seansın aktif hedefi yapıldı.`);
+                            }}
+                            className="rounded-xl text-xs h-7 px-3 flex-1"
+                          >
+                            {isSelected ? "✓ Aktif Hedef" : "Bu Aralıkla Odaklan"}
+                          </Button>
 
-                        {range.notes && (
-                          <p className="text-[11px] text-muted-foreground italic bg-muted/30 p-2 rounded-xl">
-                            &ldquo;{range.notes}&rdquo;
-                          </p>
-                        )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = range.status === "completed" ? "reading" : "completed";
+                              updateSavedPageRange(range.id, { status: next });
+                              refreshAll();
+                              toast.info(`Durum "${next === "completed" ? "Tamamlandı" : "Okunuyor"}" olarak güncellendi.`);
+                            }}
+                            className="p-1.5 rounded-lg border bg-muted/30 hover:bg-muted text-muted-foreground"
+                            title="Tamamlandı olarak işaretle"
+                          >
+                            <Check className="size-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deleteSavedPageRange(range.id);
+                              refreshAll();
+                              toast.info("Sayfa aralığı silindi.");
+                            }}
+                            className="p-1.5 rounded-lg border bg-muted/30 hover:bg-muted text-muted-foreground hover:text-red-500"
+                            title="Sil"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
                       </div>
-
-                      <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
-                        <Button
-                          size="sm"
-                          variant={isSelected ? "default" : "outline"}
-                          onClick={() => {
-                            onSelectRange?.(range);
-                            toast.success(`"${range.topic}" bu seansın aktif hedefi yapıldı.`);
-                          }}
-                          className="rounded-xl text-xs h-7 px-3 flex-1"
-                        >
-                          {isSelected ? "✓ Aktif Hedef" : "Bu Aralıkla Odaklan"}
-                        </Button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = range.status === "completed" ? "reading" : "completed";
-                            updateSavedPageRange(range.id, { status: next });
-                            refreshAll();
-                            toast.info(`Durum "${next === "completed" ? "Tamamlandı" : "Okunuyor"}" olarak güncellendi.`);
-                          }}
-                          className="p-1.5 rounded-lg border bg-muted/30 hover:bg-muted text-muted-foreground"
-                          title="Tamamlandı olarak işaretle"
-                        >
-                          <Check className="size-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            deleteSavedPageRange(range.id);
-                            refreshAll();
-                            toast.info("Sayfa aralığı silindi.");
-                          }}
-                          className="p-1.5 rounded-lg border bg-muted/30 hover:bg-muted text-muted-foreground hover:text-red-500"
-                          title="Sil"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
