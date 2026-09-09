@@ -325,6 +325,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--primary); }
 .north-logo-dark { display: none; }
 html.dark .north-logo-light, .dark .north-logo-light { display: none !important; }
 html.dark .north-logo-dark, .dark .north-logo-dark { display: block !important; }
+
 .north-profile { border-color:var(--border); color:var(--muted-foreground); }
 .north-profile:hover { color:var(--foreground); background:var(--muted); border-color:var(--primary); }
 .north-more-trigger { gap:5px; border:0; cursor:pointer; background:transparent; }
