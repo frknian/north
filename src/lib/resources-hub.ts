@@ -1,5 +1,3 @@
-"use client";
-
 import { NorthBook } from "./books";
 
 export interface SavedPageRange {

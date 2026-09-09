@@ -1,5 +1,3 @@
-"use client";
-
 export interface BookReadingSession {
   id: string;
   bookId: string;
