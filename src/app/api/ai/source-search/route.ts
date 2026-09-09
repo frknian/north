@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     libgenQuery: `${b.title} ${b.author}`.trim(),
     keyTakeaways: [
       `Format: ${b.ext.toUpperCase()} (${b.size || "Belirtilmemiş"}) - Yıl: ${b.year || "Belirtilmemiş"}`,
-      "Doğrudan indirme bağlantısı ve Anna's Archive aynası doğrulanmıştır.",
+      "Doğrudan indirme bağlantısı ve yedek Libgen aynası doğrulanmıştır.",
     ],
   }));
 
@@ -75,8 +75,8 @@ export async function POST(request: Request) {
     provider: "Seçkin Kitap",
     url: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
     downloadUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-    mirrorUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-    annasUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "anna"),
+    mirrorUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "bz"),
+    annasUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "google"),
     category: b.category,
     type: "book" as const,
     description: b.summary,
@@ -107,8 +107,8 @@ export async function POST(request: Request) {
     tags: [lr.type || "kaynak", lr.source || "web"],
     isFree: true,
     libgenQuery: lr.title.split(/[-–—|:]/)[0].trim(),
-    annasUrl: getLibgenSearchUrl(lr.title.split(/[-–—|:]/)[0].trim(), "anna"),
-    mirrorUrl: getLibgenSearchUrl(lr.title.split(/[-–—|:]/)[0].trim(), "li"),
+    annasUrl: getLibgenSearchUrl(lr.title.split(/[-–—|:]/)[0].trim(), "google"),
+    mirrorUrl: getLibgenSearchUrl(lr.title.split(/[-–—|:]/)[0].trim(), "bz"),
     keyTakeaways: [
       "Canlı web taramasından elde edilmiş doğrulanmış bağlantı.",
       "İçeriği inceleyip sayfa aralığı ekleyebilir veya NotebookLM'e aktarabilirsin.",
@@ -148,8 +148,8 @@ export async function POST(request: Request) {
       provider: "Seçkin Kitap",
       url: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
       downloadUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-      mirrorUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-      annasUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "anna"),
+      mirrorUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "bz"),
+      annasUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "google"),
       category: b.category,
       type: "book" as const,
       description: b.summary,

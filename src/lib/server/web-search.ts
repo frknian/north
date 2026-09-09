@@ -129,38 +129,66 @@ export async function searchLiveWeb(query: string, maxResults = 5): Promise<WebS
       signal: AbortSignal.timeout(5000),
     });
 
-    if (!response.ok) return [];
-
-    const html = await response.text();
     const results: WebSearchResult[] = [];
-    const regex =
-      /<h2 class="result__title">[\s\S]*?<a rel="nofollow" class="result__a" href="([^"]+)">([\s\S]*?)<\/a>[\s\S]*?(?:<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>|<div class="result__snippet"[^>]*>([\s\S]*?)<\/div>)/gi;
 
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(html)) && results.length < maxResults) {
-      let rawUrl = match[1];
-      if (rawUrl.includes("uddg=")) {
-        const matchUddg = /uddg=([^&]+)/.exec(rawUrl);
-        if (matchUddg) rawUrl = decodeURIComponent(matchUddg[1]);
+    if (response.ok) {
+      const html = await response.text();
+      const regex =
+        /<h2 class="result__title">[\s\S]*?<a rel="nofollow" class="result__a" href="([^"]+)">([\s\S]*?)<\/a>[\s\S]*?(?:<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>|<div class="result__snippet"[^>]*>([\s\S]*?)<\/div>)/gi;
+
+      let match: RegExpExecArray | null;
+      while ((match = regex.exec(html)) && results.length < maxResults) {
+        let rawUrl = match[1];
+        if (rawUrl.includes("uddg=")) {
+          const matchUddg = /uddg=([^&]+)/.exec(rawUrl);
+          if (matchUddg) rawUrl = decodeURIComponent(matchUddg[1]);
+        }
+
+        const title = decodeHtmlEntities(match[2]);
+        const snippet = decodeHtmlEntities(match[3] || match[4] || "");
+
+        if (title && rawUrl.startsWith("http") && !rawUrl.includes("duckduckgo.com")) {
+          let source = "";
+          try {
+            source = new URL(rawUrl).hostname.replace(/^www\./, "");
+          } catch {}
+
+          results.push({
+            title,
+            url: rawUrl,
+            snippet,
+            source,
+            type: classifyResourceType(rawUrl, title),
+          });
+        }
       }
+    }
 
-      const title = decodeHtmlEntities(match[2]);
-      const snippet = decodeHtmlEntities(match[3] || match[4] || "");
-
-      if (title && rawUrl.startsWith("http") && !rawUrl.includes("duckduckgo.com")) {
-        let source = "";
-        try {
-          source = new URL(rawUrl).hostname.replace(/^www\./, "");
-        } catch {}
-
-        results.push({
-          title,
-          url: rawUrl,
-          snippet,
-          source,
-          type: classifyResourceType(rawUrl, title),
-        });
-      }
+    // Resilient fallback: If live search returned 0 results, query Wikipedia OpenSearch API
+    if (results.length === 0) {
+      try {
+        const wikiRes = await fetch(
+          `https://tr.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=${maxResults}&namespace=0&format=json`,
+          { signal: AbortSignal.timeout(3000) }
+        );
+        if (wikiRes.ok) {
+          const wikiData = await wikiRes.json();
+          const titles: string[] = wikiData[1] || [];
+          const snippets: string[] = wikiData[2] || [];
+          const urls: string[] = wikiData[3] || [];
+          for (let i = 0; i < titles.length && results.length < maxResults; i++) {
+            if (urls[i] && titles[i]) {
+              results.push({
+                title: titles[i],
+                url: urls[i],
+                snippet: snippets[i] || `${titles[i]} hakkında kapsamlı teknik ve akademik rehber.`,
+                source: "tr.wikipedia.org",
+                type: "documentation",
+              });
+            }
+          }
+        }
+      } catch {}
     }
 
     return results;
@@ -270,20 +298,37 @@ export async function searchLibgenBooks(query: string, maxResults = 6): Promise<
   const clean = query.trim();
   if (!clean) return [];
 
+  // Multi-mirror fallback: try libgen.li first, then libgen.bz if network error or timeout
+  const mirrors = ["libgen.li", "libgen.bz"];
+  let html = "";
+
+  for (const mirrorHost of mirrors) {
+    try {
+      const searchUrl = `https://${mirrorHost}/index.php?req=${encodeURIComponent(clean)}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&res=${Math.max(maxResults * 2, 10)}`;
+      const response = await fetch(searchUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (response.ok) {
+        const text = await response.text();
+        if (text.includes("edition.php?id=")) {
+          html = text;
+          break;
+        }
+      }
+    } catch {
+      // Mirror failed or timed out, gracefully continue to next
+    }
+  }
+
+  if (!html) return [];
+
   try {
-    const searchUrl = `https://libgen.li/index.php?req=${encodeURIComponent(clean)}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&res=${Math.max(maxResults * 2, 10)}`;
-    const response = await fetch(searchUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      },
-      signal: AbortSignal.timeout(6000),
-    });
-
-    if (!response.ok) return [];
-
-    const html = await response.text();
     const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
     const books: LibgenBookResult[] = [];
 
@@ -311,14 +356,14 @@ export async function searchLibgenBooks(query: string, maxResults = 6): Promise<
       const md5Match = /md5=([a-f0-9]{32})/i.exec(cells[8] || "");
       const md5 = md5Match ? md5Match[1] : null;
 
+      // Use clean direct CDN endpoint (/get.php) to avoid adblocker ERR_BLOCKED_BY_CLIENT on ads.php
       const downloadUrl = md5
-        ? `https://libgen.li/ads.php?md5=${md5}`
+        ? `https://libgen.li/get.php?md5=${md5}`
         : `https://libgen.li/edition.php?id=${editionId}`;
 
-      const mirrorUrl = `https://libgen.li/edition.php?id=${editionId}`;
-      const annasUrl = md5
-        ? `https://annas-archive.org/md5/${md5}`
-        : `https://annas-archive.org/search?q=${encodeURIComponent(rawTitle)}`;
+      // Backup mirror using libgen.bz (unblocked by ISPs)
+      const mirrorUrl = `https://libgen.bz/edition.php?id=${editionId}`;
+      const annasUrl = `https://books.google.com/books?q=${encodeURIComponent(rawTitle)}`;
 
       books.push({
         id: `libgen-${editionId}`,
@@ -338,7 +383,7 @@ export async function searchLibgenBooks(query: string, maxResults = 6): Promise<
 
     return books;
   } catch (err) {
-    console.warn("[Libgen Search] Query failed:", err instanceof Error ? err.message : String(err));
+    console.warn("[Libgen Search] Parser failed:", err instanceof Error ? err.message : String(err));
     return [];
   }
 }

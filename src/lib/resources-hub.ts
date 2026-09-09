@@ -259,17 +259,24 @@ export function deletePinnedDoc(id: string): void {
 
 export function getLibgenSearchUrl(
   query: string,
-  mirror: "li" | "is" | "anna" | "rs" | "google" = "li"
+  mirror: "li" | "bz" | "gl" | "is" | "anna" | "rs" | "google" | "archive" = "li"
 ): string {
   const clean = encodeURIComponent(query.trim());
   if (mirror === "anna") {
-    return `https://annas-archive.org/search?q=${clean}`;
-  }
-  if (mirror === "is") {
-    return `https://libgen.is/search.php?req=${clean}&lg_topic=libgen&open=0&view=simple&res=25&phrase=1&column=def`;
+    return `https://annas-archive.gs/search?q=${clean}`;
   }
   if (mirror === "google") {
-    return `https://www.google.com/search?tbm=bks&q=${clean}`;
+    return `https://books.google.com/books?q=${clean}`;
+  }
+  if (mirror === "archive") {
+    return `https://archive.org/search?query=${clean}`;
+  }
+  // "is" and "rs" are blocked by Turkish ISPs; redirect them to active mirror "bz" or "gl"
+  if (mirror === "is" || mirror === "rs" || mirror === "bz") {
+    return `https://libgen.bz/index.php?req=${clean}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&res=25`;
+  }
+  if (mirror === "gl") {
+    return `https://libgen.gl/index.php?req=${clean}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&res=25`;
   }
   return `https://libgen.li/index.php?req=${clean}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&columns%5B%5D=y&columns%5B%5D=p&columns%5B%5D=i&objects%5B%5D=f&objects%5B%5D=e&objects%5B%5D=s&objects%5B%5D=a&objects%5B%5D=p&objects%5B%5D=w&topics%5B%5D=l&topics%5B%5D=c&topics%5B%5D=f&topics%5B%5D=a&topics%5B%5D=m&topics%5B%5D=r&topics%5B%5D=s&res=25`;
 }

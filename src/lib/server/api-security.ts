@@ -45,7 +45,7 @@ export async function secureApiRequest(
   const perMinute = limits.unlimited ? 120 : (limits.perMinute ?? 8);
   const perDay = limits.unlimited ? 10_000 : (limits.perDay ?? 50);
   const scopedRate = consumeRate(`${user.uid}:${scope}`, now, perMinute, perDay);
-  const isExemptAi = Boolean(limits.unlimited || scope === "ai:north");
+  const isExemptAi = Boolean(limits.unlimited || scope === "ai:north" || scope === "ai:source-search" || limits.optionalAuth);
   const globalAiRate = (scope.startsWith("ai:") && !isExemptAi) ? consumeRate(`${user.uid}:ai:global`, now, 12, 80) : null;
   const limited = scopedRate.limited ? scopedRate : globalAiRate?.limited ? globalAiRate : null;
   if (limited) {

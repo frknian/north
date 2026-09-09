@@ -1141,28 +1141,29 @@ export function FocusResourcesModal({
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 text-white px-2 py-1 text-[10px] font-bold hover:bg-indigo-500"
-                      title="Libgen.li (En kararlı ayna)"
+                      title="Libgen (Ana Ayna)"
                     >
                       libgen.li
                       <ExternalLink className="size-2.5" />
                     </a>
                     <a
-                      href={getLibgenSearchUrl(searchQuery, "anna")}
+                      href={getLibgenSearchUrl(searchQuery, "bz")}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg border bg-background px-2 py-1 text-[10px] font-bold text-foreground hover:bg-muted"
-                      title="Anna's Archive (Gölge kütüphane)"
+                      className="inline-flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-background px-2 py-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-muted"
+                      title="Libgen.bz (Yedek Ayna)"
                     >
-                      Anna&apos;s
+                      libgen.bz
                       <ExternalLink className="size-2.5" />
                     </a>
                     <a
-                      href={getLibgenSearchUrl(searchQuery, "is")}
+                      href={getLibgenSearchUrl(searchQuery, "google")}
                       target="_blank"
                       rel="noreferrer"
                       className="hidden sm:inline-flex items-center gap-1 rounded-lg border bg-background px-2 py-1 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-muted"
+                      title="Google Books"
                     >
-                      libgen.is
+                      Google
                       <ExternalLink className="size-2.5" />
                     </a>
                   </div>

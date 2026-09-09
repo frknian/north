@@ -178,14 +178,46 @@ export function ResourcesHub() {
         query: queryToSearch,
         category: catToSearch,
       });
-      const data = await res.json();
-      if (Array.isArray(data.results)) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.results)) {
         setSearchResults(data.results);
       } else {
-        setSearchResults([]);
+        const lowerQ = queryToSearch.toLowerCase();
+        const localBooks = BOOK_RECOMMENDATIONS.filter(
+          (b) =>
+            b.title.toLowerCase().includes(lowerQ) ||
+            b.author.toLowerCase().includes(lowerQ) ||
+            b.summary.toLowerCase().includes(lowerQ)
+        ).map((b) => ({
+          id: b.id,
+          title: `${b.title} - ${b.author}`,
+          author: b.author,
+          provider: "Seçkin Kitap",
+          url: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
+          downloadUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
+          mirrorUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "bz"),
+          annasUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "google"),
+          category: b.category,
+          type: "book" as const,
+          description: b.summary,
+          tags: b.tags,
+          isFree: false,
+          libgenQuery: `${b.title} ${b.author}`,
+          keyTakeaways: b.keyTakeaways,
+        }));
+        const localCurated = CURATED_WEB_SOURCES.filter(
+          (c) =>
+            c.title.toLowerCase().includes(lowerQ) ||
+            c.description.toLowerCase().includes(lowerQ)
+        );
+        const fallbacks = [...localBooks, ...localCurated];
+        setSearchResults(fallbacks);
+        if (!res.ok && fallbacks.length === 0) {
+          toast.error(data.error || "Arama tamamlanamadı. Aşağıdaki aynaları deneyebilirsin.");
+        }
       }
     } catch {
-      toast.error("Arama servisi şu an meşgul. Lütfen tekrar dene.");
+      toast.error("Bağlantı hatası oluştu. Lütfen tekrar dene.");
     } finally {
       setSearchLoading(false);
     }
@@ -952,29 +984,39 @@ export function ResourcesHub() {
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 rounded-xl border border-indigo-500/30 bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                    title="Libgen.li (En kararlı çalışan ayna)"
+                    title="Libgen (Ana Ayna)"
                   >
-                    <span>Libgen.li</span>
+                    <span>Libgen (Ana)</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                  <a
+                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "bz")}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-xl border border-indigo-500/30 bg-background px-3 py-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-muted transition-colors"
+                    title="Libgen.bz (Açık ve Hızlı Yedek Ayna)"
+                  >
+                    <span>Libgen.bz (Yedek)</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                  <a
+                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "google")}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hidden sm:inline-flex items-center gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    title="Google Books (Kitap Önizleme & Kaynaklar)"
+                  >
+                    <span>Google Books</span>
                     <ExternalLink className="size-3" />
                   </a>
                   <a
                     href={getLibgenSearchUrl(libgenInput || "Cyber Security", "anna")}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                    title="Anna's Archive (Dünya gölge kütüphane arşivi)"
+                    className="hidden md:inline-flex items-center gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    title="Anna's Archive (Gölge Ayna)"
                   >
-                    <span>Anna&apos;s Archive</span>
-                    <ExternalLink className="size-3" />
-                  </a>
-                  <a
-                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "is")}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hidden lg:inline-flex items-center gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    title="Libgen.is (Alternatif ayna)"
-                  >
-                    <span>Libgen.is</span>
+                    <span>Anna&apos;s</span>
                     <ExternalLink className="size-3" />
                   </a>
                 </div>
@@ -1023,16 +1065,34 @@ export function ResourcesHub() {
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500"
                   >
-                    <span>Libgen.li&apos;de Ara</span>
+                    <span>Libgen (Ana Ayna)</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                  <a
+                    href={getLibgenSearchUrl(searchQuery, "bz")}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-xl border border-indigo-500/30 bg-background px-3.5 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-muted"
+                  >
+                    <span>Libgen.bz (Yedek Ayna)</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                  <a
+                    href={getLibgenSearchUrl(searchQuery, "google")}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-xl border bg-background px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+                  >
+                    <span>Google Books</span>
                     <ExternalLink className="size-3" />
                   </a>
                   <a
                     href={getLibgenSearchUrl(searchQuery, "anna")}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-xl border bg-background px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+                    className="inline-flex items-center gap-1 rounded-xl border bg-background px-3.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
-                    <span>Anna&apos;s Archive&apos;da Ara</span>
+                    <span>Anna&apos;s Archive</span>
                     <ExternalLink className="size-3" />
                   </a>
                 </div>
@@ -1161,21 +1221,21 @@ export function ResourcesHub() {
                         </button>
 
                         <a
-                          href={item.annasUrl || getLibgenSearchUrl(item.libgenQuery || item.title, "anna")}
+                          href={item.annasUrl || getLibgenSearchUrl(item.libgenQuery || item.title, "google")}
                           target="_blank"
                           rel="noreferrer"
                           className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted text-[10px] font-bold"
-                          title="Anna's Archive Aynası"
+                          title="Google Books / Alternatif Kaynak"
                         >
-                          A
+                          G
                         </a>
 
                         <a
-                          href={item.mirrorUrl || getLibgenSearchUrl(item.libgenQuery || item.title, "li")}
+                          href={item.mirrorUrl || getLibgenSearchUrl(item.libgenQuery || item.title, "bz")}
                           target="_blank"
                           rel="noreferrer"
                           className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
-                          title="Libgen Aynasında Aç"
+                          title="Libgen Yedek Aynasında Aç (libgen.bz)"
                         >
                           <BookOpen className="size-3.5" />
                         </a>
