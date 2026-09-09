@@ -2,7 +2,7 @@ import { initialResources, initialSourceLocks } from "@/lib/resource-data";
 import { dayKey, generatePeriodPlan, initializeNorth, shiftDay, weekKey } from "@/lib/north";
 import { findDomain, genericDomainQuestions } from "@/lib/domain-catalog";
 import { detectLanguage, getLanguageQuestions, type LanguageLevel } from "@/lib/language-learning";
-import type { InitialSetupInput, Skill, Task, WorkspaceState } from "@/lib/types";
+import { birthDateToAgeRange, type InitialSetupInput, type Skill, type Task, type WorkspaceState } from "@/lib/types";
 
 export interface AssessmentQuestion {
   id: string;
@@ -130,24 +130,38 @@ const assessmentQuestionSets: Record<string, AssessmentQuestion[]> = {
 
 export const assessmentQuestions = fundamentalsQuestions;
 
-export function getAssessmentQuestions(primaryFocus: string | string[]): AssessmentQuestion[] {
+export function getAssessmentQuestions(
+  primaryFocus: string | string[],
+  options?: { randomize?: boolean; seed?: number }
+): AssessmentQuestion[] {
   if (Array.isArray(primaryFocus)) {
     return primaryFocus.flatMap((focus, focusIndex) => {
       const [areaName] = focus.split("::");
-      return getAssessmentQuestions(focus).slice(0, 4).map(question => ({
+      return getAssessmentQuestions(focus, options).slice(0, 4).map(question => ({
         ...question,
         id: `area-${focusIndex}-${question.id}`,
         prompt: `${areaName} · ${question.prompt}`
       }));
     });
   }
-  const [areaName, goal = "", rawLevel = "beginner"] = primaryFocus.split("::");
+  const [areaName, goal = "", rawLevel = "beginner", rawRating = ""] = primaryFocus.split("::");
+
+  // Determine resolved level from 1-10 rating or level string
+  let resolvedLevel: "beginner" | "intermediate" | "advanced" = "beginner";
+  const numRating = parseInt(rawRating || "0", 10);
+  if (numRating >= 8) {
+    resolvedLevel = "advanced";
+  } else if (numRating >= 4) {
+    resolvedLevel = "intermediate";
+  } else if (rawLevel === "advanced" || rawLevel === "intermediate" || rawLevel === "beginner") {
+    resolvedLevel = rawLevel;
+  }
+
   const lang = detectLanguage(areaName);
   if (lang) {
-    const validLevel: LanguageLevel = (rawLevel === "intermediate" || rawLevel === "advanced") ? rawLevel : "beginner";
-    const langQuestions = getLanguageQuestions(areaName, validLevel);
+    const langQuestions = getLanguageQuestions(areaName, resolvedLevel);
     if (langQuestions.length > 0) {
-      return langQuestions.map((q) => ({
+      let pool = langQuestions.map((q) => ({
         id: q.id,
         skill: areaName,
         prompt: q.prompt,
@@ -157,10 +171,23 @@ export function getAssessmentQuestions(primaryFocus: string | string[]): Assessm
         explanation: q.explanation,
         recommendedReview: q.recommendedReview,
       }));
+      if (options?.randomize && pool.length > 3) {
+        pool = [...pool].sort(() => 0.5 - Math.random());
+      }
+      return pool;
     }
   }
   const domain = findDomain(areaName);
-  if (domain) return domain.questions.map(question => ({ ...question, skill: areaName }));
+  if (domain) {
+    if (domain.questionPool && domain.questionPool[resolvedLevel] && domain.questionPool[resolvedLevel].length > 0) {
+      let pool = domain.questionPool[resolvedLevel].map(question => ({ ...question, skill: areaName }));
+      if (options?.randomize && pool.length > 3) {
+        pool = [...pool].sort(() => 0.5 - Math.random());
+      }
+      return pool;
+    }
+    return domain.questions.map(question => ({ ...question, skill: areaName }));
+  }
   if (/siber|güvenlik|pentest|soc/i.test(areaName) && /network|ağ|networking/i.test(goal)) return assessmentQuestionSets["Ağ ve iç ağ güvenliği"].slice(0, 3).map(question => ({ ...question, skill: areaName }));
   if (/siber|güvenlik|pentest|soc/i.test(areaName) && /web|uygulama/i.test(goal)) return assessmentQuestionSets["Web uygulama güvenliği"].slice(0, 3).map(question => ({ ...question, skill: areaName }));
   if (/siber|güvenlik|pentest|soc/i.test(areaName)) return fundamentalsQuestions.slice(0, 3).map(question => ({ ...question, skill: areaName }));
@@ -413,7 +440,8 @@ export function createPersonalizedWorkspace(input: InitialSetupInput): Workspace
     primaryFocus: input.primaryFocus,
     interests: input.interests,
     areaGoals: input.areaGoals,
-    ageRange: input.ageRange,
+    birthDate: input.birthDate,
+    ageRange: input.ageRange || (input.birthDate ? birthDateToAgeRange(input.birthDate) : "19-24"),
     lifeSituation: input.lifeSituation,
     learningPreferences: input.learningPreferences,
     university: { isStudent: input.isUniversityStudent, school: input.universitySchool.trim(), department: input.universityDepartment.trim(), courses: input.universityCourses },

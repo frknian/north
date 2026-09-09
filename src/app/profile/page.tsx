@@ -39,7 +39,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { getFirebase } from "@/lib/firebase/client";
-import type { AgeRange, FeedbackMemoryItem, LearningPreferences, LifeSituation, UniversityMode } from "@/lib/types";
+import { calculateAgeFromBirthDate, birthDateToAgeRange, type AgeRange, type FeedbackMemoryItem, type LearningPreferences, type LifeSituation, type UniversityMode } from "@/lib/types";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -125,18 +125,30 @@ export default function ProfilePage() {
               <CardContent className="space-y-5">
                 <Field label="Adın"><Input value={workspace.profile.fullName} onChange={(event) => workspace.updateProfile({ fullName: event.target.value })} /></Field>
                 
-                {/* Age & Life Situation */}
+                {/* Birth Date & Life Situation */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Yaş aralığı">
-                    <Select value={workspace.profile.ageRange ?? "19-24"} onValueChange={(val) => workspace.updateProfile({ ageRange: val as AgeRange })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="16-18">16 – 18 (Lise çağı)</SelectItem>
-                        <SelectItem value="19-24">19 – 24 (Üniversite / Erken kariyer)</SelectItem>
-                        <SelectItem value="25-32">25 – 32 (Genç profesyonel)</SelectItem>
-                        <SelectItem value="33-40">33 – 40 (Deneyimli profesyonel / Kariyer)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Field label="Doğum Tarihi">
+                    <div className="space-y-1">
+                      <Input
+                        type="date"
+                        value={workspace.profile.birthDate ?? ""}
+                        max={new Date().toISOString().split("T")[0]}
+                        min="1940-01-01"
+                        onChange={(event) => {
+                          const bDate = event.target.value;
+                          const computedRange = birthDateToAgeRange(bDate);
+                          workspace.updateProfile({
+                            birthDate: bDate,
+                            ageRange: computedRange,
+                          });
+                        }}
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        {workspace.profile.birthDate
+                          ? `${calculateAgeFromBirthDate(workspace.profile.birthDate)} yaşında · ${workspace.profile.ageRange ?? birthDateToAgeRange(workspace.profile.birthDate)} grubu`
+                          : "Doğum tarihinizi giriniz"}
+                      </p>
+                    </div>
                   </Field>
                   <Field label="Yaşam durumu">
                     <Select value={workspace.profile.lifeSituation ?? "university"} onValueChange={(val) => workspace.updateProfile({ lifeSituation: val as LifeSituation })}>
@@ -208,6 +220,36 @@ export default function ProfilePage() {
                     </Field>
                   </div>
                 </div>
+
+                {/* Area Levels & Competence Ratings */}
+                {workspace.profile.interests && workspace.profile.interests.length > 0 && (
+                  <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+                    <div>
+                      <h3 className="text-sm font-semibold">Gelişim Alanları ve Güncel Seviyeler</h3>
+                      <p className="text-xs text-muted-foreground">Her alan için güncel seviyeniz ve 10 üzerinden yetkinlik puanınız.</p>
+                    </div>
+                    <div className="grid gap-2">
+                      {workspace.profile.interests.map((area) => {
+                        const areaGoal = workspace.profile.areaGoals?.[area];
+                        const lvl = areaGoal?.level || "beginner";
+                        const rating = areaGoal?.levelRating ?? (lvl === "advanced" ? 9 : lvl === "intermediate" ? 5 : 2);
+                        return (
+                          <div key={area} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background/70 px-3 py-2 text-xs">
+                            <span className="font-medium text-foreground">{area}</span>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[10px]">
+                                {lvl === "advanced" ? "İleri Seviye" : lvl === "intermediate" ? "Orta Seviye" : "Başlangıç (Yeni)"}
+                              </Badge>
+                              <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-semibold">
+                                {rating} / 10 Puan
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -215,7 +257,14 @@ export default function ProfilePage() {
               <Card>
                 <CardHeader><div className="flex items-center gap-3"><NorthLogo size={36} /><div><CardTitle>Yön özeti</CardTitle><CardDescription>North’un planlama sırasında kullandığı bağlam.</CardDescription></div></div></CardHeader>
                 <CardContent className="space-y-4">
-                  <Direction label="Yaş &amp; Durum" value={`${workspace.profile.ageRange ?? "Belirtilmedi"} · ${workspace.profile.lifeSituation ?? "Belirtilmedi"}`} />
+                  <Direction
+                    label="Yaş &amp; Durum"
+                    value={
+                      workspace.profile.birthDate
+                        ? `${calculateAgeFromBirthDate(workspace.profile.birthDate)} yaş (${workspace.profile.ageRange ?? birthDateToAgeRange(workspace.profile.birthDate)}) · ${workspace.profile.lifeSituation ?? "Belirtilmedi"}`
+                        : `${workspace.profile.ageRange ?? "Belirtilmedi"} · ${workspace.profile.lifeSituation ?? "Belirtilmedi"}`
+                    }
+                  />
                   <Direction label="Kategori" value={workspace.profile.track || "Belirtilmedi"} />
                   <Direction label="Ana odak" value={workspace.profile.primaryFocus || "Belirtilmedi"} />
                   <Direction label="Kaynak tercihi" value={prefs.cost === "free_only" ? "Ücretsiz kaynaklar" : "Esnek bütçe"} />

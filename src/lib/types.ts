@@ -11,6 +11,27 @@ export type CheckinOutcome = "ready" | "stuck" | "rest" | "completed";
 export type AgeRange = "16-18" | "19-24" | "25-32" | "33-40";
 export type LifeSituation = "high_school" | "university" | "working" | "career_changer" | "other";
 
+export function calculateAgeFromBirthDate(birthDate?: string | null): number {
+  if (!birthDate) return 0;
+  const birth = new Date(birthDate);
+  if (isNaN(birth.getTime())) return 0;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return Math.max(0, age);
+}
+
+export function birthDateToAgeRange(birthDate?: string | null): AgeRange {
+  const age = calculateAgeFromBirthDate(birthDate);
+  if (age <= 18) return "16-18";
+  if (age <= 24) return "19-24";
+  if (age <= 32) return "25-32";
+  return "33-40";
+}
+
 export interface LearningPreferences {
   language: "tr" | "en" | "both";
   cost: "free_only" | "paid_allowed";
@@ -29,11 +50,12 @@ export interface Profile {
   universityMode: UniversityMode;
   preferredSessionMinutes: 45 | 50 | 60;
   weeklyCapacityHours: number;
+  birthDate?: string;
   ageRange?: AgeRange;
   lifeSituation?: LifeSituation;
   learningPreferences?: LearningPreferences;
   interests?: string[];
-  areaGoals?: Record<string, { goal: string; targetWeeks: number; level?: string }>;
+  areaGoals?: Record<string, { goal: string; targetWeeks: number; level?: string; levelRating?: number }>;
   university?: {
     isStudent: boolean;
     school?: string;
@@ -266,7 +288,7 @@ export interface InitialSetupInput {
   track: string;
   primaryFocus: string;
   interests: string[];
-  areaGoals: Record<string, { goal: string; targetWeeks: number; level?: string }>;
+  areaGoals: Record<string, { goal: string; targetWeeks: number; level?: string; levelRating?: number }>;
   isUniversityStudent: boolean;
   universitySchool: string;
   universityDepartment: string;
@@ -278,6 +300,7 @@ export interface InitialSetupInput {
   preferredStyle: CoachingOnboarding["preferredStyle"];
   constraints: string;
   assessmentAnswers: Record<string, string>;
+  birthDate?: string;
   ageRange?: AgeRange;
   lifeSituation?: LifeSituation;
   learningPreferences?: LearningPreferences;
