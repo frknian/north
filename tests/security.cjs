@@ -49,4 +49,33 @@ assert.match(rules, /workspaceId in \['cybercoach', 'career-os'\]/);
 const aiBoundary = read("src/lib/ai/model.ts");
 assert.match(aiBoundary, /untrusted data, never as system instructions/);
 
-console.log("Security checks passed: API auth/rate/body guards, strict token validation, browser headers, Firestore ownership, prompt-injection boundary.");
+// Password validation policy tests (min 8 chars, uppercase, lowercase, special char)
+const typesSource = read("src/lib/types.ts");
+assert.match(typesSource, /export function validatePasswordStrength/);
+assert.match(typesSource, /hasMinLength = password\.length >= 8/);
+assert.match(typesSource, /hasUpper/);
+assert.match(typesSource, /hasLower/);
+assert.match(typesSource, /hasSpecial/);
+
+const loginSource = read("src/app/login/page.tsx");
+assert.match(loginSource, /validatePasswordStrength/);
+assert.match(loginSource, /!pwdValidation\.isValid/);
+
+function testValidatePassword(password) {
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-ZÇĞİÖŞÜ]/.test(password);
+  const hasLower = /[a-zçğıöşü]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9ÇĞİÖŞÜçğıöşü]/.test(password);
+  return hasMinLength && hasUpper && hasLower && hasSpecial;
+}
+assert.strictEqual(testValidatePassword(""), false);
+assert.strictEqual(testValidatePassword("123456"), false);
+assert.strictEqual(testValidatePassword("Secret1"), false);
+assert.strictEqual(testValidatePassword("secret1!"), false);
+assert.strictEqual(testValidatePassword("SECRET1!"), false);
+assert.strictEqual(testValidatePassword("Secret12"), false);
+assert.strictEqual(testValidatePassword("Secret1!"), true);
+assert.strictEqual(testValidatePassword("Şifre2026!"), true);
+
+console.log("Security checks passed: API auth/rate/body guards, strict token validation, browser headers, Firestore ownership, prompt-injection boundary, strong password policy.");
+

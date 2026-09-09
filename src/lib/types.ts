@@ -534,3 +534,54 @@ export interface CompanionSettings {
   color: CompanionColor;
   outfit?: CompanionOutfit;
 }
+
+export interface PasswordRequirement {
+  id: "length" | "upper" | "lower" | "special";
+  label: string;
+  met: boolean;
+}
+
+export interface PasswordValidationResult {
+  isValid: boolean;
+  hasMinLength: boolean;
+  hasUpper: boolean;
+  hasLower: boolean;
+  hasSpecial: boolean;
+  score: number;
+  requirements: PasswordRequirement[];
+  errorMessage?: string;
+}
+
+export function validatePasswordStrength(password: string): PasswordValidationResult {
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-ZÇĞİÖŞÜ]/.test(password);
+  const hasLower = /[a-zçğıöşü]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9ÇĞİÖŞÜçğıöşü]/.test(password);
+
+  const requirements: PasswordRequirement[] = [
+    { id: "length", label: "En az 8 karakter", met: hasMinLength },
+    { id: "upper", label: "Büyük harf (A-Z)", met: hasUpper },
+    { id: "lower", label: "Küçük harf (a-z)", met: hasLower },
+    { id: "special", label: "Özel karakter (!@#$% vb.)", met: hasSpecial },
+  ];
+
+  const score = requirements.filter((r) => r.met).length;
+  const isValid = hasMinLength && hasUpper && hasLower && hasSpecial;
+
+  let errorMessage: string | undefined;
+  if (!isValid) {
+    const missing = requirements.filter((r) => !r.met).map((r) => r.label);
+    errorMessage = `Şifreniz şunları içermelidir: ${missing.join(", ")}.`;
+  }
+
+  return {
+    isValid,
+    hasMinLength,
+    hasUpper,
+    hasLower,
+    hasSpecial,
+    score,
+    requirements,
+    errorMessage,
+  };
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -52,6 +52,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NorthLogo } from "@/components/layout/north-logo";
 import { getFirebase, isFirebaseConfigured } from "@/lib/firebase/client";
+import { validatePasswordStrength } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const KVKK_VERSION = "2026-09-06";
@@ -74,7 +75,7 @@ function message(error: unknown) {
     "auth/invalid-credential": "E-posta veya şifre hatalı. Hesabınız yoksa lütfen Kayıt Ol sekmesini kullanın.",
     "auth/invalid-email": "Geçerli bir e-posta adresi yaz.",
     "auth/too-many-requests": "Çok fazla deneme yapıldı. Bir süre sonra tekrar dene.",
-    "auth/weak-password": "Şifre en az 6 karakter olmalı.",
+    "auth/weak-password": "Şifre en az 8 karakter olmalı, büyük harf, küçük harf ve özel karakter içermelidir.",
   };
 
   if (code && map[code]) return map[code];
@@ -95,6 +96,8 @@ export default function LoginPage() {
   const [pending, setPending] = useState(false);
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
+
+  const pwdValidation = useMemo(() => validatePasswordStrength(password), [password]);
 
   const firebaseReady = isFirebaseConfigured();
 
@@ -252,8 +255,11 @@ export default function LoginPage() {
         toast.error("Kayıt olabilmek için lütfen KVKK Aydınlatma Metni'ni onaylayın.");
         return;
       }
-      if (password.length < 6) {
-        toast.error("Şifre en az 6 karakter olmalı.");
+      if (!pwdValidation.isValid) {
+        toast.error(
+          pwdValidation.errorMessage ||
+            "Şifre en az 8 karakter olmalı, büyük harf, küçük harf ve özel karakter içermelidir."
+        );
         return;
       }
       if (password !== confirmPassword) {
@@ -535,7 +541,59 @@ export default function LoginPage() {
                       className="h-10 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20"
                     />
                     {mode === "signup" && (
-                      <p className="text-[11px] text-muted-foreground">En az 6 karakter.</p>
+                      <div className="space-y-2 pt-1 animate-in fade-in duration-200">
+                        {/* 4 Kademeli Güç Çubuğu */}
+                        <div className="flex items-center gap-1.5 pt-0.5" aria-label="Şifre Gücü">
+                          {[0, 1, 2, 3].map((i) => {
+                            const active = i < pwdValidation.score;
+                            const isFull = pwdValidation.isValid;
+                            return (
+                              <div
+                                key={i}
+                                className={cn(
+                                  "h-1 flex-1 rounded-full transition-all duration-300",
+                                  active
+                                    ? isFull
+                                      ? "bg-emerald-500"
+                                      : pwdValidation.score >= 3
+                                      ? "bg-blue-500"
+                                      : pwdValidation.score === 2
+                                      ? "bg-amber-500"
+                                      : "bg-rose-500"
+                                    : "bg-muted"
+                                )}
+                              />
+                            );
+                          })}
+                        </div>
+
+                        {/* Canlı Kriter Kontrol Listesi */}
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
+                          {pwdValidation.requirements.map((req) => (
+                            <div
+                              key={req.id}
+                              className={cn(
+                                "flex items-center gap-1.5 transition-colors duration-200",
+                                req.met
+                                  ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "size-3.5 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold transition-colors",
+                                  req.met
+                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-muted text-muted-foreground/60"
+                                )}
+                              >
+                                {req.met ? "✓" : "•"}
+                              </div>
+                              <span className="truncate">{req.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -613,8 +671,9 @@ export default function LoginPage() {
                     disabled={
                       busy ||
                       !email ||
-                      password.length < 6 ||
-                      (mode === "signup" && (!noticeRead || password !== confirmPassword))
+                      (mode === "signup"
+                        ? !pwdValidation.isValid || !noticeRead || password !== confirmPassword
+                        : password.length < 6)
                     }
                     onClick={submit}
                   >
