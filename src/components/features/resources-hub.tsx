@@ -854,7 +854,7 @@ export function ResourcesHub() {
                     return (
                       <div
                         key={book.id}
-                        className="group flex flex-col justify-between rounded-2xl border bg-background/80 p-4 transition-all hover:border-indigo-500/40 hover:shadow-xs"
+                        className="group flex flex-col justify-between rounded-2xl border bg-background/80 p-4 transition-all hover:border-indigo-500/40 hover:shadow-xs overflow-hidden"
                       >
                         <div className="space-y-2">
                           <div className="flex items-start justify-between gap-2">
@@ -952,9 +952,9 @@ export function ResourcesHub() {
                         </div>
 
                         {/* Actions */}
-                        <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between gap-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <Button asChild size="sm" className="rounded-xl text-xs h-7 px-2.5">
+                        <div className="mt-4 pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Button asChild size="sm" className="rounded-xl text-xs h-7 px-2.5 shadow-xs">
                               <Link href={`/focus/reading?bookId=${book.id}&minutes=30`}>
                                 <BookOpen className="mr-1 size-3" />
                                 Oku
@@ -969,11 +969,11 @@ export function ResourcesHub() {
                               title="Sayfa sayısını veya kaldığın sayfayı güncelle"
                             >
                               <Edit3 className="mr-1 size-3" />
-                              Sayfa Güncelle
+                              Sayfa
                             </Button>
                           </div>
 
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             <button
                               type="button"
                               onClick={() => {
@@ -982,7 +982,7 @@ export function ResourcesHub() {
                                 setRangeEnd(String(Math.min(book.totalPages, (book.currentPage || 1) + 30)));
                                 setAddRangeModalOpen(true);
                               }}
-                              className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                              className="size-7 rounded-lg border bg-muted/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                               title="Sayfa aralığı kaydet"
                             >
                               <Bookmark className="size-3.5" />
@@ -991,7 +991,7 @@ export function ResourcesHub() {
                             <button
                               type="button"
                               onClick={() => handleGooglePdfSearch(`${book.title} ${book.author}`, book.title)}
-                              className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
+                              className="size-7 rounded-lg border bg-muted/30 flex items-center justify-center text-muted-foreground hover:text-indigo-500 hover:bg-muted transition-colors"
                               title="Sistemde Google PDF Ara"
                             >
                               <Search className="size-3.5" />
@@ -1000,7 +1000,7 @@ export function ResourcesHub() {
                             <button
                               type="button"
                               onClick={() => handleGenerateSummary(book.title, `Yazar: ${book.author}\nKategori: ${book.category}\nAlıntılar: ${(book.favoriteQuotes || []).join(" · ")}`)}
-                              className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
+                              className="size-7 rounded-lg border bg-muted/30 flex items-center justify-center text-muted-foreground hover:text-indigo-500 hover:bg-muted transition-colors"
                               title="AI Özeti Çıkar"
                             >
                               <Sparkles className="size-3.5" />
@@ -1013,7 +1013,7 @@ export function ResourcesHub() {
                                 setBooks(loadBooks());
                                 toast.info(`"${book.title}" kitaplıktan kaldırıldı.`);
                               }}
-                              className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-red-500 hover:bg-muted"
+                              className="size-7 rounded-lg border bg-muted/30 flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-muted transition-colors"
                               title="Sil"
                             >
                               <Trash2 className="size-3.5" />

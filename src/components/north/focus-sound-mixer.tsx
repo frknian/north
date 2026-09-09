@@ -111,7 +111,7 @@ function convertToEmbedUrl(url: string, platform: "spotify" | "apple" | "yt"): s
         return trimmed;
       }
       if (trimmed.includes("open.spotify.com/")) {
-        const clean = trimmed.split("?")[0];
+        const clean = trimmed.split("?")[0].replace(/\/intl-[a-z]{2,4}\//i, "/");
         const parts = clean.split("open.spotify.com/");
         if (parts[1]) {
           return `https://open.spotify.com/embed/${parts[1]}?utm_source=generator&theme=0`;
@@ -133,14 +133,21 @@ function convertToEmbedUrl(url: string, platform: "spotify" | "apple" | "yt"): s
     }
 
     if (platform === "yt") {
-      if (trimmed.includes("youtube.com/embed/")) {
+      if (trimmed.includes("youtube.com/embed/") || trimmed.includes("youtube-nocookie.com/embed/")) {
         return trimmed;
       }
       const playlistMatch = trimmed.match(/[?&]list=([^#&?]+)/);
+      const videoMatch = trimmed.match(
+        /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/)|music\.youtube\.com\/watch\?v=)([\w-]{11})/
+      );
+
       if (playlistMatch && playlistMatch[1]) {
+        if (videoMatch && videoMatch[1]) {
+          return `https://www.youtube-nocookie.com/embed/${videoMatch[1]}?list=${playlistMatch[1]}&autoplay=1`;
+        }
         return `https://www.youtube-nocookie.com/embed/videoseries?list=${playlistMatch[1]}&autoplay=1`;
       }
-      const videoMatch = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/)|music\.youtube\.com\/watch\?v=)([\w-]{11})/);
+
       if (videoMatch && videoMatch[1]) {
         return `https://www.youtube-nocookie.com/embed/${videoMatch[1]}?autoplay=1`;
       }
@@ -588,7 +595,7 @@ export function FocusSoundMixer({
                 width="100%"
                 height="150"
                 allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
-                sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
+                sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
                 className="rounded-xl border border-border/80 shadow-xs bg-black"
                 title="Apple Music Odak Çalar"
               />
@@ -669,7 +676,7 @@ export function FocusSoundMixer({
                 src={ytEmbed}
                 width="100%"
                 height="150"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
                 className="rounded-xl border border-border/80 shadow-xs bg-black"
                 title="YouTube Odak Çalar"
@@ -731,6 +738,7 @@ export function FocusSoundMixer({
                   width="100%"
                   height="350"
                   allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
+                  sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
                   className="rounded-2xl border bg-black shadow-lg"
                   title="Genişletilmiş Apple Music"
                 />
@@ -740,7 +748,7 @@ export function FocusSoundMixer({
                   src={ytEmbed}
                   width="100%"
                   height="300"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   className="rounded-2xl border bg-black shadow-lg"
                   title="Genişletilmiş YouTube"

@@ -10,7 +10,7 @@ function createCsp(nonce: string) {
     "img-src 'self' data: blob: https://*.googleusercontent.com https://lh3.googleusercontent.com",
     "font-src 'self' data:",
     "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
-    "frame-src https://*.firebaseapp.com https://accounts.google.com https://*.google.com",
+    "frame-src https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://open.spotify.com https://*.spotify.com https://embed.music.apple.com https://*.apple.com https://www.youtube.com https://*.youtube.com https://www.youtube-nocookie.com https://*.youtube-nocookie.com",
     "worker-src 'self' blob:",
     "media-src 'self' blob:",
     "manifest-src 'self'",
