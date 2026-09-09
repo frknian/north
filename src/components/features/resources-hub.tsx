@@ -428,54 +428,18 @@ export function ResourcesHub() {
   return (
     <div className="page-content space-y-6 pb-32 md:pb-20">
       {/* 1. TOP HEADER & QUICK ACTION BAR */}
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-5">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="grid size-7 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
-              <BookOpen className="size-4" />
-            </span>
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Kaynaklar &amp; Sanal Araştırma Merkezi
-            </h1>
-          </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Kitaplar, canlı web araştırması, Google onaylı PDF kitap arama, sayfa aralıkları, pinli belgeler ve Google NotebookLM entegrasyonu.
-          </p>
+      <header className="flex flex-col gap-1 border-b border-border/60 pb-5">
+        <div className="flex items-center gap-2">
+          <span className="grid size-7 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
+            <BookOpen className="size-4" />
+          </span>
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            Kaynaklar &amp; Sanal Araştırma Merkezi
+          </h1>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Direct NotebookLM launcher */}
-          <a
-            href={notebookLmUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-sky-500/15 transition-colors"
-          >
-            <Sparkles className="size-3.5" />
-            <span>NotebookLM Çalışma Alanı</span>
-            <ExternalLink className="size-3" />
-          </a>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleCopyNotebookBundle}
-            className="rounded-xl text-xs h-8"
-            title="NotebookLM için tek tıkla kaynak paketi kopyala"
-          >
-            {copiedBundle ? <Check className="mr-1 size-3.5 text-emerald-500" /> : <Copy className="mr-1 size-3.5" />}
-            {copiedBundle ? "Kopyalandı" : "NotebookLM Paketi"}
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => setAddBookModalOpen(true)}
-            className="rounded-xl text-xs h-8 shadow-xs"
-          >
-            <Plus className="mr-1 size-3.5" />
-            Kitap Ekle
-          </Button>
-        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Kitaplar, canlı web araştırması, Google onaylı PDF kitap arama, sayfa aralıkları, pinli belgeler ve Google NotebookLM entegrasyonu.
+        </p>
       </header>
 
       {/* 2. NAVIGATION TABS (4 RICH TABS) */}
