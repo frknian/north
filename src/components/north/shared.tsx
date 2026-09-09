@@ -69,9 +69,16 @@ export function TaskRow({ task, primary = false }: { task: NorthTask; primary?: 
   );
 }
 
-export function Companion({ state, compact = false }: { state: NorthState; compact?: boolean }) {
+export function CompanionModal({
+  open,
+  onOpenChange,
+  state,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  state: NorthState;
+}) {
   const workspace = useWorkspace();
-  const [open, setOpen] = useState(false);
   const settings = workspace.companionSettings ?? { name: "Yol Arkadaşı", color: "blue", outfit: "none" };
   const [nameInput, setNameInput] = useState(settings.name || "Yol Arkadaşı");
 
@@ -80,20 +87,25 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
   const actualLevel = Math.max(1, Math.min(5, 1 + Math.floor((completed + milestones * 2) / 6)));
   const progress = completed + milestones * 2;
   const targetForNext = actualLevel * 6;
-  const nextLevelSteps = actualLevel === 5 ? 0 : Math.max(0, targetForNext - progress);
 
   const [previewLevel, setPreviewLevel] = useState<number>(actualLevel);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const simTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Sync actualLevel when open or changed
   useEffect(() => {
     if (!isSimulating) {
       setPreviewLevel(actualLevel);
     }
   }, [actualLevel, isSimulating]);
 
-  // Handle simulation animation loop
+  useEffect(() => {
+    if (open) {
+      setNameInput(settings.name || "Yol Arkadaşı");
+      setPreviewLevel(actualLevel);
+      setIsSimulating(false);
+    }
+  }, [open, settings.name, actualLevel]);
+
   useEffect(() => {
     if (isSimulating) {
       simTimerRef.current = setInterval(() => {
@@ -146,35 +158,7 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          setNameInput(settings.name || levelTitle);
-          setPreviewLevel(actualLevel);
-          setIsSimulating(false);
-          setOpen(true);
-        }}
-        className={compact ? "north-companion is-compact cursor-pointer transition-transform hover:scale-105 active:scale-95 text-left" : "north-companion cursor-pointer transition-transform hover:scale-102 active:scale-98 text-left"}
-        aria-label={`North yol arkadaşın: ${displayName}, seviye ${actualLevel}`}
-        title="Yol arkadaşını özelleştir, kıyafet giydir ve büyüme simülasyonunu gör"
-      >
-        <CompanionAvatar
-          color={settings.color || "blue"}
-          outfit={currentOutfit}
-          level={actualLevel}
-          size={compact ? 32 : 36}
-          animate
-        />
-        {!compact && (
-          <span>
-            <b>{displayName}</b>
-            <small>Seviye {actualLevel}{nextLevelSteps ? ` · ${nextLevelSteps} adım sonra büyür` : " · Tam gelişti"}</small>
-          </span>
-        )}
-      </button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl p-5 sm:p-6 bg-card text-card-foreground border border-border shadow-2xl">
           <DialogHeader className="text-center sm:text-center pb-1">
             <DialogTitle className="text-lg font-bold text-foreground flex items-center justify-center gap-2">
@@ -431,6 +415,47 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
           </div>
         </DialogContent>
       </Dialog>
+  );
+}
+
+export function Companion({ state, compact = false }: { state: NorthState; compact?: boolean }) {
+  const workspace = useWorkspace();
+  const [open, setOpen] = useState(false);
+  const settings = workspace.companionSettings ?? { name: "Yol Arkadaşı", color: "blue", outfit: "none" };
+  const completed = state.activities.filter(activity => activity.outcome === "done").length;
+  const milestones = state.areas.filter(area => area.goal.trim()).length;
+  const actualLevel = Math.max(1, Math.min(5, 1 + Math.floor((completed + milestones * 2) / 6)));
+  const progress = completed + milestones * 2;
+  const targetForNext = actualLevel * 6;
+  const nextLevelSteps = actualLevel === 5 ? 0 : Math.max(0, targetForNext - progress);
+  const actualStage = GROWTH_STAGES.find(s => s.level === actualLevel) || GROWTH_STAGES[0];
+  const displayName = settings.name?.trim() || actualStage.title;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={compact ? "north-companion is-compact cursor-pointer transition-transform hover:scale-105 active:scale-95 text-left" : "north-companion cursor-pointer transition-transform hover:scale-102 active:scale-98 text-left"}
+        aria-label={`North yol arkadaşın: ${displayName}, seviye ${actualLevel}`}
+        title="Yol arkadaşını özelleştir, kıyafet giydir ve büyüme simülasyonunu gör"
+      >
+        <CompanionAvatar
+          color={settings.color || "blue"}
+          outfit={settings.outfit ?? "none"}
+          level={actualLevel}
+          size={compact ? 32 : 36}
+          animate
+        />
+        {!compact && (
+          <span>
+            <b>{displayName}</b>
+            <small>Seviye {actualLevel}{nextLevelSteps ? ` · ${nextLevelSteps} adım sonra büyür` : " · Tam gelişti"}</small>
+          </span>
+        )}
+      </button>
+
+      <CompanionModal open={open} onOpenChange={setOpen} state={state} />
     </>
   );
 }

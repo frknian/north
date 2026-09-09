@@ -19,6 +19,7 @@ import {
   FileText,
   Flame,
   Globe2,
+  GraduationCap,
   HelpCircle,
   History,
   Lightbulb,
@@ -26,6 +27,7 @@ import {
   Minimize2,
   Moon,
   MoreHorizontal,
+  Palette,
   Paperclip,
   Play,
   Plus,
@@ -40,7 +42,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import type { CoachMessageAttachment } from "@/lib/types";
+import type { CoachMessageAttachment, CompanionColor, CompanionOutfit, CoachResource } from "@/lib/types";
 import {
   diagnoseDomainState,
   type DomainArchetype,
@@ -60,7 +62,7 @@ import { authenticatedAiFetch } from "@/lib/ai/client";
 import { northOutput, type NorthSuggestion } from "@/lib/ai/north-roles";
 import { plannerIntelligenceContext } from "@/lib/north-intelligence";
 import { capacity, dayKey, isAreaActive, weekKey, type NorthTask } from "@/lib/north";
-import { useNorth } from "./shared";
+import { useNorth, CompanionModal } from "./shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -91,10 +93,15 @@ export function NorthAI({
   const [selectedAreaId, setSelectedAreaId] = useState<string>("");
   const [mobileTab, setMobileTab] = useState<"desk" | "chat">("chat");
   const [coachStyle, setCoachStyle] = useState<"balanced" | "disciplined" | "tactical">("balanced");
+  const [companionModalOpen, setCompanionModalOpen] = useState(false);
 
   const today = dayKey();
   const userName = workspace.profile?.fullName ? workspace.profile.fullName.split(" ")[0] : "Furkan";
   const currentEnergy = state.energy?.date === today ? state.energy.level : "normal";
+
+  const completedCount = state.activities.filter((a) => a.outcome === "done").length;
+  const milestoneCount = state.areas.filter((a) => a.goal.trim()).length;
+  const actualLevel = Math.max(1, Math.min(5, 1 + Math.floor((completedCount + milestoneCount * 2) / 6)));
 
   const currentTask = state.tasks.find((t) => t.id === taskId);
   const selectedArea =
@@ -108,10 +115,10 @@ export function NorthAI({
     return diagnoseDomainState(selectedArea, state, workspace);
   }, [selectedArea, state, workspace]);
 
-  const companionSettings = workspace.companionSettings ?? {
-    name: "Yol Arkadaşım",
-    color: "blue",
-    outfit: "scarf",
+  const companionSettings = {
+    name: workspace.companionSettings?.name || "Yol Arkadaşım",
+    color: (workspace.companionSettings?.color as CompanionColor) || "blue",
+    outfit: (workspace.companionSettings?.outfit as CompanionOutfit) || "none",
   };
 
   function setDailyEnergy(level: "low" | "normal" | "high") {
@@ -317,6 +324,7 @@ export function NorthAI({
         model: data.model,
         totalTokens: data.totalTokens,
         actionsApplied: parsed.changes.length === 0,
+        resources: parsed.resources && parsed.resources.length > 0 ? (parsed.resources as CoachResource[]) : undefined,
       });
       workspace.updateCoachingPreferences({ aiUsage: { date: today, count: count + 1 } });
     } catch (e) {
@@ -332,6 +340,56 @@ export function NorthAI({
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleAttachResourceToTask(res: CoachResource) {
+    if (currentTask) {
+      update((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) => (t.id === currentTask.id ? { ...t, resource: res.url } : t)),
+      }));
+      toast.success(`'${currentTask.title}' görevine kaynak bağlandı.`);
+      return;
+    }
+
+    const pendingTasks = state.tasks.filter((t) => !["done", "cancelled"].includes(t.status));
+    if (pendingTasks.length > 0) {
+      const target = pendingTasks[0];
+      update((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) => (t.id === target.id ? { ...t, resource: res.url } : t)),
+      }));
+      toast.success(`'${target.title}' görevine kaynak bağlandı.`);
+    } else {
+      handleCreateTaskFromResource(res);
+    }
+  }
+
+  function handleCreateTaskFromResource(res: CoachResource) {
+    const targetArea = selectedArea || state.areas[0];
+    const newTaskId = crypto.randomUUID();
+    update((s) => ({
+      ...s,
+      tasks: [
+        ...s.tasks,
+        {
+          id: newTaskId,
+          areaId: targetArea?.id || "default",
+          title: res.title.slice(0, 100),
+          goal: res.description.slice(0, 200) || "Doğrulanmış web kaynağı üzerinden çalışma",
+          minutes: res.type === "video" ? 30 : 45,
+          intensity: "normal",
+          mandatory: false,
+          status: "pending",
+          date: dayKey(),
+          deadline: "",
+          resource: res.url,
+          why: "Canlı web taramasıyla bulunan çalışma kaynağı",
+          week: weekKey(),
+        },
+      ],
+    }));
+    toast.success(`'${res.title.slice(0, 35)}...' bugünkü görevlere eklendi!`);
   }
 
   const usageCount =
@@ -424,7 +482,7 @@ export function NorthAI({
               size={30}
               color={companionSettings.color}
               outfit={companionSettings.outfit}
-              level={1}
+              level={actualLevel}
             />
             <div className="min-w-0">
               <span className="text-xs font-bold text-foreground block truncate">Planorth Koç</span>
@@ -513,7 +571,7 @@ export function NorthAI({
             size={18}
             color={companionSettings.color}
             outfit={companionSettings.outfit}
-            level={1}
+            level={actualLevel}
           />
           <span>Koçun Masası</span>
         </button>
@@ -545,21 +603,39 @@ export function NorthAI({
           <div className="rounded-2xl border border-border/80 bg-card/85 p-3.5 sm:p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setCompanionModalOpen(true)}
+                  className="relative shrink-0 group cursor-pointer transition-transform hover:scale-105 active:scale-95 text-left"
+                  title="Yol arkadaşını özelleştir (renk ve kıyafet seç)"
+                  aria-label="Yol arkadaşı özelleştirme penceresini aç"
+                >
                   <CompanionAvatar
-                    size={42}
+                    size={44}
                     color={companionSettings.color}
                     outfit={companionSettings.outfit}
-                    level={2}
+                    level={actualLevel}
                     showAura
                   />
                   <span className="absolute -bottom-1 -right-1 size-3 rounded-full bg-emerald-500 border-2 border-card" />
-                </div>
+                  <span className="absolute inset-0 rounded-full ring-2 ring-primary/0 group-hover:ring-primary/40 transition-all" />
+                </button>
                 <div className="min-w-0">
-                  <h2 className="text-base font-bold text-foreground tracking-tight flex items-center gap-1.5">
-                    <span>Selam, {userName}!</span>
-                    <span className="text-sm font-normal">👋</span>
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-foreground tracking-tight flex items-center gap-1.5">
+                      <span>Selam, {userName}!</span>
+                      <span className="text-sm font-normal">👋</span>
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setCompanionModalOpen(true)}
+                      className="text-[11px] text-muted-foreground hover:text-primary transition inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-muted/70 cursor-pointer"
+                      title="Yol arkadaşının rengini ve kıyafetini değiştir"
+                    >
+                      <Palette className="size-3 text-primary" />
+                      <span className="text-[10px] font-medium hidden sm:inline">Özelleştir</span>
+                    </button>
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">
                     Kişisel gelişimin ve hedeflerin için buradayım.
                   </p>
@@ -770,7 +846,7 @@ export function NorthAI({
                   size={30}
                   color={companionSettings.color}
                   outfit={companionSettings.outfit}
-                  level={2}
+                  level={actualLevel}
                 />
                 <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-card" />
               </div>
@@ -786,14 +862,6 @@ export function NorthAI({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <span
-                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs text-primary font-medium"
-                title="OpenAI, Groq ve Planorth Yedek Motoru ile kesintisiz ve limitsiz koçluk"
-              >
-                <Sparkles className="size-3 text-primary shrink-0" />
-                <span>Hibrit Koç · <strong>Sınırsız</strong></span>
-              </span>
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon-xs" className="size-8 rounded-lg">
@@ -839,12 +907,19 @@ export function NorthAI({
                           size={32}
                           color={companionSettings.color}
                           outfit={companionSettings.outfit}
-                          level={2}
+                          level={actualLevel}
                         />
                         <div className="max-w-[85%] space-y-1">
                           <div className="rounded-2xl rounded-tl-xs bg-muted/60 dark:bg-muted/30 border border-border/80 p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed text-foreground shadow-2xs">
                             <MessageResponse>{message.content}</MessageResponse>
                           </div>
+                          {message.resources && message.resources.length > 0 && (
+                            <CoachResourceCards
+                              resources={message.resources}
+                              onAttachToTask={handleAttachResourceToTask}
+                              onCreateTask={handleCreateTaskFromResource}
+                            />
+                          )}
                           <div className="flex items-center gap-2 text-[10px] text-muted-foreground ml-1 font-mono">
                             <span>
                               {new Date(message.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
@@ -914,7 +989,7 @@ export function NorthAI({
                       size={34}
                       color={companionSettings.color}
                       outfit={companionSettings.outfit}
-                      level={2}
+                      level={actualLevel}
                       showAura
                     />
                     <div className="max-w-[88%] space-y-1">
@@ -942,7 +1017,7 @@ export function NorthAI({
                       size={30}
                       color={companionSettings.color}
                       outfit={companionSettings.outfit}
-                      level={2}
+                      level={actualLevel}
                     />
                     <div className="inline-flex items-center gap-2 rounded-2xl bg-muted/60 border border-border px-3.5 py-2 text-xs text-foreground shadow-2xs">
                       <LoaderCircle className="size-3.5 animate-spin text-primary" />
@@ -1072,7 +1147,38 @@ export function NorthAI({
             </Conversation>
 
             {/* Clean, Focused Composer Input */}
-            <div className="p-3 border-t border-border/70 shrink-0 bg-background/60">
+            <div className="p-3 border-t border-border/70 shrink-0 bg-background/60 space-y-2">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {[
+                  {
+                    label: "🔍 Canlı Kaynak & Video Bul",
+                    prompt: `${selectedArea?.name || "Hedefim"} için en güncel ve kaliteli video, döküman ve çalışma kaynaklarını webde araştırıp listeler misin?`,
+                  },
+                  {
+                    label: "🎯 Nereden Başlamalıyım?",
+                    prompt: `${selectedArea?.name || "Hedefim"} konusunda sıfırdan veya mevcut seviyemden nasıl ilerlemeliyim, taktik ve kaynak ver?`,
+                  },
+                  {
+                    label: "📚 Soru & Pratik Kaynakları",
+                    prompt: `${selectedArea?.name || "Hedefim"} için pratik yapabileceğim en isabetli soru bankası, lab veya test kaynaklarını bul.`,
+                  },
+                  {
+                    label: "⚡ Günün Planını Kur",
+                    prompt: "Bugünkü enerjime göre en kritik 1 veya 2 aksiyonu belirleyip planı oluştur.",
+                  },
+                ].map((chip, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setQuestion(chip.prompt);
+                    }}
+                    className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition cursor-pointer"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
               {pendingAttachments.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-muted/60 border border-border">
                   {pendingAttachments.map((att) => (
@@ -1145,6 +1251,161 @@ export function NorthAI({
           </div>
         </section>
       </div>
+
+      <CompanionModal
+        open={companionModalOpen}
+        onOpenChange={setCompanionModalOpen}
+        state={state}
+      />
     </div>
   );
 }
+
+function CoachResourceCards({
+  resources,
+  onAttachToTask,
+  onCreateTask,
+}: {
+  resources: CoachResource[];
+  onAttachToTask: (res: CoachResource) => void;
+  onCreateTask: (res: CoachResource) => void;
+}) {
+  if (!resources || resources.length === 0) return null;
+
+  return (
+    <div className="my-2.5 rounded-2xl border border-primary/25 bg-card/90 backdrop-blur-xs p-3 sm:p-4 shadow-2xs space-y-3">
+      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+          <Globe2 className="size-3.5 text-primary" />
+          <span>Doğrulanmış Web Kaynakları ({resources.length})</span>
+        </div>
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
+          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Canlı Doğrulandı
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {resources.map((res, idx) => {
+          const typeConfig: Record<string, { label: string; icon: any; color: string; badge: string }> = {
+            video: {
+              label: "Video / Anlatım",
+              icon: Play,
+              color: "text-rose-500",
+              badge: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+            },
+            documentation: {
+              label: "Dokümantasyon",
+              icon: BookOpen,
+              color: "text-sky-500",
+              badge: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+            },
+            course: {
+              label: "Kurs / Eğitim",
+              icon: GraduationCap,
+              color: "text-purple-500",
+              badge: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+            },
+            practice: {
+              label: "Pratik / Lab",
+              icon: Code2,
+              color: "text-emerald-500",
+              badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+            },
+            book: {
+              label: "Kitap / Soru Bankası",
+              icon: FileText,
+              color: "text-amber-500",
+              badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+            },
+            tool: {
+              label: "Araç / Repo",
+              icon: Zap,
+              color: "text-indigo-500",
+              badge: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+            },
+            article: {
+              label: "Rehber / Makale",
+              icon: Globe2,
+              color: "text-blue-500",
+              badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+            },
+          };
+
+          const config = typeConfig[res.type] || typeConfig.article;
+          const Icon = config.icon;
+          let displaySource = res.source;
+          if (!displaySource) {
+            try {
+              displaySource = new URL(res.url).hostname.replace(/^www\./, "");
+            } catch {
+              displaySource = "web";
+            }
+          }
+
+          return (
+            <div
+              key={idx}
+              className="flex flex-col justify-between rounded-xl border border-border bg-card/80 p-3 hover:border-primary/40 hover:shadow-xs transition-all gap-2"
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-1 text-[10px]">
+                  <span className={cn("inline-flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded-md border", config.badge)}>
+                    <Icon className={cn("size-3", config.color)} />
+                    {config.label}
+                  </span>
+                  <span className="font-mono text-muted-foreground truncate max-w-[120px]" title={displaySource}>
+                    {displaySource}
+                  </span>
+                </div>
+
+                <a
+                  href={res.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group font-semibold text-xs text-foreground hover:text-primary transition line-clamp-2 inline-flex items-start gap-1"
+                >
+                  <span className="group-hover:underline underline-offset-2 leading-snug">{res.title}</span>
+                  <ExternalLink className="size-3 shrink-0 text-muted-foreground group-hover:text-primary mt-0.5" />
+                </a>
+
+                {res.description && (
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                    {res.description}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 pt-2 border-t border-border/50">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="xs"
+                  className="flex-1 text-[10px] h-7 gap-1"
+                >
+                  <a href={res.url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="size-3" />
+                    <span>Kaynağı Aç</span>
+                  </a>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="xs"
+                  className="text-[10px] h-7 gap-1 px-2"
+                  title="Bu kaynağı doğrudan bugünün görevine bağla"
+                  onClick={() => onAttachToTask(res)}
+                >
+                  <Plus className="size-3" />
+                  <span>Göreve Bağla</span>
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+

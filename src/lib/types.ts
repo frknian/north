@@ -216,6 +216,15 @@ export type CoachAction =
   | { type: "set_daily_mission"; taskId: string; summary: string }
   | { type: "update_weekly_plan"; patch: Partial<Pick<WeeklyPlan, "mode" | "targetBlocks" | "aiSummary">>; summary: string };
 
+export interface CoachResource {
+  title: string;
+  url: string;
+  type: "video" | "article" | "documentation" | "course" | "practice" | "tool" | "book" | "other";
+  description: string;
+  isFree?: boolean;
+  source?: string;
+}
+
 export interface CoachMessageAttachment {
   id: string;
   name: string;
@@ -236,6 +245,7 @@ export interface CoachMessage {
   actionsApplied?: boolean;
   failed?: boolean;
   attachments?: CoachMessageAttachment[];
+  resources?: CoachResource[];
 }
 
 export interface CoachingOnboarding {

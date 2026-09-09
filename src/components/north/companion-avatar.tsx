@@ -20,88 +20,88 @@ export const COMPANION_COLORS: CompanionColorDef[] = [
     id: "blue",
     label: "Safir Mavi",
     bg: "bg-blue-500",
-    glow: "rgba(59, 130, 246, 0.8)",
+    glow: "rgba(59, 130, 246, 0.7)",
     gradientStart: "#bfdbfe",
     gradientMid: "#3b82f6",
-    gradientEnd: "#1e3a8a",
-    shadow: "#172554",
+    gradientEnd: "#2563eb",
+    shadow: "#1d4ed8",
     border: "border-blue-500",
   },
   {
     id: "purple",
     label: "Ametist Mor",
     bg: "bg-purple-500",
-    glow: "rgba(168, 85, 247, 0.8)",
+    glow: "rgba(168, 85, 247, 0.7)",
     gradientStart: "#f3e8ff",
     gradientMid: "#a855f7",
-    gradientEnd: "#581c87",
-    shadow: "#3b0764",
+    gradientEnd: "#9333ea",
+    shadow: "#7e22ce",
     border: "border-purple-500",
   },
   {
     id: "emerald",
     label: "Zümrüt Yeşil",
     bg: "bg-emerald-500",
-    glow: "rgba(16, 185, 129, 0.8)",
+    glow: "rgba(16, 185, 129, 0.7)",
     gradientStart: "#d1fae5",
     gradientMid: "#10b981",
-    gradientEnd: "#064e3b",
-    shadow: "#022c22",
+    gradientEnd: "#059669",
+    shadow: "#047857",
     border: "border-emerald-500",
   },
   {
     id: "amber",
     label: "Güneş Altını",
     bg: "bg-amber-500",
-    glow: "rgba(245, 158, 11, 0.8)",
+    glow: "rgba(245, 158, 11, 0.7)",
     gradientStart: "#fef3c7",
     gradientMid: "#f59e0b",
-    gradientEnd: "#78350f",
-    shadow: "#451a03",
+    gradientEnd: "#d97706",
+    shadow: "#b45309",
     border: "border-amber-500",
   },
   {
     id: "rose",
     label: "Yakut Gül",
     bg: "bg-rose-500",
-    glow: "rgba(244, 63, 94, 0.8)",
+    glow: "rgba(244, 63, 94, 0.7)",
     gradientStart: "#ffe4e6",
     gradientMid: "#f43f5e",
-    gradientEnd: "#881337",
-    shadow: "#4c0519",
+    gradientEnd: "#e11d48",
+    shadow: "#be123c",
     border: "border-rose-500",
   },
   {
     id: "cyan",
     label: "Siber Turkuaz",
     bg: "bg-cyan-500",
-    glow: "rgba(6, 182, 212, 0.8)",
+    glow: "rgba(6, 182, 212, 0.7)",
     gradientStart: "#cffafe",
     gradientMid: "#06b6d4",
-    gradientEnd: "#164e63",
-    shadow: "#083344",
+    gradientEnd: "#0891b2",
+    shadow: "#0e7490",
     border: "border-cyan-500",
   },
   {
     id: "indigo",
     label: "Kozmik İndigo",
     bg: "bg-indigo-500",
-    glow: "rgba(99, 102, 241, 0.8)",
+    glow: "rgba(99, 102, 241, 0.7)",
     gradientStart: "#e0e7ff",
     gradientMid: "#6366f1",
-    gradientEnd: "#312e81",
-    shadow: "#1e1b4b",
+    gradientEnd: "#4f46e5",
+    shadow: "#4338ca",
     border: "border-indigo-500",
   },
   {
     id: "obsidian",
     label: "Obsidyen Titanyum",
     bg: "bg-slate-600",
-    glow: "rgba(100, 116, 139, 0.8)",
-    gradientStart: "#cbd5e1",
-    gradientMid: "#475569",
-    gradientEnd: "#0f172a",
-    shadow: "#020617",
+    glow: "rgba(148, 163, 184, 0.7)",
+    gradientStart: "#e2e8f0",
+    gradientMid: "#64748b",
+    gradientEnd: "#475569",
+    shadow: "#334155",
     border: "border-slate-500",
   },
 ];
@@ -197,8 +197,9 @@ export function CompanionAvatar({
 }: CompanionAvatarProps) {
   const currentColor = COMPANION_COLORS.find((c) => c.id === color) || COMPANION_COLORS[0];
   const currentStage = GROWTH_STAGES.find((s) => s.level === level) || GROWTH_STAGES[0];
-  const gradId = `comp-grad-${color}`;
-  const specId = `comp-spec-${color}`;
+  const uniqueId = React.useId().replace(/[^a-zA-Z0-9]/g, "");
+  const gradId = `comp-grad-${color}-${uniqueId}`;
+  const specId = `comp-spec-${color}-${uniqueId}`;
 
   // Calculated scaling based on growth stage
   const stageScale = currentStage.scale;
@@ -225,10 +226,10 @@ export function CompanionAvatar({
       >
         <defs>
           {/* Main 3D Sphere Body Gradient - Fully dynamic based on selected color */}
-          <radialGradient id={gradId} cx="36%" cy="30%" r="68%">
+          <radialGradient id={gradId} cx="38%" cy="32%" r="65%">
             <stop offset="0%" stopColor={currentColor.gradientStart} />
-            <stop offset="38%" stopColor={currentColor.gradientMid} />
-            <stop offset="76%" stopColor={currentColor.gradientEnd} />
+            <stop offset="42%" stopColor={currentColor.gradientMid} />
+            <stop offset="82%" stopColor={currentColor.gradientEnd} />
             <stop offset="100%" stopColor={currentColor.shadow} />
           </radialGradient>
 
@@ -341,13 +342,14 @@ export function CompanionAvatar({
         {/* Soft base shadow for 3D grounding */}
         <ellipse cx="50" cy="88" rx="24" ry="6" fill="#000000" opacity="0.18" />
 
-        {/* The Colored Body Sphere */}
+        {/* The Colored Body Sphere with solid vibrant fallback */}
         <ellipse
           cx="50"
           cy="52"
           rx="35"
           ry="34"
-          fill={`url(#${gradId})`}
+          fill={currentColor.gradientMid}
+          style={{ fill: `url(#${gradId})` }}
         />
 
         {/* 3D Specular Highlight Overlay */}
@@ -356,7 +358,8 @@ export function CompanionAvatar({
           cy="38"
           rx="22"
           ry="17"
-          fill={`url(#${specId})`}
+          fill="rgba(255, 255, 255, 0.25)"
+          style={{ fill: `url(#${specId})` }}
         />
 
         {/* Subtle Rim Light Edge on bottom right */}
