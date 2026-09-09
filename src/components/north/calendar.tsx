@@ -86,6 +86,16 @@ const eventKindLabels: Record<
   deadline: { label: "Son Tarih", icon: "⚠️", badgeClass: "border-red-500/30 bg-red-500/10 text-red-500" },
 };
 
+export const CALENDAR_DAYS_OF_WEEK = [
+  { id: 1, label: "Pzt", full: "Pazartesi", isWeekend: false },
+  { id: 2, label: "Sal", full: "Salı", isWeekend: false },
+  { id: 3, label: "Çar", full: "Çarşamba", isWeekend: false },
+  { id: 4, label: "Per", full: "Perşembe", isWeekend: false },
+  { id: 5, label: "Cum", full: "Cuma", isWeekend: false },
+  { id: 6, label: "Cmt", full: "Cumartesi", isWeekend: true },
+  { id: 0, label: "Paz", full: "Pazar", isWeekend: true },
+];
+
 export function NorthCalendar() {
   const { state, update } = useNorth();
   const [date, setDate] = useState(dayKey());
@@ -146,11 +156,30 @@ export function NorthCalendar() {
   // Distribution options
   const [distributeStrategy, setDistributeStrategy] = useState<"all_pool" | "rebalance_month" | "area_specific">("all_pool");
   const [distributeAreaId, setDistributeAreaId] = useState<string>("");
-  const [distSkipWeekends, setDistSkipWeekends] = useState<boolean>(true);
+  // 1=Pzt, 2=Sal, 3=Çar, 4=Per, 5=Cum, 6=Cmt, 0=Paz. Default: all days
+  const [distAllowedDays, setDistAllowedDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]);
   const [distRespectRest, setDistRespectRest] = useState<boolean>(true);
   const [distRespectBlocks, setDistRespectBlocks] = useState<boolean>(true);
   const [distMaxDailyTasks, setDistMaxDailyTasks] = useState<number>(2);
   const [distMaxDailyMinutes, setDistMaxDailyMinutes] = useState<number>(90);
+
+  const isAllDays = distAllowedDays.length === 7;
+  const isWeekdaysOnly = distAllowedDays.length === 5 && [1, 2, 3, 4, 5].every((d) => distAllowedDays.includes(d));
+  const isWeekendsOnly = distAllowedDays.length === 2 && distAllowedDays.includes(6) && distAllowedDays.includes(0);
+
+  const toggleAllowedDay = (dayId: number) => {
+    setDistAllowedDays((prev) => {
+      if (prev.includes(dayId)) {
+        if (prev.length <= 1) {
+          toast.error("En az bir dağıtım günü seçili kalmalıdır.");
+          return prev;
+        }
+        return prev.filter((d) => d !== dayId);
+      } else {
+        return [...prev, dayId];
+      }
+    });
+  };
 
   useEffect(() => {
     setDaySettings(loadDaySettings());
@@ -184,6 +213,41 @@ export function NorthCalendar() {
       }));
       toast.success(`${targetDate} günü ayarları kaydedildi.`);
     }
+    setDaySettingsOpen(false);
+  };
+
+  const applySettingToAllWeekendsInMonth = () => {
+    const monthKey = daySettingDraft.date.slice(0, 7);
+    const [yearStr, monthStr] = monthKey.split("-");
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const daysInMonthCount = new Date(year, month, 0).getDate();
+
+    const nextSettings = { ...daySettings };
+    let newProtections = [...state.protection];
+
+    for (let d = 1; d <= daysInMonthCount; d++) {
+      const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const dayOfWeek = new Date(`${dateStr}T12:00:00`).getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        nextSettings[dateStr] = {
+          ...daySettingDraft,
+          date: dateStr,
+        };
+        if (daySettingDraft.mode === "rest") {
+          if (!newProtections.some((p) => p.date === dateStr && p.kind === "rest")) {
+            newProtections.push({ areaId: "*", date: dateStr, kind: "rest" });
+          }
+        } else {
+          newProtections = newProtections.filter((p) => p.date !== dateStr || p.kind !== "rest");
+        }
+      }
+    }
+
+    saveDaySettings(nextSettings);
+    setDaySettings(nextSettings);
+    update((curr) => ({ ...curr, protection: newProtections }));
+    toast.success(`${monthKey} ayındaki tüm Cumartesi ve Pazar günleri (${daySettingDraft.mode === "rest" ? "Tatil" : daySettingDraft.mode === "deep_work" ? "Derin Odak" : "Seçili Mod"}) olarak ayarlandı.`);
     setDaySettingsOpen(false);
   };
 
@@ -258,7 +322,8 @@ export function NorthCalendar() {
       monthKey,
       strategy: distributeStrategy,
       areaId: distributeAreaId || undefined,
-      skipWeekends: distSkipWeekends,
+      allowedDaysOfWeek: distAllowedDays,
+      skipWeekends: false,
       respectRestDays: distRespectRest,
       respectBlockingEvents: distRespectBlocks,
       maxDailyTasks: distMaxDailyTasks,
@@ -272,7 +337,7 @@ export function NorthCalendar() {
     });
 
     if (result.distributedCount === 0) {
-      toast.info("Dağıtılacak bekleyen görev bulunamadı.");
+      toast.info(result.summary || "Dağıtılacak uygun gün veya bekleyen görev bulunamadı.");
     } else {
       update((curr) => ({ ...curr, tasks: result.tasks }));
       toast.success(result.summary);
@@ -1302,6 +1367,25 @@ export function NorthCalendar() {
               />
             </div>
 
+            {/* HAFTA SONU TOPLU UYGULAMA KISAYOLU */}
+            {(new Date(`${daySettingDraft.date}T12:00:00`).getDay() === 0 || new Date(`${daySettingDraft.date}T12:00:00`).getDay() === 6) && (
+              <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-2.5 flex items-center justify-between gap-2">
+                <div className="text-[11px] text-muted-foreground">
+                  <span className="font-semibold text-foreground block">🌴 Hafta Sonu Kısayolu</span>
+                  <span>Bu günün ayarlarını ({daySettingDraft.mode === "rest" ? "Tatil" : daySettingDraft.mode === "deep_work" ? "Derin Odak" : "Bu Mod"}) bu ayın tüm Cumartesi ve Pazar günlerine uygula.</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={applySettingToAllWeekendsInMonth}
+                  className="text-[11px] h-7 rounded-lg border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 shrink-0 font-medium"
+                >
+                  Tüm Hafta Sonlarına Uygula
+                </Button>
+              </div>
+            )}
+
             {/* HIZLI GÜN AKSİYONLARI */}
             {selectedTasks.length > 0 && (
               <div className="rounded-xl border border-border/80 bg-muted/20 p-2.5 space-y-2">
@@ -1368,14 +1452,14 @@ export function NorthCalendar() {
 
       {/* AYLIK GÖREV DAĞIT MODAL */}
       <Dialog open={distributeModalOpen} onOpenChange={setDistributeModalOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold flex items-center gap-2">
               <Sparkles className="size-4 text-primary" />
               <span>Aylık Görev Dağıtımı & Akıllı Planlama</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Havuzdaki ve plandaki görevleri <strong className="text-foreground capitalize">{monthName}</strong> ayının günlerine kapasite ve dinlenme kurallarına göre dengeli dağıt.
+              Havuzdaki ve plandaki görevleri <strong className="text-foreground capitalize">{monthName}</strong> ayının günlerine kapasite ve gün tercihlerine göre dengeli dağıt.
             </DialogDescription>
           </DialogHeader>
 
@@ -1423,10 +1507,10 @@ export function NorthCalendar() {
                   <label
                     key={s.id}
                     className={cn(
-                      "flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all",
+                      "flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-colors",
                       distributeStrategy === s.id
-                        ? "border-primary bg-primary/[0.04] text-foreground font-medium"
-                        : "border-border/70 hover:bg-muted/30 text-muted-foreground"
+                        ? "border-primary bg-primary/5"
+                        : "border-border/60 hover:bg-muted/30"
                     )}
                   >
                     <input
@@ -1464,20 +1548,112 @@ export function NorthCalendar() {
               </div>
             )}
 
+            {/* GÖREV DAĞITILACAK GÜNLER (HAFTA İÇİ / HAFTA SONU / SEÇİM) */}
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <span>📅 Dağıtılacak Günler</span>
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setDistAllowedDays([1, 2, 3, 4, 5, 6, 0])}
+                    className={cn(
+                      "text-[10.5px] h-6 px-2 rounded-md font-medium",
+                      isAllDays
+                        ? "bg-primary/15 text-primary font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Tüm Günler
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setDistAllowedDays([1, 2, 3, 4, 5])}
+                    className={cn(
+                      "text-[10.5px] h-6 px-2 rounded-md font-medium",
+                      isWeekdaysOnly
+                        ? "bg-primary/15 text-primary font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Hafta İçi
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setDistAllowedDays([6, 0])}
+                    className={cn(
+                      "text-[10.5px] h-6 px-2 rounded-md font-medium",
+                      isWeekendsOnly
+                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    🌴 Hafta Sonu
+                  </Button>
+                </div>
+              </div>
+
+              {/* Gün Seçim Butonları (Pzt, Sal, Çar, Per, Cum, Cmt, Paz) */}
+              <div className="grid grid-cols-7 gap-1 pt-0.5">
+                {CALENDAR_DAYS_OF_WEEK.map((d) => {
+                  const isSelected = distAllowedDays.includes(d.id);
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => toggleAllowedDay(d.id)}
+                      className={cn(
+                        "py-1.5 text-xs font-semibold rounded-lg border transition-all text-center flex flex-col items-center justify-center gap-0.5",
+                        isSelected
+                          ? d.isWeekend
+                            ? "bg-amber-500/20 border-amber-500/60 text-amber-600 dark:text-amber-400 font-bold shadow-2xs"
+                            : "bg-primary border-primary text-primary-foreground font-bold shadow-2xs"
+                          : "border-border/60 bg-muted/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      )}
+                      title={d.full}
+                    >
+                      <span>{d.label}</span>
+                      <span className="text-[9px] opacity-75 leading-none">
+                        {d.isWeekend ? "H.Sonu" : "H.İçi"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Dinamik Durum Bilgisi */}
+              <p className="text-[11px] text-muted-foreground">
+                {isWeekendsOnly ? (
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">
+                    🌴 Görevler yalnızca <strong>Cumartesi ve Pazar</strong> günlerine planlanacak. Hafta içi boş bırakılacak.
+                  </span>
+                ) : isWeekdaysOnly ? (
+                  <span>
+                    💼 Görevler yalnızca <strong>Pazartesi - Cuma</strong> günlerine planlanacak. Hafta sonu boş kalacak.
+                  </span>
+                ) : isAllDays ? (
+                  <span>
+                    🗓️ Görevler haftanın <strong>7 gününe</strong> dengeli şekilde paylaştırılacak.
+                  </span>
+                ) : (
+                  <span>
+                    🎯 Görevler seçtiğiniz <strong>{distAllowedDays.length} güne</strong> dağıtılacak.
+                  </span>
+                )}
+              </p>
+            </div>
+
             {/* DAĞITIM KURALLARI & KISITLAR */}
             <div className="space-y-2 border-t border-border/60 pt-3">
-              <Label className="text-xs font-semibold">Akıllı Kurallar & Kısıtlamalar</Label>
+              <Label className="text-xs font-semibold">Koruma ve Limitler</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <label className="flex items-center gap-2 p-2 rounded-lg border border-border/60 cursor-pointer hover:bg-muted/30">
-                  <input
-                    type="checkbox"
-                    checked={distSkipWeekends}
-                    onChange={(e) => setDistSkipWeekends(e.target.checked)}
-                    className="accent-primary rounded"
-                  />
-                  <span className="text-xs text-foreground">📅 Hafta sonlarını atla</span>
-                </label>
-
                 <label className="flex items-center gap-2 p-2 rounded-lg border border-border/60 cursor-pointer hover:bg-muted/30">
                   <input
                     type="checkbox"
@@ -1488,14 +1664,14 @@ export function NorthCalendar() {
                   <span className="text-xs text-foreground">🌴 Dinlenme günlerini koru</span>
                 </label>
 
-                <label className="flex items-center gap-2 p-2 rounded-lg border border-border/60 cursor-pointer hover:bg-muted/30 col-span-1 sm:col-span-2">
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-border/60 cursor-pointer hover:bg-muted/30">
                   <input
                     type="checkbox"
                     checked={distRespectBlocks}
                     onChange={(e) => setDistRespectBlocks(e.target.checked)}
                     className="accent-primary rounded"
                   />
-                  <span className="text-xs text-foreground">💼 Sabit bloklara (mesai/ders) saygı göster</span>
+                  <span className="text-xs text-foreground">💼 Sabit bloklara saygı göster</span>
                 </label>
               </div>
 
@@ -1542,6 +1718,7 @@ export function NorthCalendar() {
             </Button>
             <Button
               size="sm"
+              disabled={distAllowedDays.length === 0}
               onClick={handleMonthlyDistribution}
               className="rounded-xl text-xs font-semibold shadow-xs"
             >

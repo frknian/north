@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node tests/north-focus.cjs && node tests/north-guidance.cjs && node tests/north-intelligence.cjs && node tests/north-modules.cjs && node tests/north-personalization.cjs && node tests/persona-simulation.cjs && node tests/long-term-progression.cjs && node tests/security.cjs && node tests/device-simulation.cjs && node tests/domain-coaching-engine.cjs"
+    "test": "node tests/north-focus.cjs && node tests/north-guidance.cjs && node tests/north-intelligence.cjs && node tests/north-modules.cjs && node tests/north-personalization.cjs && node tests/persona-simulation.cjs && node tests/long-term-progression.cjs && node tests/security.cjs && node tests/device-simulation.cjs && node tests/domain-coaching-engine.cjs && node tests/north-calendar-distribution.cjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.58",

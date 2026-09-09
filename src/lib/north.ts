@@ -365,6 +365,7 @@ export interface MonthDistributionOptions {
   strategy?: "all_pool" | "rebalance_month" | "area_specific";
   areaId?: string;
   skipWeekends?: boolean;
+  allowedDaysOfWeek?: number[]; // [0..6] where 0=Pazar, 1=Pzt, ..., 6=Cmt. If set, restricts to these days.
   respectRestDays?: boolean;
   respectBlockingEvents?: boolean;
   maxDailyMinutes?: number;
@@ -392,6 +393,10 @@ export function distributeTasksAcrossMonth(
   const monthKey = options.monthKey || today.slice(0, 7);
   const strategy = options.strategy || "all_pool";
   const skipWeekends = options.skipWeekends ?? true;
+  const allowedDays =
+    options.allowedDaysOfWeek && options.allowedDaysOfWeek.length > 0
+      ? new Set(options.allowedDaysOfWeek)
+      : null;
   const respectRestDays = options.respectRestDays ?? true;
   const respectBlockingEvents = options.respectBlockingEvents ?? true;
   const maxDailyMinutes = options.maxDailyMinutes || 90;
@@ -427,7 +432,11 @@ export function distributeTasksAcrossMonth(
       return false;
     }
     const dayOfWeek = new Date(`${d}T12:00:00`).getDay();
-    if (skipWeekends && (dayOfWeek === 0 || dayOfWeek === 6)) {
+    if (allowedDays) {
+      if (!allowedDays.has(dayOfWeek)) {
+        return false;
+      }
+    } else if (skipWeekends && (dayOfWeek === 0 || dayOfWeek === 6)) {
       return false;
     }
     if (respectRestDays && restDates.has(d)) {
@@ -440,7 +449,12 @@ export function distributeTasksAcrossMonth(
   });
 
   if (candidateDays.length === 0) {
-    candidateDays = allMonthDays.filter((d) => !isCurrentMonth || !startFromToday || d >= today);
+    return {
+      tasks,
+      distributedCount: 0,
+      daysUsedCount: 0,
+      summary: "Seçilen gün ve kısıtlara uygun boş gün bulunamadı. Lütfen hedef gün seçiminizi veya kısıtları esnetin.",
+    };
   }
 
   const dayMinutes: Record<string, number> = {};
