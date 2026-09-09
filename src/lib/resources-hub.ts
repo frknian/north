@@ -114,6 +114,20 @@ export function addSavedPageRange(item: Omit<SavedPageRange, "id" | "createdAt">
   return newItem;
 }
 
+export function updateSavedPageRange(id: string, updates: Partial<SavedPageRange>): SavedPageRange | null {
+  const current = loadSavedPageRanges();
+  let updatedItem: SavedPageRange | null = null;
+  const updated = current.map((r) => {
+    if (r.id === id) {
+      updatedItem = { ...r, ...updates };
+      return updatedItem;
+    }
+    return r;
+  });
+  saveSavedPageRanges(updated);
+  return updatedItem;
+}
+
 export function deleteSavedPageRange(id: string): void {
   const current = loadSavedPageRanges();
   saveSavedPageRanges(current.filter((r) => r.id !== id));
@@ -293,6 +307,61 @@ export function generateNotebookLMBundle(options: {
   lines.push(`---`);
   lines.push(`*Planorth Sanal Araştırma & Kaynak Merkezi tarafından üretilmiştir.*`);
 
+  return lines.join("\n");
+}
+
+export function generateSessionNotebookLMSnippet(options: {
+  sessionTitle: string;
+  durationMinutes?: number;
+  scratchpadText?: string;
+  quotes?: string[];
+  activeBook?: NorthBook;
+  activeRange?: SavedPageRange;
+  pinnedDoc?: PinnedSourceDoc;
+}): string {
+  const {
+    sessionTitle,
+    durationMinutes,
+    scratchpadText,
+    quotes = [],
+    activeBook,
+    activeRange,
+    pinnedDoc,
+  } = options;
+  const dateStr = new Date().toLocaleDateString("tr-TR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const lines: string[] = [];
+  lines.push(`# ⚡ Planorth Odak Seansı Özeti: ${sessionTitle}`);
+  lines.push(`- **Tarih & Saat:** ${dateStr}`);
+  if (durationMinutes) lines.push(`- **Süre:** ${durationMinutes} dakika`);
+
+  if (activeBook) {
+    lines.push(`- **Kitap:** ${activeBook.title} (${activeBook.author}) - Sayfa ${activeBook.currentPage} / ${activeBook.totalPages}`);
+  }
+  if (activeRange) {
+    lines.push(`- **Kayıtlı Sayfa Aralığı:** ${activeRange.resourceTitle} (Sayfa ${activeRange.startPage}–${activeRange.endPage}: ${activeRange.topic})`);
+  }
+  if (pinnedDoc) {
+    lines.push(`- **Referans Belge:** ${pinnedDoc.title} (${pinnedDoc.type.toUpperCase()})`);
+  }
+
+  if (scratchpadText && scratchpadText.trim()) {
+    lines.push(`\n## 📝 Seans Canlı Notları ve Çıkarımları\n`);
+    lines.push(scratchpadText.trim());
+  }
+
+  if (quotes && quotes.length > 0) {
+    lines.push(`\n## 💬 Yakalanan Alıntılar & Önemli Cümleler\n`);
+    quotes.forEach((q) => lines.push(`> "${q}"`));
+  }
+
+  lines.push(`\n---\n*NotebookLM'e kaynak veya araştırma notu olarak eklenmeye hazırdır.*`);
   return lines.join("\n");
 }
 

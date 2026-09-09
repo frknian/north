@@ -992,7 +992,7 @@ export function ResourcesHub() {
 
                   <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
                     <Button asChild size="sm" variant="outline" className="rounded-xl text-xs h-7 px-2">
-                      <Link href={`/focus/reading?title=${encodeURIComponent(range.resourceTitle)}&goal=${encodeURIComponent(`Sayfa ${range.startPage}-${range.endPage}: ${range.topic}`)}&minutes=35`}>
+                      <Link href={`/focus/reading?title=${encodeURIComponent(range.resourceTitle)}&rangeId=${range.id}&goal=${encodeURIComponent(`Sayfa ${range.startPage}-${range.endPage}: ${range.topic}`)}&minutes=35`}>
                         <BookOpen className="mr-1 size-3" />
                         Bu Sayfalarla Odaklan
                       </Link>
@@ -1112,15 +1112,24 @@ export function ResourcesHub() {
                   </div>
 
                   {/* Footer Actions */}
-                  <div className="p-3 pt-0 flex items-center justify-between border-t border-border/30 mt-auto">
-                    <button
-                      type="button"
-                      onClick={() => handleGenerateSummary(doc.title, `Notlar: ${doc.notes || ""}\nEtiketler: ${(doc.tags || []).join(", ")}`)}
-                      className="text-xs text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1"
-                    >
-                      <Sparkles className="size-3" />
-                      AI Özeti
-                    </button>
+                  <div className="p-3 pt-0 flex items-center justify-between border-t border-border/30 mt-auto gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateSummary(doc.title, `Notlar: ${doc.notes || ""}\nEtiketler: ${(doc.tags || []).join(", ")}`)}
+                        className="text-xs text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1"
+                      >
+                        <Sparkles className="size-3" />
+                        AI Özeti
+                      </button>
+                      <Link
+                        href={`/focus/free?title=${encodeURIComponent(doc.title)}&pinnedDocId=${doc.id}&goal=${encodeURIComponent(`Belge İnceleme: ${doc.title}`)}&minutes=30`}
+                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium"
+                      >
+                        <BookOpen className="size-3" />
+                        Odakta İncele
+                      </Link>
+                    </div>
 
                     <button
                       type="button"

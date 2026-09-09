@@ -55,6 +55,15 @@ import { BreathworkModal } from "./breathwork-modal";
 import { NorthAI } from "./ai";
 import { SanalKutuphaneBadge } from "./sanal-kutuphane";
 import { FocusSoundMixer, type AmbientSoundType } from "./focus-sound-mixer";
+import { FocusResourcesDock, FocusResourcesModal } from "./focus-resources-dock";
+import {
+  loadSavedPageRanges,
+  updateSavedPageRange,
+  loadPinnedDocs,
+  generateSessionNotebookLMSnippet,
+  type SavedPageRange,
+  type PinnedSourceDoc,
+} from "@/lib/resources-hub";
 import {
   setFocusLock,
   clearFocusLock,
@@ -104,6 +113,14 @@ export function NorthFocus({ id }: { id: string }) {
   const [freeTitle, setFreeTitle] = useState<string>(() => searchParams.get("title") || "");
   const [freeGoal, setFreeGoal] = useState<string>(() => searchParams.get("goal") || "");
 
+  // Resources Integration State
+  const queryRangeId = searchParams.get("rangeId");
+  const queryPinnedDocId = searchParams.get("pinnedDocId");
+  const [activeRange, setActiveRange] = useState<SavedPageRange | null>(null);
+  const [resourcesModalOpen, setResourcesModalOpen] = useState<boolean>(false);
+  const [resourcesModalTab, setResourcesModalTab] = useState<"pinned" | "ranges" | "search" | "notebooklm">("pinned");
+  const [lightboxDoc, setLightboxDoc] = useState<PinnedSourceDoc | null>(null);
+
   const task = state.tasks.find((t) => t.id === id);
   const area = state.areas.find((a) => a.id === task?.areaId);
 
@@ -112,6 +129,24 @@ export function NorthFocus({ id }: { id: string }) {
     ? readingArea || { id: "reading-area", name: "Kitap Okuma", icon: "📖", kind: "reading" as const, metric: "Okunan sayfa" }
     : state.areas[0] || { id: "free-area", name: "Serbest Odak", icon: "⚡", kind: "custom" as const, metric: "Dakika" };
   const effectiveArea = area || defaultArea;
+
+  // Sync active range from URL
+  useEffect(() => {
+    const ranges = loadSavedPageRanges();
+    if (queryRangeId) {
+      const found = ranges.find((r) => r.id === queryRangeId);
+      if (found) setActiveRange(found);
+    }
+  }, [queryRangeId]);
+
+  // Sync pinned doc from URL
+  useEffect(() => {
+    const docs = loadPinnedDocs();
+    if (queryPinnedDocId) {
+      const found = docs.find((d) => d.id === queryPinnedDocId);
+      if (found) setLightboxDoc(found);
+    }
+  }, [queryPinnedDocId]);
 
   useEffect(() => {
     if (isReadingMode) {
@@ -809,6 +844,23 @@ export function NorthFocus({ id }: { id: string }) {
             <span className="hidden 2xl:inline">{ironWill ? "Demir İrade" : "Standart"}</span>
           </button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl text-xs px-2.5 h-8 font-medium gap-1 text-foreground"
+            onClick={() => {
+              setResourcesModalTab("pinned");
+              setResourcesModalOpen(true);
+            }}
+            title="Odak Kaynak & Belge Masası"
+          >
+            <BookOpen className="size-3.5 text-indigo-500" />
+            <span className="hidden xl:inline">Kaynaklar</span>
+            {activeRange && (
+              <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
+            )}
+          </Button>
+
           <SanalKutuphaneBadge className="hidden xl:inline-flex h-8 shrink-0" />
           <Companion state={state} compact />
         </div>
@@ -847,6 +899,24 @@ export function NorthFocus({ id }: { id: string }) {
 
               {activeBook ? (
                 <div className="mt-2.5 flex-1 flex flex-col min-h-0 overflow-y-auto pr-1 focus-scrollbar space-y-3">
+                  {/* Active Page Range Banner if set */}
+                  {activeRange && (
+                    <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-xs flex items-center justify-between gap-2 shrink-0">
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">
+                          Aktif Hedef Aralığı
+                        </span>
+                        <p className="font-semibold text-foreground truncate text-[11px]">{activeRange.topic}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          {activeRange.resourceTitle} · Sf. {activeRange.startPage}–{activeRange.endPage}
+                        </p>
+                      </div>
+                      <span className="rounded-md bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold px-1.5 py-0.5 text-[9px] shrink-0">
+                        {activeRange.status === "completed" ? "✓ Bitti" : "Hedef"}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Progress bar & stats */}
                   <div className="space-y-1.5 shrink-0">
                     <div className="flex items-center justify-between text-[11px]">
@@ -999,6 +1069,23 @@ export function NorthFocus({ id }: { id: string }) {
                       : "Bu oturum sisteme bağlı bir görev içermez. Zihnini toparla, dilediğin konuya odaklan ve akışın tadını çıkar."}
                   </p>
                 </div>
+
+                {/* Active Page Range Banner if set */}
+                {activeRange && (
+                  <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2.5 text-xs space-y-1">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+                        <BookOpen className="size-3" />
+                        İncelenen Sayfa Aralığı
+                      </span>
+                      <span className="font-mono text-muted-foreground">
+                        Sf. {activeRange.startPage}–{activeRange.endPage}
+                      </span>
+                    </div>
+                    <p className="font-semibold text-foreground text-xs">{activeRange.topic}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{activeRange.resourceTitle}</p>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-semibold text-foreground">
@@ -1226,7 +1313,29 @@ export function NorthFocus({ id }: { id: string }) {
                 />
 
                 <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground shrink-0">
-                  <span>Otomatik kaydedilir</span>
+                  <div className="flex items-center gap-2">
+                    <span>Otomatik kaydedilir</span>
+                    {scratchpadText.trim().length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const snippet = generateSessionNotebookLMSnippet({
+                            sessionTitle: task?.title || activeBook?.title || activeRange?.topic || "Odak Seansı",
+                            scratchpadText,
+                            activeBook: activeBook || undefined,
+                            activeRange: activeRange || undefined,
+                          });
+                          navigator.clipboard.writeText(snippet);
+                          toast.success("Notlar NotebookLM formatında panoya kopyalandı!");
+                        }}
+                        className="text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 font-medium"
+                        title="NotebookLM formatında panoya kopyala"
+                      >
+                        <Sparkles className="size-2.5" />
+                        NotebookLM
+                      </button>
+                    )}
+                  </div>
                   <span className="font-mono">{scratchpadText.trim().length} krk</span>
                 </div>
               </div>
@@ -1326,110 +1435,26 @@ export function NorthFocus({ id }: { id: string }) {
               onVolumeChange={handleVolumeChange}
             />
 
-            {/* Kaynaklar & Lablar OR Kitap Tavsiyeleri */}
-            {isReadingMode ? (
-              <div className="flex-1 rounded-2xl border bg-card p-3 shadow-xs flex flex-col min-h-0">
-                <div className="flex items-center justify-between border-b pb-2 shrink-0">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="grid size-6 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0">
-                      <Sparkles className="size-3.5" />
-                    </span>
-                    <div className="min-w-0">
-                      <h2 className="text-xs font-bold text-foreground truncate">Kitap Tavsiyeleri</h2>
-                      <p className="text-[10px] text-muted-foreground truncate">Filtrelenmiş öneriler</p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setBookLibraryOpen(true)}
-                    className="rounded-xl h-7 px-2 text-[10px] font-semibold shrink-0"
-                  >
-                    Keşfet
-                  </Button>
-                </div>
-
-                <div className="mt-2.5 flex-1 flex flex-col justify-between overflow-y-auto space-y-2 pr-1 min-h-0 focus-scrollbar">
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Siber güvenlik, yazılım mimarisi, derin odak ve stoacı felsefe alanında filtrelenebilir 14 seçkin kitap tavsiyesi seni bekliyor.
-                  </p>
-                  <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-2.5 space-y-1">
-                    <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                      Popüler Öneriler
-                    </span>
-                    <p className="text-xs font-semibold text-foreground">
-                      Deep Work · Atomik Alışkanlıklar · Sandworm
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setBookLibraryOpen(true)}
-                    className="w-full rounded-xl text-xs h-8"
-                  >
-                    <BookOpen className="mr-1.5 size-3.5 text-indigo-500" />
-                    Tavsiye Kitaplığını Aç
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 rounded-2xl border bg-card p-3 shadow-xs flex flex-col min-h-0">
-                <div className="flex items-center justify-between border-b pb-2 shrink-0">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="grid size-6 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0">
-                      <BookOpen className="size-3.5" />
-                    </span>
-                    <div className="min-w-0">
-                      <h2 className="text-xs font-bold text-foreground truncate">Kaynaklar &amp; Lablar</h2>
-                      <p className="text-[10px] text-muted-foreground truncate">Önerilen dökümanlar</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0 focus-scrollbar">
-                  {guidance && guidance.resources.length > 0 ? (
-                    guidance.resources.map((res, idx) => (
-                      <a
-                        key={idx}
-                        href={res.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group flex items-center justify-between rounded-xl border bg-background/80 p-2 transition-all hover:border-primary/50 hover:bg-muted/30"
-                      >
-                        <div className="min-w-0 pr-1.5">
-                          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
-                            {res.badge}
-                          </span>
-                          <p className="mt-0.5 text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                            {res.title}
-                          </p>
-                        </div>
-                        <ExternalLink className="size-3 shrink-0 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
-                      </a>
-                    ))
-                  ) : task?.resource ? (
-                    <a
-                      href={task.resource}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group flex items-center justify-between rounded-xl border bg-background/80 p-2 hover:border-primary/50"
-                    >
-                      <div className="min-w-0 pr-1.5">
-                        <span className="text-[9px] font-semibold text-primary">Resmî Görev Kaynağı</span>
-                        <p className="text-xs font-semibold truncate text-foreground">{task.resource}</p>
-                      </div>
-                      <ExternalLink className="size-3 shrink-0 text-muted-foreground group-hover:text-primary" />
-                    </a>
-                  ) : (
-                    <p className="py-3 text-center text-xs text-muted-foreground italic">
-                      Bu görev için harici kaynak yok.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Entegre Kaynak & Doküman Masası (Pinli Şemalar, Sayfa Aralıkları, Rehber & NotebookLM) */}
+            <FocusResourcesDock
+              task={task}
+              area={effectiveArea}
+              guidance={guidance}
+              isReadingMode={isReadingMode}
+              activeBook={activeBook}
+              activeRange={activeRange}
+              onSelectRange={(range) => {
+                setActiveRange(range);
+                toast.success(`"${range.topic}" aktif çalışma aralığı yapıldı.`);
+              }}
+              onOpenModal={(initialTab) => {
+                if (initialTab) setResourcesModalTab(initialTab);
+                setResourcesModalOpen(true);
+              }}
+              onViewDoc={(doc) => setLightboxDoc(doc)}
+              scratchpadText={scratchpadText}
+              readingQuotes={activeBook?.favoriteQuotes || []}
+            />
           </div>
 
           {/* COLUMN 4: PLANORTH KOÇ (DOCKED COMPANION) */}
@@ -1567,6 +1592,74 @@ export function NorthFocus({ id }: { id: string }) {
                 <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
                   Serbest Seans
                 </span>
+              </div>
+            )}
+
+            {/* ACTIVE PAGE RANGE COMPLETION CARD */}
+            {activeRange && (
+              <div className="mt-5 rounded-2xl border border-indigo-500/25 bg-indigo-500/5 p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">
+                    Çalışılan Sayfa Aralığı
+                  </span>
+                  <h4 className="text-sm font-bold text-foreground truncate">{activeRange.topic}</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {activeRange.resourceTitle} (Sayfa {activeRange.startPage}–{activeRange.endPage})
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={activeRange.status === "completed" ? "secondary" : "outline"}
+                  onClick={() => {
+                    const next = activeRange.status === "completed" ? "reading" : "completed";
+                    updateSavedPageRange(activeRange.id, { status: next });
+                    setActiveRange({ ...activeRange, status: next });
+                    toast.success(
+                      next === "completed"
+                        ? "Sayfa aralığı tamamlandı olarak kaydedildi! 🎉"
+                        : "Okunuyor durumuna alındı."
+                    );
+                  }}
+                  className="rounded-xl text-xs h-8 shrink-0"
+                >
+                  {activeRange.status === "completed" ? "✓ Tamamlandı" : "Aralığı Tamamla"}
+                </Button>
+              </div>
+            )}
+
+            {/* SESSION NOTES TO NOTEBOOKLM CARD */}
+            {scratchpadText.trim().length > 0 && (
+              <div className="mt-4 rounded-2xl border bg-card p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0 space-y-0.5">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                    Seans Canlı Notları ({scratchpadText.trim().length} krk)
+                  </span>
+                  <p className="text-xs text-foreground">
+                    Tuttuğun formüller ve notlar NotebookLM kaynak formatına hazır.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const snippet = generateSessionNotebookLMSnippet({
+                      sessionTitle: task?.title || activeBook?.title || activeRange?.topic || "Odak Seansı",
+                      durationMinutes: Math.floor(elapsed / 60000),
+                      scratchpadText,
+                      quotes: activeBook?.favoriteQuotes || [],
+                      activeBook: activeBook || undefined,
+                      activeRange: activeRange || undefined,
+                    });
+                    navigator.clipboard.writeText(snippet);
+                    toast.success("Seans notları NotebookLM formatında panoya kopyalandı!");
+                  }}
+                  className="rounded-xl text-xs h-8 shrink-0"
+                >
+                  <Sparkles className="size-3.5 mr-1 text-amber-500" />
+                  NotebookLM Paketini Kopyala
+                </Button>
               </div>
             )}
 
@@ -2168,6 +2261,65 @@ export function NorthFocus({ id }: { id: string }) {
           toast.success(`"${book.title}" seçildi.`);
         }}
       />
+
+      {/* FOCUS RESOURCES MODAL (FULL WORKSPACE) */}
+      <FocusResourcesModal
+        open={resourcesModalOpen}
+        onOpenChange={setResourcesModalOpen}
+        initialTab={resourcesModalTab}
+        task={task}
+        activeBook={activeBook}
+        activeRange={activeRange}
+        onSelectRange={(range) => {
+          setActiveRange(range);
+          toast.success(`"${range.topic}" bu seansın aktif hedefi yapıldı.`);
+        }}
+        scratchpadText={scratchpadText}
+        readingQuotes={activeBook?.favoriteQuotes || []}
+      />
+
+      {/* LIGHTBOX FOR PINNED DOC */}
+      {lightboxDoc && (
+        <Dialog open={!!lightboxDoc} onOpenChange={() => setLightboxDoc(null)}>
+          <DialogContent className="max-w-4xl p-2 bg-black/90 text-white border-zinc-800">
+            <div className="relative flex flex-col items-center justify-center p-2">
+              <div className="flex items-center justify-between w-full pb-2 px-2 border-b border-zinc-800 text-xs">
+                <span className="font-bold truncate">{lightboxDoc.title}</span>
+                {lightboxDoc.pageRange && (
+                  <span className="font-mono text-zinc-400">{lightboxDoc.pageRange}</span>
+                )}
+              </div>
+              <div className="my-4 max-h-[75vh] max-w-full overflow-auto flex items-center justify-center">
+                {lightboxDoc.type === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={lightboxDoc.url}
+                    alt={lightboxDoc.title}
+                    className="max-h-[70vh] max-w-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="p-8 text-center space-y-3">
+                    <FileText className="size-16 mx-auto text-sky-400" />
+                    <p className="text-sm font-semibold">{lightboxDoc.title}</p>
+                    <a
+                      href={lightboxDoc.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-sky-400 underline"
+                    >
+                      Harici Sekmede Aç
+                      <ExternalLink className="size-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+              {lightboxDoc.notes && (
+                <p className="text-xs text-zinc-400 italic px-3 text-center">{lightboxDoc.notes}</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </main>
   );
 }
