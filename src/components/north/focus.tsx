@@ -745,7 +745,7 @@ export function NorthFocus({ id }: { id: string }) {
           </div>
 
           {/* +5 and +10 minute buttons */}
-          <div className="flex items-center gap-1">
+          <div className="hidden sm:flex items-center gap-1">
             <button
               type="button"
               onClick={() => adjustMinutes(5)}
@@ -809,7 +809,7 @@ export function NorthFocus({ id }: { id: string }) {
           <Button
             variant={pipActive ? "secondary" : "outline"}
             size="sm"
-            className="rounded-xl text-xs px-2 h-8"
+            className="hidden md:inline-flex rounded-xl text-xs px-2 h-8"
             onClick={handleTogglePip}
             title="Yüzen Mini Sayaç"
           >
@@ -820,7 +820,7 @@ export function NorthFocus({ id }: { id: string }) {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-xl text-xs px-2 h-8"
+            className="hidden md:inline-flex rounded-xl text-xs px-2 h-8"
             onClick={() => setBreathworkOpen(true)}
             title="2 Dakikalık Nefes ve Göz Molası"
           >
@@ -833,7 +833,7 @@ export function NorthFocus({ id }: { id: string }) {
             onClick={toggleIronWill}
             disabled={timer?.running}
             className={cn(
-              "inline-flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs font-semibold transition-all h-8",
+              "hidden md:inline-flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs font-semibold transition-all h-8",
               ironWill
                 ? "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400 shadow-xs"
                 : "border-border/60 bg-muted/40 text-muted-foreground hover:text-foreground"

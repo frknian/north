@@ -227,13 +227,19 @@ function TopNavigation({ pathname }: { pathname: string }) {
 function MobileNavigation({ pathname }: { pathname: string }) {
   const [open, setOpen] = useState(false);
   const current = activeTab(pathname);
-  const isSheetActive = !["/", "/coach", "/week"].includes(current);
+
+  // Odak seansında ekranı tam odak moduna almak için mobil alt çubuğu gizle
+  if (pathname.startsWith("/focus")) {
+    return null;
+  }
 
   const mobilePrimary = [
     { href: "/", label: "Bugün", icon: Home },
-    { href: "/coach", label: "Koç", icon: Sparkles },
+    { href: "/areas", label: "Alanlar", icon: Layers3 },
     { href: "/week", label: "Plan", icon: ClipboardList },
+    { href: "/resources", label: "Kaynaklar", icon: BookOpen },
   ];
+  const isSheetActive = !mobilePrimary.some((item) => current === item.href);
 
   return (
     <nav className="north-mobile-tabs safe-bottom" aria-label="Mobil navigasyon">
@@ -243,11 +249,18 @@ function MobileNavigation({ pathname }: { pathname: string }) {
           <Link
             key={n.href}
             href={n.href}
-            className={cn(isActive && "is-active")}
+            className={cn("relative group select-none", isActive && "is-active text-primary")}
             aria-current={isActive ? "page" : undefined}
           >
-            <n.icon size={19} />
-            <span>{n.label}</span>
+            <div className="relative">
+              <n.icon size={20} className={cn("transition-transform group-active:scale-90", isActive && "stroke-[2.5]")} />
+              {isActive && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 size-1 rounded-full bg-primary animate-pulse" />
+              )}
+            </div>
+            <span className={cn("text-[10px] tracking-tight leading-tight", isActive ? "font-bold text-primary" : "text-muted-foreground")}>
+              {n.label}
+            </span>
           </Link>
         );
       })}
@@ -256,49 +269,109 @@ function MobileNavigation({ pathname }: { pathname: string }) {
         <SheetTrigger asChild>
           <button
             type="button"
-            className={cn(isSheetActive && "is-active")}
+            className={cn("relative group select-none", isSheetActive && "is-active text-primary")}
             aria-label="Tüm sayfalar ve araçlar menüsü"
             aria-expanded={open}
           >
-            <MoreHorizontal size={19} />
-            <span>Menü</span>
+            <div className="relative">
+              <MoreHorizontal size={20} className={cn("transition-transform group-active:scale-90", isSheetActive && "stroke-[2.5]")} />
+              {isSheetActive && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 size-1 rounded-full bg-primary animate-pulse" />
+              )}
+            </div>
+            <span className={cn("text-[10px] tracking-tight leading-tight", isSheetActive ? "font-bold text-primary" : "text-muted-foreground")}>
+              Menü
+            </span>
           </button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="rounded-t-3xl px-5 pt-5 pb-8 max-h-[85vh] overflow-y-auto bg-card border-t border-border">
+        <SheetContent side="bottom" className="rounded-t-3xl px-5 pt-3 pb-8 max-h-[88dvh] overflow-y-auto bg-card border-t border-border shadow-2xl">
+          {/* DRAG HANDLE */}
+          <div className="w-12 h-1.5 rounded-full bg-muted-foreground/30 mx-auto mb-3 cursor-grab" aria-hidden="true" />
+
           <SheetHeader className="pb-3 border-b border-border/60 text-left">
-            <SheetTitle className="text-base font-bold text-foreground">
-              Tüm Sayfalar &amp; Araçlar
+            <SheetTitle className="text-base font-bold text-foreground flex items-center justify-between">
+              <span>Tüm Sayfalar &amp; Araçlar</span>
+              <span className="text-xs font-normal text-muted-foreground font-mono">Planorth</span>
             </SheetTitle>
           </SheetHeader>
-          <div className="grid grid-cols-2 gap-2.5 py-4">
-            {navigation.map((item) => {
-              const isActive = current === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-2.5 p-3 rounded-xl border text-xs sm:text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary/10 text-primary border-primary/30 font-semibold"
-                      : "bg-muted/40 hover:bg-muted text-foreground border-border/60 hover:border-border"
-                  )}
-                >
-                  <div className={cn("p-1.5 rounded-lg shrink-0", isActive ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground border border-border/60")}>
-                    <item.icon size={16} />
-                  </div>
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              );
-            })}
+
+          {/* KATEGORİZE EDİLMİŞ MENÜ KARTLARI */}
+          <div className="space-y-4 py-3">
+            <div>
+              <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase mb-2">Çalışma Alanları &amp; Takip</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { href: "/calendar", label: "Takvim & Zaman", icon: CalendarDays, desc: "Aylık taksim & bloklar" },
+                  { href: "/progress", label: "İlerleme & Rapor", icon: BarChart3, desc: "Radar ve değerlendirme" },
+                  { href: "/coach", label: "Planorth AI Koç", icon: Sparkles, desc: "Birebir rehberlik" },
+                  { href: "/evidence", label: "Portföy & Kanıt", icon: Briefcase, desc: "Kazanımlar ve projeler" },
+                ].map((item) => {
+                  const isActive = current === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all active:scale-[0.98]",
+                        isActive
+                          ? "bg-primary/10 text-primary border-primary/30 font-semibold"
+                          : "bg-muted/30 hover:bg-muted text-foreground border-border/60"
+                      )}
+                    >
+                      <div className={cn("p-1.5 rounded-lg shrink-0", isActive ? "bg-primary text-primary-foreground" : "bg-background text-primary border border-border/60")}>
+                        <item.icon size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate leading-tight">{item.label}</p>
+                        <p className="text-[9px] text-muted-foreground truncate leading-tight mt-0.5">{item.desc}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase mb-2">Öğrenme &amp; Başarı</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { href: "/certifications", label: "Sertifikalar", icon: Award, desc: "Hedef ve sınavlar" },
+                  { href: "/labs", label: "Sanal Lablar", icon: FlaskConical, desc: "Pratik senaryolar" },
+                ].map((item) => {
+                  const isActive = current === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all active:scale-[0.98]",
+                        isActive
+                          ? "bg-primary/10 text-primary border-primary/30 font-semibold"
+                          : "bg-muted/30 hover:bg-muted text-foreground border-border/60"
+                      )}
+                    >
+                      <div className={cn("p-1.5 rounded-lg shrink-0", isActive ? "bg-primary text-primary-foreground" : "bg-background text-indigo-500 border border-border/60")}>
+                        <item.icon size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate leading-tight">{item.label}</p>
+                        <p className="text-[9px] text-muted-foreground truncate leading-tight mt-0.5">{item.desc}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          <div className="pt-3 border-t border-border/60 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          {/* ALT TERCİHLER VE TEMA BARI */}
+          <div className="pt-3 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
             <Link
               href="/profile"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-1.5 hover:text-foreground font-medium p-1"
+              className="flex items-center gap-1.5 hover:text-foreground font-medium p-1.5 rounded-lg active:bg-muted/50"
             >
               <UserRound size={15} className="text-primary" />
               <span>Profil ve Ayarlar</span>
@@ -306,12 +379,12 @@ function MobileNavigation({ pathname }: { pathname: string }) {
             <Link
               href="/data"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-1.5 hover:text-foreground font-medium p-1"
+              className="flex items-center gap-1.5 hover:text-foreground font-medium p-1.5 rounded-lg active:bg-muted/50"
             >
               <ShieldCheck size={15} className="text-primary" />
               <span>Verilerim ve Güvenlik</span>
             </Link>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pl-1">
               <span className="text-[11px]">Tema:</span>
               <ThemeToggle />
             </div>

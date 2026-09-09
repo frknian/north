@@ -171,28 +171,30 @@ export function NorthToday() {
               </div>
             </div>
 
-            <div className="north-now-actions mt-6 flex flex-wrap items-center gap-3">
-              <Button asChild size="lg" className="h-11 sm:h-12 px-6 sm:px-7 text-sm sm:text-base font-bold rounded-2xl shadow-md shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.01] active:scale-[0.98] transition-all">
+            <div className="north-now-actions mt-5 sm:mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+              <Button asChild size="lg" className="w-full sm:w-auto h-11 sm:h-12 px-6 sm:px-7 text-sm sm:text-base font-bold rounded-2xl shadow-md shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.01] active:scale-[0.98] transition-all">
                 <Link href={`/focus/${current.id}`}><Play size={17} className="fill-current mr-2"/>Odaklanmaya başla</Link>
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={() => { setFocusLauncherMode("free"); setFocusLauncherOpen(true); }}
-                className="h-11 sm:h-12 px-4.5 text-xs sm:text-sm font-semibold rounded-2xl border-border/80 bg-background/80 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all"
-              >
-                <Zap className="size-4 mr-1.5 text-amber-500" /> Serbest Odak
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={() => { setFocusLauncherMode("reading"); setFocusLauncherOpen(true); }}
-                className="h-11 sm:h-12 px-4.5 text-xs sm:text-sm font-semibold rounded-2xl border-border/70 bg-background/80 hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all"
-              >
-                <BookOpen className="size-4 mr-1.5 text-indigo-500" /> Kitap Okuma
-              </Button>
+              <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => { setFocusLauncherMode("free"); setFocusLauncherOpen(true); }}
+                  className="w-full sm:w-auto h-10 sm:h-12 px-3 sm:px-4.5 text-xs sm:text-sm font-semibold rounded-2xl border-border/80 bg-background/80 hover:border-amber-500/40 hover:bg-amber-500/5 active:scale-[0.98] transition-all"
+                >
+                  <Zap className="size-3.5 sm:size-4 mr-1.5 text-amber-500 shrink-0" /> <span className="truncate">Serbest Odak</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => { setFocusLauncherMode("reading"); setFocusLauncherOpen(true); }}
+                  className="w-full sm:w-auto h-10 sm:h-12 px-3 sm:px-4.5 text-xs sm:text-sm font-semibold rounded-2xl border-border/70 bg-background/80 hover:border-indigo-500/40 hover:bg-indigo-500/5 active:scale-[0.98] transition-all"
+                >
+                  <BookOpen className="size-3.5 sm:size-4 mr-1.5 text-indigo-500 shrink-0" /> <span className="truncate">Kitap Okuma</span>
+                </Button>
+              </div>
             </div>
           </section>
         ) : completed > 0 ? (
@@ -270,7 +272,7 @@ export function NorthToday() {
           <button
             type="button"
             onClick={() => setSprintLauncherOpen(true)}
-            className="group flex items-center justify-between gap-3 px-3.5 py-2 sm:py-2.5 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-card/80 to-background hover:border-primary/50 hover:bg-primary/15 transition-all text-left shadow-2xs cursor-pointer"
+            className="group flex items-center justify-between gap-3 px-3.5 py-2 sm:py-2.5 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-card/80 to-background hover:border-primary/50 hover:bg-primary/15 active:scale-[0.98] transition-all text-left shadow-2xs cursor-pointer"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="size-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -286,7 +288,7 @@ export function NorthToday() {
 
           <Link
             href="/resources"
-            className="group flex items-center justify-between gap-3 px-3.5 py-2 sm:py-2.5 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-card/80 to-background hover:border-primary/50 hover:bg-primary/15 transition-all text-left shadow-2xs cursor-pointer"
+            className="group flex items-center justify-between gap-3 px-3.5 py-2 sm:py-2.5 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-card/80 to-background hover:border-primary/50 hover:bg-primary/15 active:scale-[0.98] transition-all text-left shadow-2xs cursor-pointer"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="size-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
