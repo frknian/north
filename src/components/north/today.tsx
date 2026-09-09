@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Feather, Moon, Play, Sparkles, Sun, Zap, BookOpen } from "lucide-react";
-import { dailySelection, dayKey, rolloverUnfinishedTasks } from "@/lib/north";
+import { ArrowRight, Feather, Moon, Play, Sparkles, Sun, Zap, BookOpen, Target } from "lucide-react";
+import { dailySelection, dayKey, getActiveSprint, rolloverUnfinishedTasks } from "@/lib/north";
 import { useNorth, Companion } from "./shared";
 import { Button } from "@/components/ui/button";
 import { RestCelebrationCard } from "./progress-charts";
@@ -32,6 +32,15 @@ export function NorthToday() {
     : "North, sıradaki anlamlı adımını bulmaya hazır.";
 
   const wisdom = getTodayWisdom();
+
+  const activeSprint = getActiveSprint(state, currentArea?.id) || getActiveSprint(state);
+  const activeSprintArea = activeSprint ? areas.find(area => area.id === activeSprint.areaId) : undefined;
+  const sprintDaysLeft = activeSprint
+    ? Math.max(0, Math.ceil((new Date(`${activeSprint.targetDate}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  const sprintDoneCount = activeSprint ? activeSprint.modules.filter(m => m.status === "done").length : 0;
+  const sprintTotalCount = activeSprint ? activeSprint.modules.length : 0;
+  const isCurrentTaskInSprint = current && (current.sprintId === activeSprint?.id || Boolean(current.sprintModuleId));
 
   if (!ready) return <div className="page-content" aria-busy="true">Planorth hazırlanıyor…</div>;
 
@@ -85,18 +94,56 @@ export function NorthToday() {
           </div>
         )}
 
+        {/* AKTİF ALT KONU / SINAV KAMPI GÖSTERGESİ */}
+        {activeSprint && (
+          <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-card/90 to-background px-3.5 py-2 text-xs flex flex-wrap items-center justify-between gap-2 shadow-2xs backdrop-blur-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="flex items-center justify-center size-5 rounded-lg bg-primary/20 text-primary shrink-0">
+                <Target className="size-3" />
+              </span>
+              <div className="min-w-0 flex items-center gap-2">
+                <span className="font-bold text-foreground truncate text-xs">
+                  {activeSprintArea?.name} › {activeSprint.title}
+                </span>
+                <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                  ({activeSprint.level})
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] font-mono font-bold text-primary">
+                ⏱️ {sprintDaysLeft} gün kaldı
+              </span>
+              <span className="text-muted-foreground text-[10px] hidden sm:inline">•</span>
+              <span className="text-[11px] font-mono text-muted-foreground hidden sm:inline">
+                {sprintDoneCount}/{sprintTotalCount} modül
+              </span>
+              <Button asChild size="xs" variant="ghost" className="h-6 px-2 text-[10px] rounded-lg">
+                <Link href={`/areas/${activeSprint.areaId}`}>
+                  Kampa Git <ArrowRight className="size-2.5 ml-0.5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* ŞİMDİ ODAK KARTI (DAHA BÜYÜK, DAHA MODERN VE GENİŞ) */}
         {current ? (
           <section className="north-now-card rounded-3xl border border-primary/25 bg-card/90 p-6 sm:p-7 md:p-8 shadow-md relative overflow-hidden backdrop-blur-md transition-all hover:border-primary/35">
             <div className="absolute -top-24 -right-24 size-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
             <div className="north-now-label flex items-center justify-between text-xs font-semibold">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-primary">
                   <span className="size-1.5 rounded-full bg-primary animate-pulse" />
                   ŞİMDİ
                 </span>
                 <span className="font-medium text-xs text-muted-foreground">{currentArea?.icon} {currentArea?.name}</span>
+                {activeSprint && (isCurrentTaskInSprint || currentArea?.id === activeSprint.areaId) && (
+                  <span className="rounded-full bg-primary/15 text-primary border border-primary/25 px-2 py-0.5 text-[10px] font-bold truncate max-w-[160px] sm:max-w-[240px]">
+                    🎯 {activeSprint.title}
+                  </span>
+                )}
               </div>
               {current.mandatory && (
                 <span className="rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2.5 py-0.5 text-[10px] font-semibold">

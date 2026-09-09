@@ -36,6 +36,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AreaModules } from "./area-modules";
+import { AreaSprintHub } from "./area-sprint-hub";
 import { DomainCoachingCockpit } from "./domain-coaching-cockpit";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { findDomain } from "@/lib/domain-catalog";
@@ -330,6 +331,7 @@ function AreaCard({ area }: { area: Area }) {
   const status = areaStatus(area);
   const targetAlloc = allocation(state, area);
   const percent = targetAlloc > 0 ? Math.min(100, Math.round((minutes / targetAlloc) * 100)) : 0;
+  const activeSprint = (state.sprints || []).find((s) => s.areaId === area.id && s.status === "active");
 
   return (
     <div className="rounded-2xl border bg-card/60 p-5 shadow-xs flex flex-col justify-between gap-4 transition-all hover:border-border">
@@ -362,6 +364,13 @@ function AreaCard({ area }: { area: Area }) {
             {minutes} / {targetAlloc} dk
           </Badge>
         </div>
+
+        {activeSprint && (
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary max-w-full">
+            <Sparkles className="size-3 shrink-0" />
+            <span className="truncate">Kamp: {activeSprint.title} ({activeSprint.level})</span>
+          </div>
+        )}
 
         <div className="mt-4 space-y-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ana Hedef</span>
@@ -1006,6 +1015,9 @@ function AreaWorkspace({
           </div>
         </div>
       </section>
+
+      {/* HEDEF ALT KONU & SINAV KAMPI (TOPIC SPRINT & EXAM HUB) */}
+      <AreaSprintHub area={area} />
 
       {/* PILL TABS */}
       <div className="flex flex-wrap gap-1 rounded-2xl border bg-muted/40 p-1 text-xs max-w-fit">

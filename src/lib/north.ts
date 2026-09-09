@@ -10,6 +10,7 @@ export interface Area {
   description?: string; preferredSessionMinutes?: number; accent?: string; domainId?: string;
   level?: string;
   status?: "active" | "paused" | "archived";
+  activeSprintId?: string;
 }
 export interface NorthTask {
   id: string; areaId: string; title: string; goal: string; minutes: number;
@@ -20,6 +21,31 @@ export interface NorthTask {
   plannedStart?: string;
   completedAt?: string;
   rescheduledCount?: number;
+  sprintId?: string;
+  sprintModuleId?: string;
+}
+export interface AreaSprintModule {
+  id: string;
+  title: string;
+  summary?: string;
+  estimatedMinutes: number;
+  targetDate: string;
+  taskId?: string;
+  status: "pending" | "done";
+}
+export interface AreaSprint {
+  id: string;
+  areaId: string;
+  title: string;
+  level: string;
+  targetDate: string;
+  dailyMinutesTarget: number;
+  sourceType: "pdf" | "notes" | "manual";
+  fileName?: string;
+  notesContent?: string;
+  status: "active" | "completed" | "paused";
+  createdAt: string;
+  modules: AreaSprintModule[];
 }
 export interface NorthActivity {
   id: string; taskId: string; areaId: string; date: string; minutes: number;
@@ -63,6 +89,7 @@ export interface NorthState {
   dailyAdaptation?: NorthDailyAdaptation;
   feedbackMemory?: import("./types").FeedbackMemoryItem[];
   weeklyAreaExclusions?: Record<string, string[]>;
+  sprints?: AreaSprint[];
 }
 export type PatternStatus = "insufficient" | "emerging" | "reliable" | "strong";
 export type PatternConfidence = "low" | "medium" | "high";
@@ -762,6 +789,7 @@ export function initializeNorth(workspace: WorkspaceState): NorthState {
       metric: primary.metric,
       endedAt: s.completedAt,
     })),
+    sprints: [],
   };
 }
 function basicDomainProfile(name:string){const value=name.toLocaleLowerCase("tr-TR");if(/robotik|arduino|raspberry|embedded|gömülü|mikrodenetleyici|elektronik/.test(value))return {id:"robotics",kind:"projects" as const,icon:"⚙",metric:"Çalışan prototip",resources:["Arduino Documentation — https://docs.arduino.cc/","Raspberry Pi Documentation — https://www.raspberrypi.com/documentation/"]};if(/borsa|yatırım|finans|hisse|trading|kripto|portföy/.test(value))return {id:"finance",kind:"custom" as const,icon:"↗",metric:"Analiz edilen şirket",resources:["Borsa İstanbul Akademi — https://www.borsaistanbul.com/","SPK Yatırımcı Bilgilendirme — https://spk.gov.tr/"]};if(/inşaat|betonarme|şantiye|statik|zemin|metraj/.test(value))return {id:"civil-engineering",kind:"custom" as const,icon:"▰",metric:"Tamamlanan teknik çalışma",resources:["Türkiye Bina Deprem Yönetmeliği — https://www.afad.gov.tr/","MIT OpenCourseWare Civil Engineering — https://ocw.mit.edu/"]};if(/matematik|calculus|istatistik|lineer cebir|geometri/.test(value))return {id:"mathematics",kind:"math" as const,icon:"∑",metric:"Çözülen problem",resources:["Khan Academy — https://www.khanacademy.org/math","MIT OpenCourseWare — https://ocw.mit.edu/"]};if(/satranç|satranc|chess/.test(value))return {id:"chess",kind:"chess" as const,icon:"♞",metric:"Çözülen taktik",resources:["Lichess Studies — https://lichess.org/study","Chess.com Lessons — https://www.chess.com/lessons"]};if(/yazılım|uygulama|programlama|kodlama|web geliştirme|mobil geliştirme|frontend|backend/.test(value))return {id:"software",kind:"projects" as const,icon:"◇",metric:"Tamamlanan çıktı",resources:["MDN Web Docs — https://developer.mozilla.org/","The Odin Project — https://www.theodinproject.com/"]};return undefined;}
@@ -1120,3 +1148,116 @@ export function generatePeriodPlan(targetWeeks: number, primaryGoal: string): im
     },
   ];
 }
+
+// -------------------------------------------------------------
+// AREA TOPIC / EXAM SPRINT HELPERS
+// -------------------------------------------------------------
+
+export function getActiveSprint(state: NorthState, areaId?: string): AreaSprint | undefined {
+  const sprints = state?.sprints || [];
+  if (areaId) {
+    return sprints.find((s) => s.areaId === areaId && s.status === "active");
+  }
+  return sprints.find((s) => s.status === "active");
+}
+
+export function createSprintTasks(
+  state: NorthState,
+  sprint: AreaSprint
+): { updatedState: NorthState; createdTasks: NorthTask[] } {
+  const newTasks: NorthTask[] = sprint.modules.map((module) => {
+    return {
+      id: module.taskId || crypto.randomUUID(),
+      areaId: sprint.areaId,
+      title: module.title,
+      goal: module.summary || `${sprint.title} kapsamındaki odak adımı.`,
+      minutes: module.estimatedMinutes,
+      intensity: "normal" as const,
+      mandatory: true,
+      status: module.status === "done" ? "done" : "pending",
+      date: module.targetDate || "",
+      deadline: sprint.targetDate,
+      resource: sprint.fileName ? `Doküman: ${sprint.fileName}` : "",
+      why: `${sprint.title} (${sprint.level}) alt konu kampı.`,
+      week: module.targetDate ? weekKey(module.targetDate) : weekKey(),
+      sprintId: sprint.id,
+      sprintModuleId: module.id,
+    };
+  });
+
+  const updatedModules = sprint.modules.map((m, idx) => ({
+    ...m,
+    taskId: newTasks[idx].id,
+  }));
+
+  const updatedSprint: AreaSprint = {
+    ...sprint,
+    modules: updatedModules,
+  };
+
+  const targetEvent: NorthEvent = {
+    id: `event-${sprint.id}`,
+    areaId: sprint.areaId,
+    title: `🎯 ${sprint.title} (${sprint.level}) Bitiş / Hedef Günü`,
+    date: sprint.targetDate,
+    time: "10:00",
+    kind: "exam",
+    minutes: 60,
+  };
+
+  const existingSprints = state.sprints || [];
+  const otherSprints = existingSprints.map((s) =>
+    s.areaId === sprint.areaId && s.id !== sprint.id ? { ...s, status: "completed" as const } : s
+  );
+
+  return {
+    updatedState: {
+      ...state,
+      sprints: [...otherSprints.filter((s) => s.id !== sprint.id), updatedSprint],
+      tasks: [...newTasks, ...state.tasks.filter((t) => t.sprintId !== sprint.id)],
+      events: [...state.events.filter((e) => e.id !== targetEvent.id), targetEvent],
+      areas: state.areas.map((a) => (a.id === sprint.areaId ? { ...a, activeSprintId: sprint.id } : a)),
+    },
+    createdTasks: newTasks,
+  };
+}
+
+export function updateSprintModuleStatus(
+  state: NorthState,
+  sprintId: string,
+  moduleId: string,
+  status: "pending" | "done"
+): NorthState {
+  const sprints = (state.sprints || []).map((sprint) => {
+    if (sprint.id !== sprintId) return sprint;
+    const updatedModules = sprint.modules.map((mod) => {
+      if (mod.id !== moduleId) return mod;
+      return { ...mod, status };
+    });
+    const allDone = updatedModules.length > 0 && updatedModules.every((m) => m.status === "done");
+    return {
+      ...sprint,
+      modules: updatedModules,
+      status: allDone ? ("completed" as const) : sprint.status,
+    };
+  });
+
+  // Also sync task status if matching task exists
+  const updatedTasks = state.tasks.map((task) => {
+    if (task.sprintId === sprintId && task.sprintModuleId === moduleId) {
+      return {
+        ...task,
+        status,
+        completedAt: status === "done" ? new Date().toISOString() : undefined,
+      };
+    }
+    return task;
+  });
+
+  return {
+    ...state,
+    sprints,
+    tasks: updatedTasks,
+  };
+}
+
