@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { searchLiveWeb, searchLibgenBooks, type LibgenBookResult, type WebSearchResult } from "@/lib/server/web-search";
-import { CURATED_WEB_SOURCES, WebSearchResultItem, getLibgenSearchUrl } from "@/lib/resources-hub";
+import { searchLiveWeb, searchGooglePdfBooks, type GooglePdfBookResult, type WebSearchResult } from "@/lib/server/web-search";
+import { CURATED_WEB_SOURCES, WebSearchResultItem, getGoogleBookSearchUrl } from "@/lib/resources-hub";
 import { BOOK_RECOMMENDATIONS } from "@/lib/books";
 import { readLimitedJson, secureApiRequest } from "@/lib/server/api-security";
 
@@ -25,39 +25,39 @@ export async function POST(request: Request) {
   }
 
   const lowerQuery = query.toLowerCase();
-  const isBookCategory = category.toLowerCase().includes("kitap") || category.toLowerCase().includes("book");
+  const isBookCategory = category.toLowerCase().includes("kitap") || category.toLowerCase().includes("book") || category.toLowerCase().includes("pdf");
 
-  // 3. Concurrently search Live Web and Libgen Books
-  const [liveSettled, libgenSettled] = await Promise.allSettled([
+  // 3. Concurrently search Live Web and Google PDF Books
+  const [liveSettled, pdfSettled] = await Promise.allSettled([
     searchLiveWeb(query, 6),
-    searchLibgenBooks(query, 6),
+    searchGooglePdfBooks(query, 8),
   ]);
 
   const liveResults: WebSearchResult[] = liveSettled.status === "fulfilled" ? liveSettled.value : [];
-  const libgenBooks: LibgenBookResult[] = libgenSettled.status === "fulfilled" ? libgenSettled.value : [];
+  const googlePdfBooks: GooglePdfBookResult[] = pdfSettled.status === "fulfilled" ? pdfSettled.value : [];
 
-  // 4. Map Libgen results to WebSearchResultItem format
-  const mappedLibgen: WebSearchResultItem[] = libgenBooks.map((b) => ({
+  // 4. Map Google PDF results to WebSearchResultItem format
+  const mappedPdfBooks: WebSearchResultItem[] = googlePdfBooks.map((b) => ({
     id: b.id,
     title: b.title,
     author: b.author,
-    provider: b.publisher ? `Libgen · ${b.publisher}` : "Libgen Kütüphanesi",
-    url: b.downloadUrl || b.mirrorUrl,
+    provider: b.source ? `Google PDF · ${b.source}` : "Google Kitap & PDF",
+    url: b.downloadUrl,
     downloadUrl: b.downloadUrl,
     mirrorUrl: b.mirrorUrl,
     annasUrl: b.annasUrl,
     fileSize: b.size,
-    fileExt: b.ext,
+    fileExt: "pdf",
     year: b.year,
-    category: "Kitap",
+    category: "Kitap / PDF",
     type: "book" as const,
-    description: `${b.author ? `${b.author} tarafından yazılmış ` : ""}${b.year ? `(${b.year}) ` : ""}akademik ve teknik kaynak. Format: ${b.ext.toUpperCase()} ${b.size ? `(${b.size})` : ""}`,
-    tags: ["kitap", b.ext, b.publisher || "libgen"].filter(Boolean),
+    description: b.snippet,
+    tags: ["kitap", "pdf", b.source].filter(Boolean),
     isFree: true,
-    libgenQuery: `${b.title} ${b.author}`.trim(),
+    pdfQuery: `${b.title} ${b.author}`.trim(),
     keyTakeaways: [
-      `Format: ${b.ext.toUpperCase()} (${b.size || "Belirtilmemiş"}) - Yıl: ${b.year || "Belirtilmemiş"}`,
-      "Doğrudan indirme bağlantısı ve yedek Libgen aynası doğrulanmıştır.",
+      "Doğrudan incelenebilir ve okunabilir açık PDF belgesi.",
+      "İçeriği tek tıkla açabilir, sayfa aralığı ekleyebilir veya kitaplığına dahil edebilirsin.",
     ],
   }));
 
@@ -73,16 +73,16 @@ export async function POST(request: Request) {
     title: `${b.title} - ${b.author}`,
     author: b.author,
     provider: "Seçkin Kitap",
-    url: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-    downloadUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-    mirrorUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "bz"),
-    annasUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "google"),
+    url: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
+    downloadUrl: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
+    mirrorUrl: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
+    annasUrl: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
     category: b.category,
     type: "book" as const,
     description: b.summary,
     tags: b.tags,
     isFree: false,
-    libgenQuery: `${b.title} ${b.author}`,
+    pdfQuery: `${b.title} ${b.author}`,
     keyTakeaways: b.keyTakeaways,
   }));
 
@@ -106,9 +106,9 @@ export async function POST(request: Request) {
     description: lr.snippet || "İnternet üzerinden taranmış güvenilir araştırma ve geliştirme kaynağı.",
     tags: [lr.type || "kaynak", lr.source || "web"],
     isFree: true,
-    libgenQuery: lr.title.split(/[-–—|:]/)[0].trim(),
-    annasUrl: getLibgenSearchUrl(lr.title.split(/[-–—|:]/)[0].trim(), "google"),
-    mirrorUrl: getLibgenSearchUrl(lr.title.split(/[-–—|:]/)[0].trim(), "bz"),
+    pdfQuery: lr.title.split(/[-–—|:]/)[0].trim(),
+    annasUrl: getGoogleBookSearchUrl(lr.title.split(/[-–—|:]/)[0].trim()),
+    mirrorUrl: getGoogleBookSearchUrl(lr.title.split(/[-–—|:]/)[0].trim()),
     keyTakeaways: [
       "Canlı web taramasından elde edilmiş doğrulanmış bağlantı.",
       "İçeriği inceleyip sayfa aralığı ekleyebilir veya NotebookLM'e aktarabilirsin.",
@@ -118,9 +118,9 @@ export async function POST(request: Request) {
   // 8. Combine results prioritizing books if book category/search
   let combined: WebSearchResultItem[];
   if (isBookCategory) {
-    combined = [...mappedLibgen, ...matchingBooks, ...mappedLive, ...matchingCurated];
+    combined = [...mappedPdfBooks, ...matchingBooks, ...mappedLive, ...matchingCurated];
   } else {
-    combined = [...mappedLive, ...mappedLibgen, ...matchingCurated, ...matchingBooks];
+    combined = [...mappedLive, ...mappedPdfBooks, ...matchingCurated, ...matchingBooks];
   }
 
   // 9. If everything returned empty, provide relevant fuzzy fallbacks
@@ -146,16 +146,16 @@ export async function POST(request: Request) {
       title: `${b.title} - ${b.author}`,
       author: b.author,
       provider: "Seçkin Kitap",
-      url: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-      downloadUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-      mirrorUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "bz"),
-      annasUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "google"),
+      url: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
+      downloadUrl: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
+      mirrorUrl: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
+      annasUrl: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
       category: b.category,
       type: "book" as const,
       description: b.summary,
       tags: b.tags,
       isFree: false,
-      libgenQuery: `${b.title} ${b.author}`,
+      pdfQuery: `${b.title} ${b.author}`,
       keyTakeaways: b.keyTakeaways,
     }));
     combined = [...fuzzyCurated, ...fuzzyBooks];

@@ -20,6 +20,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { authenticatedAiFetch } from "@/lib/ai/client";
 import {
@@ -32,7 +33,6 @@ import {
   addPinnedDoc,
   deletePinnedDoc,
   loadStarterPinnedDocs,
-  getLibgenSearchUrl,
   getNotebookLMSavedUrl,
   setNotebookLMSavedUrl,
   generateSessionNotebookLMSnippet,
@@ -383,7 +383,7 @@ export function FocusResourcesDock({
               </p>
             )}
 
-            {/* Quick Libgen shortcut for task */}
+            {/* Quick search shortcut for task */}
             <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-1.5">
               <Button
                 type="button"
@@ -393,7 +393,7 @@ export function FocusResourcesDock({
                 className="rounded-xl text-[11px] h-7 px-2 flex-1"
               >
                 <Search className="mr-1 size-3 text-indigo-500" />
-                Web &amp; Libgen Ara
+                Web &amp; Google PDF Ara
               </Button>
             </div>
           </div>
@@ -620,7 +620,7 @@ export function FocusResourcesModal({
                   Odak Çalışma Masası &amp; Kaynaklar
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Odak seansını bölmeden şemaları incele, sayfa aralıklarını takip et, web/Libgen araması yap veya NotebookLM&apos;e aktar.
+                  Odak seansını bölmeden şemaları incele, sayfa aralıklarını takip et, web/PDF aramasını doğrudan yap veya NotebookLM&apos;e aktar.
                 </DialogDescription>
               </div>
             </div>
@@ -670,7 +670,7 @@ export function FocusResourcesModal({
                 )}
               >
                 <Search className="size-3.5" />
-                <span>Web &amp; Libgen Arama</span>
+                <span>Web &amp; Google PDF Arama</span>
               </button>
 
               <button
@@ -1107,7 +1107,7 @@ export function FocusResourcesModal({
             </div>
           )}
 
-          {/* TAB 3: LIVE WEB & LIBGEN SEARCH */}
+          {/* TAB 3: LIVE WEB & GOOGLE PDF SEARCH */}
           {tab === "search" && (
             <div className="flex-1 overflow-y-auto space-y-4 py-3 min-h-0 focus-scrollbar pr-1">
               <form onSubmit={handleExecuteSearch} className="flex gap-2">
@@ -1126,47 +1126,18 @@ export function FocusResourcesModal({
                 </Button>
               </form>
 
-              {/* Libgen Quick Link for Query */}
+              {/* Query Indicator */}
               {searchQuery.trim() && (
                 <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-2.5 flex items-center justify-between gap-2">
                   <div className="min-w-0 text-xs">
                     <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                      Libgen &amp; Kitap Aynaları:
+                      Doğrulanmış Sonuçlar:
                     </span>{" "}
                     <span className="text-muted-foreground truncate">&ldquo;{searchQuery}&rdquo;</span>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <a
-                      href={getLibgenSearchUrl(searchQuery, "li")}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 text-white px-2 py-1 text-[10px] font-bold hover:bg-indigo-500"
-                      title="Libgen (Ana Ayna)"
-                    >
-                      libgen.li
-                      <ExternalLink className="size-2.5" />
-                    </a>
-                    <a
-                      href={getLibgenSearchUrl(searchQuery, "bz")}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-background px-2 py-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-muted"
-                      title="Libgen.bz (Yedek Ayna)"
-                    >
-                      libgen.bz
-                      <ExternalLink className="size-2.5" />
-                    </a>
-                    <a
-                      href={getLibgenSearchUrl(searchQuery, "google")}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hidden sm:inline-flex items-center gap-1 rounded-lg border bg-background px-2 py-1 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-muted"
-                      title="Google Books"
-                    >
-                      Google
-                      <ExternalLink className="size-2.5" />
-                    </a>
-                  </div>
+                  <Badge variant="outline" className="text-[10px] text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                    Sistem İçi Arama
+                  </Badge>
                 </div>
               )}
 
@@ -1217,8 +1188,8 @@ export function FocusResourcesModal({
                                 : "text-indigo-600 dark:text-indigo-400 hover:underline"
                             )}
                           >
-                            <span>{isBook ? "İndir" : "Kaynağa Git"}</span>
-                            {isBook ? <Download className="size-2.5" /> : <ExternalLink className="size-3" />}
+                            <span>{isBook ? "PDF Oku / Aç" : "Kaynağa Git"}</span>
+                            {isBook ? <ExternalLink className="size-2.5" /> : <ExternalLink className="size-3" />}
                           </a>
                         </div>
                       </div>

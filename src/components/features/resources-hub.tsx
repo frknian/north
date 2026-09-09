@@ -64,7 +64,7 @@ import {
   getNotebookLMSavedUrl,
   setNotebookLMSavedUrl,
   generateNotebookLMBundle,
-  getLibgenSearchUrl,
+  getGoogleBookSearchUrl,
   CURATED_WEB_SOURCES,
 } from "@/lib/resources-hub";
 import { cn } from "@/lib/utils";
@@ -86,7 +86,13 @@ export function ResourcesHub() {
   const [searchCategory, setSearchCategory] = useState<string>("Tümü");
   const [searchResults, setSearchResults] = useState<WebSearchResultItem[]>(CURATED_WEB_SOURCES);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
-  const [libgenInput, setLibgenInput] = useState<string>("");
+  const [googleBookInput, setGoogleBookInput] = useState<string>("");
+
+  // In-System Google PDF Search State
+  const [shelfPdfQuery, setShelfPdfQuery] = useState<string>("");
+  const [shelfPdfResults, setShelfPdfResults] = useState<WebSearchResultItem[]>([]);
+  const [shelfPdfLoading, setShelfPdfLoading] = useState<boolean>(false);
+  const [activePdfSearchTitle, setActivePdfSearchTitle] = useState<string>("");
 
   // Page Ranges & Pinned Docs State
   const [pageRanges, setPageRanges] = useState<SavedPageRange[]>([]);
@@ -192,17 +198,16 @@ export function ResourcesHub() {
           id: b.id,
           title: `${b.title} - ${b.author}`,
           author: b.author,
-          provider: "Seçkin Kitap",
-          url: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-          downloadUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "li"),
-          mirrorUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "bz"),
-          annasUrl: getLibgenSearchUrl(`${b.title} ${b.author}`, "google"),
+          provider: "Google Books",
+          url: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
+          downloadUrl: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
           category: b.category,
           type: "book" as const,
+          fileExt: "pdf",
           description: b.summary,
           tags: b.tags,
-          isFree: false,
-          libgenQuery: `${b.title} ${b.author}`,
+          isFree: true,
+          pdfQuery: `${b.title} ${b.author}`,
           keyTakeaways: b.keyTakeaways,
         }));
         const localCurated = CURATED_WEB_SOURCES.filter(
@@ -213,27 +218,84 @@ export function ResourcesHub() {
         const fallbacks = [...localBooks, ...localCurated];
         setSearchResults(fallbacks);
         if (!res.ok && fallbacks.length === 0) {
-          toast.error(data.error || "Arama tamamlanamadı. Aşağıdaki aynaları deneyebilirsin.");
+          toast.error(data.error || "Arama tamamlanamadı. Lütfen tekrar deneyin.");
         }
       }
     } catch {
-      toast.error("Bağlantı hatası oluştu. Lütfen tekrar dene.");
+      toast.error("Bağlantı hatası oluştu. Lütfen tekrar deneyin.");
     } finally {
       setSearchLoading(false);
     }
   }
 
-  // Handle Dedicated Libgen / Book Search
-  async function handleLibgenSearch(e?: React.FormEvent) {
+  // Handle Dedicated Google Book / PDF Search
+  async function handleGoogleBookSearch(e?: React.FormEvent) {
     if (e) e.preventDefault();
-    const q = (libgenInput || "").trim();
+    const q = (googleBookInput || "").trim();
     if (!q) {
-      toast.info("Lütfen aramak istediğin kitap, yazar adı veya ISBN yaz.");
+      toast.info("Lütfen aramak istediğiniz kitap, yazar adı veya konuyu yazın.");
       return;
     }
     setSearchQuery(q);
     setSearchCategory("Kitap");
     await handleSearch(undefined, q, "Kitap");
+  }
+
+  // Handle In-System Google PDF Search for Specific Book or Query
+  async function handleGooglePdfSearch(targetQuery: string, sourceTitle?: string) {
+    const q = targetQuery.trim();
+    if (!q) {
+      toast.info("Lütfen aramak istediğiniz kitap adını veya konuyu yazın.");
+      return;
+    }
+    setShelfPdfLoading(true);
+    setActivePdfSearchTitle(sourceTitle || q);
+    setShelfPdfQuery(q);
+    try {
+      const res = await apiPost("/api/ai/source-search", {
+        query: q,
+        category: "Kitap",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.results) && data.results.length > 0) {
+        setShelfPdfResults(data.results);
+        toast.success(`"${sourceTitle || q}" için ${data.results.length} doğrulanmış kaynak bulundu.`);
+      } else {
+        const lowerQ = q.toLowerCase();
+        const localBooks = BOOK_RECOMMENDATIONS.filter(
+          (b) =>
+            b.title.toLowerCase().includes(lowerQ) ||
+            b.author.toLowerCase().includes(lowerQ) ||
+            b.summary.toLowerCase().includes(lowerQ)
+        ).map((b) => ({
+          id: `shelf-rec-${b.id}`,
+          title: `${b.title} - ${b.author}`,
+          author: b.author,
+          provider: "Google Books",
+          url: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
+          downloadUrl: getGoogleBookSearchUrl(`${b.title} ${b.author}`),
+          category: b.category,
+          type: "book" as const,
+          fileExt: "pdf",
+          description: b.summary,
+          tags: b.tags,
+          isFree: true,
+          pdfQuery: `${b.title} ${b.author}`,
+          keyTakeaways: b.keyTakeaways,
+        }));
+        if (localBooks.length > 0) {
+          setShelfPdfResults(localBooks);
+          toast.success(`"${sourceTitle || q}" için doğrulanmış kitap sonuçları listelendi.`);
+        } else {
+          setShelfPdfResults([]);
+          toast.info(`"${q}" için doğrudan PDF bulunamadı.`);
+        }
+      }
+    } catch {
+      toast.error("Bağlantı hatası oluştu. Lütfen tekrar deneyin.");
+    } finally {
+      setShelfPdfLoading(false);
+    }
   }
 
   // Handle AI Summary Generation
@@ -377,7 +439,7 @@ export function ResourcesHub() {
             </h1>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Kitaplar, canlı web araştırması, Libgen akademik köprüsü, sayfa aralıkları, pinli PDF/şemalar ve Google NotebookLM entegrasyonu.
+            Kitaplar, canlı web araştırması, Google onaylı PDF kitap arama, sayfa aralıkları, pinli belgeler ve Google NotebookLM entegrasyonu.
           </p>
         </div>
 
@@ -446,7 +508,7 @@ export function ResourcesHub() {
           )}
         >
           <Compass className="size-3.5 text-emerald-500" />
-          <span>Web &amp; Libgen Arama</span>
+          <span>Web &amp; Google PDF Arama</span>
         </button>
 
         <button
@@ -556,6 +618,190 @@ export function ResourcesHub() {
               </div>
             </div>
 
+            {/* Google PDF Search Bar in Bookshelf */}
+            <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-3 sm:p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={shelfPdfQuery}
+                  onChange={(e) => setShelfPdfQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleGooglePdfSearch(shelfPdfQuery);
+                    }
+                  }}
+                  placeholder="Google PDF ara: Kitap adı, yazar veya siber güvenlik konusu..."
+                  className="w-full rounded-xl border border-border/70 bg-background/90 pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-hidden"
+                />
+              </div>
+              <Button
+                type="button"
+                disabled={shelfPdfLoading}
+                onClick={() => handleGooglePdfSearch(shelfPdfQuery)}
+                className="rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-8 px-3.5 shrink-0 shadow-xs"
+              >
+                <Search className="mr-1.5 size-3.5" />
+                {shelfPdfLoading ? "Aranıyor..." : "Google PDF Bul"}
+              </Button>
+            </div>
+
+            {/* In-System Google PDF Search Results Panel */}
+            {(shelfPdfLoading || shelfPdfResults.length > 0) && (
+              <div id="shelf-pdf-results-panel" className="rounded-2xl border-2 border-indigo-500/30 bg-indigo-500/5 p-4 sm:p-5 space-y-4 animate-in fade-in duration-200">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-500/20 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-8 place-items-center rounded-xl bg-indigo-500 text-white shadow-xs">
+                      <BookOpen className="size-4" />
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-foreground">
+                          Doğrulanmış Google PDF &amp; Kitap Kaynakları
+                        </h3>
+                        <Badge className="bg-indigo-600 text-white text-[10px] font-semibold">
+                          Sistem İçi Doğrulanmış
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {activePdfSearchTitle
+                          ? `"${activePdfSearchTitle}" için Google veritabanından bulunan açık kaynak PDF dokümanları.`
+                          : "Google veritabanı üzerinden taranmış güvenilir kitap ve PDF kaynakları."}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setShelfPdfResults([]);
+                      setActivePdfSearchTitle("");
+                    }}
+                    className="rounded-xl text-xs h-7 text-muted-foreground hover:text-foreground"
+                  >
+                    ✕ Kapat
+                  </Button>
+                </div>
+
+                {shelfPdfLoading ? (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {[1, 2, 3].map((n) => (
+                      <div key={n} className="rounded-xl border bg-background/70 p-4 space-y-3 animate-pulse">
+                        <div className="h-4 w-20 bg-muted rounded" />
+                        <div className="h-4 w-3/4 bg-muted rounded" />
+                        <div className="h-10 w-full bg-muted rounded" />
+                        <div className="h-7 w-1/2 bg-muted rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {shelfPdfResults.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex flex-col justify-between rounded-xl border bg-background/95 p-4 space-y-3 hover:border-indigo-500/50 transition-all shadow-xs"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-0.5 uppercase">
+                              {item.fileExt ? `${item.fileExt.toUpperCase()} BELGESİ` : "KİTAP"}
+                            </span>
+                            <span className="font-mono text-muted-foreground truncate max-w-[130px]" title={item.provider}>
+                              {item.provider}
+                            </span>
+                          </div>
+
+                          <div>
+                            <h4 className="font-bold text-foreground text-xs leading-snug line-clamp-2">
+                              {item.title}
+                            </h4>
+                            {item.author && (
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                {item.author} {item.year ? `(${item.year})` : ""}
+                              </p>
+                            )}
+                          </div>
+
+                          <p className="text-[11px] text-muted-foreground line-clamp-3 leading-relaxed">
+                            {item.description}
+                          </p>
+
+                          {item.keyTakeaways && item.keyTakeaways.length > 0 && (
+                            <div className="rounded-lg border bg-muted/30 p-2 text-[10px] text-muted-foreground">
+                              <span className="font-semibold text-foreground">Önemli Nokta: </span>
+                              {item.keyTakeaways[0]}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={item.downloadUrl || item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 text-[11px] font-semibold transition-colors shadow-xs"
+                              title="Doğrulanmış PDF'i yeni sekmede görüntüle"
+                            >
+                              <span>PDF Oku / Aç</span>
+                              <ExternalLink className="size-2.5" />
+                            </a>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                addBook({
+                                  title: item.title.split(/[-–—|:]/)[0].trim(),
+                                  author: item.author || "Seçkin Yazar",
+                                  category: "Teknik & Araştırma",
+                                  totalPages: 300,
+                                  currentPage: 0,
+                                  status: "reading",
+                                });
+                                setBooks(loadBooks());
+                                toast.success(`"${item.title.split(/[-–—|:]/)[0].trim()}" kitaplığına eklendi!`);
+                              }}
+                              className="rounded-lg border bg-muted/40 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                              title="Kitaplığıma Ekle"
+                            >
+                              <Plus className="size-3.5" />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRangeBookTitle(item.title);
+                                setRangeTopic("Önemli Bölüm");
+                                setRangeStart("1");
+                                setRangeEnd("30");
+                                setAddRangeModalOpen(true);
+                              }}
+                              className="rounded-lg border bg-muted/40 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                              title="Sayfa aralığı kaydet"
+                            >
+                              <Bookmark className="size-3.5" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleGenerateSummary(item.title, `${item.description}\n\nKaynak: ${item.url}`)}
+                              className="rounded-lg border bg-muted/40 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
+                              title="AI Özeti Çıkar"
+                            >
+                              <Sparkles className="size-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Book Shelf State */}
             {books.length === 0 ? (
               <div className="text-center py-10 px-4 border border-dashed rounded-2xl bg-card/40 space-y-3">
@@ -638,6 +884,39 @@ export function ResourcesHub() {
                               {book.title}
                             </h3>
                             <p className="text-xs text-muted-foreground mt-0.5">{book.author}</p>
+
+                            {/* Kitap İsminin Yanında Google PDF Arama Çubuğu & Butonu */}
+                            <div className="mt-2 flex items-center gap-1.5">
+                              <div className="relative flex-1">
+                                <input
+                                  type="text"
+                                  defaultValue={`${book.title} ${book.author}`}
+                                  id={`search-input-book-${book.id}`}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      handleGooglePdfSearch((e.target as HTMLInputElement).value, book.title);
+                                    }
+                                  }}
+                                  placeholder="Google PDF ara..."
+                                  className="w-full rounded-lg border border-border/70 bg-background/90 px-2.5 py-1 text-[11px] text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-hidden"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                  const input = document.getElementById(`search-input-book-${book.id}`) as HTMLInputElement;
+                                  handleGooglePdfSearch(input?.value || `${book.title} ${book.author}`, book.title);
+                                }}
+                                disabled={shelfPdfLoading && activePdfSearchTitle === book.title}
+                                className="h-7 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-semibold px-2 shrink-0 shadow-xs"
+                                title="Google'da doğrulanmış PDF ara"
+                              >
+                                <Search className="size-2.5 mr-1" />
+                                {shelfPdfLoading && activePdfSearchTitle === book.title ? "..." : "PDF Bul"}
+                              </Button>
+                            </div>
                           </div>
 
                           {/* Progress Bar */}
@@ -687,15 +966,14 @@ export function ResourcesHub() {
                               <Bookmark className="size-3.5" />
                             </button>
 
-                            <a
-                              href={getLibgenSearchUrl(`${book.title} ${book.author}`)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
-                              title="Libgen'de Ara"
+                            <button
+                              type="button"
+                              onClick={() => handleGooglePdfSearch(`${book.title} ${book.author}`, book.title)}
+                              className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
+                              title="Sistemde Google PDF Ara"
                             >
-                              <ExternalLink className="size-3.5" />
-                            </a>
+                              <Search className="size-3.5" />
+                            </button>
 
                             <button
                               type="button"
@@ -816,6 +1094,39 @@ export function ResourcesHub() {
                       <div>
                         <h3 className="font-bold text-foreground text-sm">{rec.title}</h3>
                         <p className="text-xs text-muted-foreground">{rec.author}</p>
+
+                        {/* Kitap İsminin Yanında Google PDF Arama Çubuğu & Butonu */}
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <div className="relative flex-1">
+                            <input
+                              type="text"
+                              defaultValue={`${rec.title} ${rec.author}`}
+                              id={`search-input-rec-${rec.id}`}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleGooglePdfSearch((e.target as HTMLInputElement).value, rec.title);
+                                }
+                              }}
+                              placeholder="Google PDF ara..."
+                              className="w-full rounded-lg border border-border/70 bg-background/90 px-2.5 py-1 text-[11px] text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-hidden"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                              const input = document.getElementById(`search-input-rec-${rec.id}`) as HTMLInputElement;
+                              handleGooglePdfSearch(input?.value || `${rec.title} ${rec.author}`, rec.title);
+                            }}
+                            disabled={shelfPdfLoading && activePdfSearchTitle === rec.title}
+                            className="h-7 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-semibold px-2 shrink-0 shadow-xs"
+                            title="Google'da doğrulanmış PDF ara"
+                          >
+                            <Search className="size-2.5 mr-1" />
+                            {shelfPdfLoading && activePdfSearchTitle === rec.title ? "..." : "PDF Bul"}
+                          </Button>
+                        </div>
                       </div>
 
                       <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-3">
@@ -860,15 +1171,14 @@ export function ResourcesHub() {
                       )}
 
                       <div className="flex items-center gap-1">
-                        <a
-                          href={getLibgenSearchUrl(`${rec.title} ${rec.author}`)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
-                          title="Libgen'de Ara"
+                        <button
+                          type="button"
+                          onClick={() => handleGooglePdfSearch(`${rec.title} ${rec.author}`, rec.title)}
+                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
+                          title="Sistemde Google PDF Ara"
                         >
-                          <ExternalLink className="size-3.5" />
-                        </a>
+                          <Search className="size-3.5" />
+                        </button>
 
                         <button
                           type="button"
@@ -889,11 +1199,11 @@ export function ResourcesHub() {
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 2: WEB & LIBGEN ARAMA (LIVE WEB SEARCH & LIBGEN MIRROR CONNECTOR) */}
+      {/* TAB 2: WEB & GOOGLE PDF ARAMA (LIVE WEB SEARCH & GOOGLE BOOKS / PDF)  */}
       {/* ===================================================================== */}
       {activeTab === "web" && (
         <div className="space-y-6">
-          {/* Web Search Bar & Libgen Quick Bridge Card */}
+          {/* Web Search Bar & Google PDF Card */}
           <div className="rounded-3xl border bg-card/60 p-5 sm:p-6 shadow-xs space-y-4">
             <div className="space-y-1">
               <h2 className="text-base font-bold text-foreground">Canlı Web &amp; Dokümantasyon Arama</h2>
@@ -943,7 +1253,7 @@ export function ResourcesHub() {
               ))}
             </div>
 
-            {/* Libgen Direct Search Bar */}
+            {/* Google Kitap & Doğrulanmış PDF Arama Motoru */}
             <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 mt-3 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -951,75 +1261,36 @@ export function ResourcesHub() {
                     <BookOpen className="size-4" />
                   </span>
                   <div>
-                    <h3 className="text-xs font-bold text-foreground">Libgen (Library Genesis) &amp; Akademik Kitap Köprüsü</h3>
-                    <p className="text-[11px] text-muted-foreground">Kitap, makale, PDF ve bilimsel araştırmaları doğrudan Planorth içinde ara veya aynalarda aç.</p>
+                    <h3 className="text-xs font-bold text-foreground">Google Kitap &amp; Doğrulanmış PDF Arama Motoru</h3>
+                    <p className="text-[11px] text-muted-foreground">Kitap, akademik makale ve açık erişimli PDF dokümanlarını sistem içinde doğrudan tara ve oku.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Badge variant="outline" className="text-[10px] text-indigo-600 dark:text-indigo-400 border-indigo-500/30">
-                    Canlı Tarama Aktif
+                    Sistem İçi Canlı Tarama
                   </Badge>
                 </div>
               </div>
 
-              <form onSubmit={handleLibgenSearch} className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  value={libgenInput}
-                  onChange={(e) => setLibgenInput(e.target.value)}
-                  placeholder="Kitap adı, yazar veya ISBN yaz (örn: Active Directory, Clean Code, Burp Suite)..."
-                  className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-hidden"
-                />
+              <form onSubmit={handleGoogleBookSearch} className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={googleBookInput}
+                    onChange={(e) => setGoogleBookInput(e.target.value)}
+                    placeholder="Kitap adı, yazar veya konu yaz (örn: Active Directory, Clean Code, Burp Suite)..."
+                    className="w-full rounded-xl border border-border bg-background pl-8 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-hidden"
+                  />
+                </div>
                 <Button
                   type="submit"
                   disabled={searchLoading}
-                  className="rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 h-9"
+                  className="rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 h-9 shadow-xs"
                 >
                   <Search className="mr-1.5 size-3.5" />
-                  Kitap Ara
+                  Google PDF Ara
                 </Button>
-                <div className="flex items-center gap-1.5">
-                  <a
-                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "li")}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-xl border border-indigo-500/30 bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                    title="Libgen (Ana Ayna)"
-                  >
-                    <span>Libgen (Ana)</span>
-                    <ExternalLink className="size-3" />
-                  </a>
-                  <a
-                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "bz")}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-xl border border-indigo-500/30 bg-background px-3 py-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-muted transition-colors"
-                    title="Libgen.bz (Açık ve Hızlı Yedek Ayna)"
-                  >
-                    <span>Libgen.bz (Yedek)</span>
-                    <ExternalLink className="size-3" />
-                  </a>
-                  <a
-                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "google")}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hidden sm:inline-flex items-center gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    title="Google Books (Kitap Önizleme & Kaynaklar)"
-                  >
-                    <span>Google Books</span>
-                    <ExternalLink className="size-3" />
-                  </a>
-                  <a
-                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "anna")}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hidden md:inline-flex items-center gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    title="Anna's Archive (Gölge Ayna)"
-                  >
-                    <span>Anna&apos;s</span>
-                    <ExternalLink className="size-3" />
-                  </a>
-                </div>
               </form>
             </div>
           </div>
@@ -1053,50 +1324,10 @@ export function ResourcesHub() {
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto">
                   {searchQuery
-                    ? "Aradığın konuyu doğrudan Libgen veya Anna's Archive aynalarında açabilir ya da farklı anahtar kelimelerle arama yapabilirsin."
-                    : "Yukarıdaki arama çubuğuna siber güvenlik konusu, araç veya kitap adı yazarak canlı web dokümanlarına ve akademik kitaplara erişebilirsin."}
+                    ? "Farklı anahtar kelimelerle arama yapabilir veya yukarıdaki kutucuğa kitap adı yazarak doğrudan Google PDF sonuçlarını görüntüleyebilirsiniz."
+                    : "Yukarıdaki arama çubuğuna siber güvenlik konusu, araç veya kitap adı yazarak canlı web dokümanlarına ve doğrulanmış PDF kitaplara erişebilirsin."}
                 </p>
               </div>
-              {searchQuery && (
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                  <a
-                    href={getLibgenSearchUrl(searchQuery, "li")}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500"
-                  >
-                    <span>Libgen (Ana Ayna)</span>
-                    <ExternalLink className="size-3" />
-                  </a>
-                  <a
-                    href={getLibgenSearchUrl(searchQuery, "bz")}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-xl border border-indigo-500/30 bg-background px-3.5 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-muted"
-                  >
-                    <span>Libgen.bz (Yedek Ayna)</span>
-                    <ExternalLink className="size-3" />
-                  </a>
-                  <a
-                    href={getLibgenSearchUrl(searchQuery, "google")}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-xl border bg-background px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
-                  >
-                    <span>Google Books</span>
-                    <ExternalLink className="size-3" />
-                  </a>
-                  <a
-                    href={getLibgenSearchUrl(searchQuery, "anna")}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-xl border bg-background px-3.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
-                  >
-                    <span>Anna&apos;s Archive</span>
-                    <ExternalLink className="size-3" />
-                  </a>
-                </div>
-              )}
             </div>
           )}
 
@@ -1119,7 +1350,7 @@ export function ResourcesHub() {
                               ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
                               : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                           )}>
-                            {isBook ? "KİTAP / LİBGEN" : item.type.toUpperCase()}
+                            {isBook ? "GOOGLE PDF · KİTAP" : item.type.toUpperCase()}
                           </span>
                           {item.fileExt && (
                             <span className="rounded-md bg-muted px-1.5 py-0.5 font-bold uppercase text-[9px] text-muted-foreground">
@@ -1171,13 +1402,13 @@ export function ResourcesHub() {
                           target="_blank"
                           rel="noreferrer"
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-semibold transition-colors",
+                            "inline-flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-semibold transition-colors shadow-xs",
                             isBook
                               ? "bg-indigo-600 text-white hover:bg-indigo-500"
                               : "bg-primary/10 text-primary hover:bg-primary/20"
                           )}
                         >
-                          <span>{isBook ? "İndir / Oku" : "Aç"}</span>
+                          <span>{isBook ? "PDF Oku / Aç" : "Aç"}</span>
                           {isBook ? <Download className="size-3" /> : <ExternalLink className="size-3" />}
                         </a>
 
@@ -1220,30 +1451,10 @@ export function ResourcesHub() {
                           <Bookmark className="size-3.5" />
                         </button>
 
-                        <a
-                          href={item.annasUrl || getLibgenSearchUrl(item.libgenQuery || item.title, "google")}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted text-[10px] font-bold"
-                          title="Google Books / Alternatif Kaynak"
-                        >
-                          G
-                        </a>
-
-                        <a
-                          href={item.mirrorUrl || getLibgenSearchUrl(item.libgenQuery || item.title, "bz")}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
-                          title="Libgen Yedek Aynasında Aç (libgen.bz)"
-                        >
-                          <BookOpen className="size-3.5" />
-                        </a>
-
                         <button
                           type="button"
                           onClick={() => handleGenerateSummary(item.title, `${item.description}\n\nKaynak: ${item.url}`)}
-                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-amber-500 hover:bg-muted"
+                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
                           title="AI Özeti Çıkar"
                         >
                           <Sparkles className="size-3.5" />

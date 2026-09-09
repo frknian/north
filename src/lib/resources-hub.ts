@@ -38,6 +38,7 @@ export interface WebSearchResultItem {
   tags: string[];
   isFree: boolean;
   libgenQuery?: string;
+  pdfQuery?: string;
   downloadUrl?: string;
   mirrorUrl?: string;
   annasUrl?: string;
@@ -254,31 +255,16 @@ export function deletePinnedDoc(id: string): void {
 }
 
 // ============================================================================
-// 3. LIBGEN BRIDGE
+// 3. GOOGLE BOOKS & OPEN PDF BRIDGE
 // ============================================================================
 
-export function getLibgenSearchUrl(
-  query: string,
-  mirror: "li" | "bz" | "gl" | "is" | "anna" | "rs" | "google" | "archive" = "li"
-): string {
+export function getGoogleBookSearchUrl(query: string): string {
   const clean = encodeURIComponent(query.trim());
-  if (mirror === "anna") {
-    return `https://annas-archive.gs/search?q=${clean}`;
-  }
-  if (mirror === "google") {
-    return `https://books.google.com/books?q=${clean}`;
-  }
-  if (mirror === "archive") {
-    return `https://archive.org/search?query=${clean}`;
-  }
-  // "is" and "rs" are blocked by Turkish ISPs; redirect them to active mirror "bz" or "gl"
-  if (mirror === "is" || mirror === "rs" || mirror === "bz") {
-    return `https://libgen.bz/index.php?req=${clean}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&res=25`;
-  }
-  if (mirror === "gl") {
-    return `https://libgen.gl/index.php?req=${clean}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&res=25`;
-  }
-  return `https://libgen.li/index.php?req=${clean}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&columns%5B%5D=y&columns%5B%5D=p&columns%5B%5D=i&objects%5B%5D=f&objects%5B%5D=e&objects%5B%5D=s&objects%5B%5D=a&objects%5B%5D=p&objects%5B%5D=w&topics%5B%5D=l&topics%5B%5D=c&topics%5B%5D=f&topics%5B%5D=a&topics%5B%5D=m&topics%5B%5D=r&topics%5B%5D=s&res=25`;
+  return `https://books.google.com/books?q=${clean}`;
+}
+
+export function getLibgenSearchUrl(query: string, _mirror?: string): string {
+  return getGoogleBookSearchUrl(query);
 }
 
 // ============================================================================
@@ -448,7 +434,7 @@ export const CURATED_WEB_SOURCES: WebSearchResultItem[] = [
     description: "SQL Injection, SSRF, OAuth, JWT, XSS ve Web LLM zafiyetlerini ücretsiz interaktif lablarla öğreten endüstri standardı akademi.",
     tags: ["web security", "owasp", "burp suite", "laboratuvar"],
     isFree: true,
-    libgenQuery: "The Web Application Hacker's Handbook Dafydd Stuttard",
+    pdfQuery: "The Web Application Hacker's Handbook Dafydd Stuttard",
     keyTakeaways: [
       "Teorik zafiyet bilgisini doğrudan interaktif Docker benzeri lab ortamında test etme imkanı.",
       "Güncel web açıkları (API güvenliği, GraphQL, HTTP Request Smuggling) detaylı analiz edilir.",
@@ -464,7 +450,7 @@ export const CURATED_WEB_SOURCES: WebSearchResultItem[] = [
     description: "Sızma testlerinde kullanılan komutlar, bypass teknikleri, exploit şablonları ve metodolojilerin devasa açık kaynak deposu.",
     tags: ["pentest", "cheatsheet", "payload", "bypass"],
     isFree: true,
-    libgenQuery: "Penetration Testing Georgia Weidman",
+    pdfQuery: "Penetration Testing Georgia Weidman",
     keyTakeaways: [
       "Ezber yerine her zafiyet için adım adım pratik exploit metodolojisi.",
       "Linux/Windows Privilege Escalation için test edilmiş güncel komut dizileri.",
@@ -480,7 +466,7 @@ export const CURATED_WEB_SOURCES: WebSearchResultItem[] = [
     description: "Bellek güvenliği, sahiplik (ownership), borçlanma (borrowing) ve eşzamanlılık kavramlarını sıfırdan anlatan resmî başyapıt.",
     tags: ["rust", "memory safety", "sistem programlama", "diller"],
     isFree: true,
-    libgenQuery: "The Rust Programming Language Steve Klabnik",
+    pdfQuery: "The Rust Programming Language Steve Klabnik",
     keyTakeaways: [
       "Garbage collector olmadan %100 bellek güvenliği sağlayan ownership mekanizması.",
       "Düşük seviyeli sistem kodlamasında segfault ve buffer overflow risklerini derleme aşamasında önleme.",
@@ -496,7 +482,7 @@ export const CURATED_WEB_SOURCES: WebSearchResultItem[] = [
     description: "Büyük ölçekli dağıtık sistemler, veritabanı sharding, caching, microservices ve CAP teoremini görsel diyagramlarla anlatan kaynak.",
     tags: ["system design", "mimari", "dağıtık sistemler", "ölçeklenebilirlik"],
     isFree: true,
-    libgenQuery: "Designing Data-Intensive Applications Martin Kleppmann",
+    pdfQuery: "Designing Data-Intensive Applications Martin Kleppmann",
     keyTakeaways: [
       "Yüksek trafikli sistemlerde dar boğazları önceden hesaplama ve kapasite planlama.",
       "Load balancing, CDN, Cache ve Replication stratejilerinin mimari mukayesesi.",
@@ -512,7 +498,7 @@ export const CURATED_WEB_SOURCES: WebSearchResultItem[] = [
     description: "Assembly, shellcode enjeksiyonu, ROP chain, format string ve kernel güvenliğini interaktif dojo ortamında öğreten üniversite platformu.",
     tags: ["reverse engineering", "binary exploitation", "assembly", "pwn"],
     isFree: true,
-    libgenQuery: "Practical Binary Analysis Dennis Andriesse",
+    pdfQuery: "Practical Binary Analysis Dennis Andriesse",
     keyTakeaways: [
       "x86-64 stack ve register düzenini pratik shellcode yazarak deneyimleme.",
       "ASLR, DEP, Stack Canary gibi modern exploit engellerini aşma mantığı.",
@@ -528,7 +514,7 @@ export const CURATED_WEB_SOURCES: WebSearchResultItem[] = [
     description: "Kontrol çemberi (Dichotomy of Control), zihinsel dayanıklılık ve modern hayatta sarsılmaz bir dinginlik inşa etme rehberi.",
     tags: ["stoacılık", "felsefe", "zihinsel dayanıklılık", "odak"],
     isFree: true,
-    libgenQuery: "Meditations Marcus Aurelius",
+    pdfQuery: "Meditations Marcus Aurelius",
     keyTakeaways: [
       "Kontrol edemediğin dış faktörler için kaygılanmayı bırak; enerjini yalnızca tepkine odakla.",
       "Amor Fati: Karşına çıkan zorlukları bir engel değil, karakterini bileyen bir fırsat olarak kucakla.",
@@ -544,7 +530,7 @@ export const CURATED_WEB_SOURCES: WebSearchResultItem[] = [
     description: "LLM modellerinden deterministik, yüksek kaliteli ve halüsinasyonsuz çıktılar almak için chain-of-thought ve few-shot teknikleri.",
     tags: ["ai", "prompt engineering", "llm", "yapay zeka"],
     isFree: true,
-    libgenQuery: "Prompt Engineering for Generative AI",
+    pdfQuery: "Prompt Engineering for Generative AI",
     keyTakeaways: [
       "Chain-of-thought (düşünce zinciri) prompting ile karmaşık mantıksal görevlerde başarıyı 3 katına çıkarma.",
       "XML etiketleri ve katı JSON şemalarıyla deterministik API entegrasyonu kurma.",

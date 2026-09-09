@@ -115,11 +115,11 @@ const guideTabs = [
     route: "/resources",
     icon: BookOpen,
     color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/20",
-    summary: "Web, Libgen, NotebookLM, Kitaplık ve PDF sayfa pinleme.",
+    summary: "Web, Google PDF, NotebookLM, Kitaplık ve PDF sayfa pinleme.",
     points: [
       {
         title: "Çoklu Kaynak Arama Motoru",
-        desc: "Canlı Web araması ve Libgen akademik kütüphane arama motoru ile kitap ve makaleleri doğrudan sistem içinden bul.",
+        desc: "Canlı Web araması ve Google PDF arama motoru ile kitap ve makaleleri doğrudan sistem içinden bul.",
       },
       {
         title: "PDF & Sayfa Pinleme",

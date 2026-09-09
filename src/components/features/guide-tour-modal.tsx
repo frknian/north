@@ -167,13 +167,13 @@ export const TOUR_STEPS: TourStep[] = [
     id: "resources",
     badge: "4. SEKME: KAYNAKLAR",
     title: "Kaynaklar & Araştırma Merkezi",
-    subtitle: "Web, Libgen, NotebookLM, Kitaplık ve PDF sayfa pinleme.",
+    subtitle: "Web, Google PDF, NotebookLM, Kitaplık ve PDF sayfa pinleme.",
     icon: BookOpen,
     accentColor: "from-cyan-500/20 to-blue-500/20 border-cyan-500/30 text-cyan-500",
     features: [
       {
         title: "Çoklu Kaynak Arama Motoru",
-        desc: "Canlı Web araması ve Libgen akademik kitap arama entegrasyonu ile kaynaklarını doğrudan sistem içinden bul.",
+        desc: "Canlı Web araması ve Google onaylı PDF kitap arama entegrasyonu ile kaynaklarını doğrudan sistem içinden bul.",
         icon: Search,
       },
       {

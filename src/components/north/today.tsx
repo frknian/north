@@ -308,7 +308,7 @@ export function NorthToday() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-foreground truncate">Kaynak ve Kitap Ara</p>
-                <p className="text-[10px] text-muted-foreground truncate">Web, Libgen, NotebookLM ve kütüphane</p>
+                <p className="text-[10px] text-muted-foreground truncate">Web, Google PDF, NotebookLM ve kütüphane</p>
               </div>
             </div>
             <ArrowRight className="size-3.5 text-primary shrink-0 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />

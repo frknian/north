@@ -961,7 +961,7 @@ export default function LoginPage() {
                     <span>📚</span> Kaynaklar &amp; Kütüphane
                   </p>
                   <p className="text-[11px] leading-relaxed">
-                    Canlı Web ve Libgen akademik arama, NotebookLM entegrasyonu, PDF sayfa pinleme ve AI kaynak özetleri.
+                    Canlı Web ve Google PDF arama motoru, NotebookLM entegrasyonu, PDF sayfa pinleme ve AI kaynak özetleri.
                   </p>
                 </div>
 

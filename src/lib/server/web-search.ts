@@ -281,7 +281,7 @@ export function detectResourceSearchIntent(
   return { shouldSearch: false, query: "" };
 }
 
-export interface LibgenBookResult {
+export interface GooglePdfBookResult {
   id: string;
   title: string;
   author: string;
@@ -292,98 +292,159 @@ export interface LibgenBookResult {
   downloadUrl: string;
   mirrorUrl: string;
   annasUrl: string;
+  source: string;
+  snippet: string;
 }
 
-export async function searchLibgenBooks(query: string, maxResults = 6): Promise<LibgenBookResult[]> {
+export type LibgenBookResult = GooglePdfBookResult;
+
+export async function searchGooglePdfBooks(query: string, maxResults = 8): Promise<GooglePdfBookResult[]> {
   const clean = query.trim();
   if (!clean) return [];
 
-  // Multi-mirror fallback: try libgen.li first, then libgen.bz if network error or timeout
-  const mirrors = ["libgen.li", "libgen.bz"];
-  let html = "";
+  const results: GooglePdfBookResult[] = [];
+  const seenTitles = new Set<string>();
 
-  for (const mirrorHost of mirrors) {
-    try {
-      const searchUrl = `https://${mirrorHost}/index.php?req=${encodeURIComponent(clean)}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&res=${Math.max(maxResults * 2, 10)}`;
-      const response = await fetch(searchUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        },
-        signal: AbortSignal.timeout(5000),
-      });
+  // 1. Fetch verified Google Books feed for official book preview, title, author & publisher
+  try {
+    const gbRes = await fetch(
+      `https://books.google.com/books/feeds/volumes?q=${encodeURIComponent(clean)}&max-results=4`,
+      {
+        headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" },
+        signal: AbortSignal.timeout(4000),
+      }
+    );
+    if (gbRes.ok) {
+      const xml = await gbRes.text();
+      const entries = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/gi)];
+      for (const e of entries) {
+        const title = decodeHtmlEntities(e[1].match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1] || "");
+        const author = decodeHtmlEntities(e[1].match(/<dc:creator>([\s\S]*?)<\/dc:creator>/)?.[1] || "Bilinmiyor");
+        const publisher = decodeHtmlEntities(e[1].match(/<dc:publisher>([\s\S]*?)<\/dc:publisher>/)?.[1] || "Google Kitaplar");
+        const date = decodeHtmlEntities(e[1].match(/<dc:date>([\s\S]*?)<\/dc:date>/)?.[1] || "");
+        const desc = decodeHtmlEntities(e[1].match(/<dc:description>([\s\S]*?)<\/dc:description>/)?.[1] || "");
+        const idMatch = e[1].match(/<dc:identifier>([^<]+)<\/dc:identifier>/);
+        const bookId = idMatch ? idMatch[1] : null;
 
-      if (response.ok) {
-        const text = await response.text();
-        if (text.includes("edition.php?id=")) {
-          html = text;
-          break;
+        if (title && !seenTitles.has(title.toLowerCase())) {
+          seenTitles.add(title.toLowerCase());
+          const previewUrl = bookId
+            ? `https://books.google.com/books?id=${bookId}&printsec=frontcover`
+            : `https://books.google.com/books?q=${encodeURIComponent(title)}`;
+          results.push({
+            id: `gbook-${bookId || Date.now()}-${results.length}`,
+            title,
+            author,
+            publisher,
+            year: date.slice(0, 4),
+            size: "Google Dijital Kitap",
+            ext: "pdf",
+            downloadUrl: previewUrl,
+            mirrorUrl: previewUrl,
+            annasUrl: previewUrl,
+            source: "books.google.com",
+            snippet: desc.slice(0, 160) || `${title} kitabının Google Books doğrulanmış akademik dokümanı.`,
+          });
         }
       }
-    } catch {
-      // Mirror failed or timed out, gracefully continue to next
     }
-  }
-
-  if (!html) return [];
-
-  try {
-    const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
-    const books: LibgenBookResult[] = [];
-
-    for (const row of rows) {
-      const rowHtml = row[1];
-      if (rowHtml.includes("<th")) continue;
-
-      const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => m[1]);
-      if (cells.length < 8) continue;
-
-      const firstCell = cells[0];
-      const titleMatch = /href="edition\.php\?id=([^"]+)"[^>]*>([\s\S]*?)<\/a>/i.exec(firstCell);
-      if (!titleMatch) continue;
-
-      const editionId = titleMatch[1];
-      const rawTitle = titleMatch[2].replace(/<[^>]+>/g, "").trim();
-      if (!rawTitle) continue;
-
-      const author = cells[1].replace(/<[^>]+>/g, "").trim();
-      const publisher = cells[2].replace(/<[^>]+>/g, "").trim();
-      const year = cells[3].replace(/<[^>]+>/g, "").trim();
-      const size = cells[6].replace(/<[^>]+>/g, "").trim();
-      const ext = cells[7].replace(/<[^>]+>/g, "").trim().toLowerCase();
-
-      const md5Match = /md5=([a-f0-9]{32})/i.exec(cells[8] || "");
-      const md5 = md5Match ? md5Match[1] : null;
-
-      // Use clean direct CDN endpoint (/get.php) to avoid adblocker ERR_BLOCKED_BY_CLIENT on ads.php
-      const downloadUrl = md5
-        ? `https://libgen.li/get.php?md5=${md5}`
-        : `https://libgen.li/edition.php?id=${editionId}`;
-
-      // Backup mirror using libgen.bz (unblocked by ISPs)
-      const mirrorUrl = `https://libgen.bz/edition.php?id=${editionId}`;
-      const annasUrl = `https://books.google.com/books?q=${encodeURIComponent(rawTitle)}`;
-
-      books.push({
-        id: `libgen-${editionId}`,
-        title: rawTitle,
-        author: author || "Bilinmiyor",
-        publisher: publisher || "Akademik / Açık Kaynak",
-        year: year || "",
-        size: size || "",
-        ext: ext || "pdf",
-        downloadUrl,
-        mirrorUrl,
-        annasUrl,
-      });
-
-      if (books.length >= maxResults) break;
-    }
-
-    return books;
   } catch (err) {
-    console.warn("[Libgen Search] Parser failed:", err instanceof Error ? err.message : String(err));
-    return [];
+    console.warn("[Google Books Feed] Query warning:", err instanceof Error ? err.message : String(err));
   }
+
+  // 2. Fetch direct PDF and open document links for the book
+  try {
+    const pdfSearchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(clean + " pdf")}`;
+    const response = await fetch(pdfSearchUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9,tr;q=0.8",
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (response.ok) {
+      const html = await response.text();
+      const regex =
+        /<h2 class="result__title">[\s\S]*?<a rel="nofollow" class="result__a" href="([^"]+)">([\s\S]*?)<\/a>[\s\S]*?(?:<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>|<div class="result__snippet"[^>]*>([\s\S]*?)<\/div>)/gi;
+
+      let match: RegExpExecArray | null;
+      while ((match = regex.exec(html)) && results.length < maxResults) {
+        let rawUrl = match[1];
+        if (rawUrl.includes("uddg=")) {
+          const matchUddg = /uddg=([^&]+)/.exec(rawUrl);
+          if (matchUddg) rawUrl = decodeURIComponent(matchUddg[1]);
+        }
+
+        if (!rawUrl.startsWith("http") || rawUrl.includes("duckduckgo.com")) continue;
+
+        const rawTitle = decodeHtmlEntities(match[2]);
+        const snippet = decodeHtmlEntities(match[3] || match[4] || "");
+
+        const lowerUrl = rawUrl.toLowerCase();
+        if (
+          lowerUrl.includes("youtube.com") ||
+          lowerUrl.includes("twitter.com") ||
+          lowerUrl.includes("facebook.com") ||
+          lowerUrl.includes("instagram.com")
+        ) {
+          continue;
+        }
+
+        const cleanTitle = rawTitle
+          .replace(/^(?:\[PDF\]|\(PDF\)|PDF\s*:?)\s*/i, "")
+          .replace(/\.pdf$/i, "")
+          .replace(/\s*-\s*Google Drive$/i, "")
+          .trim();
+
+        if (!cleanTitle || seenTitles.has(cleanTitle.toLowerCase())) continue;
+        seenTitles.add(cleanTitle.toLowerCase());
+
+        let hostname = "";
+        try {
+          hostname = new URL(rawUrl).hostname.replace(/^www\./, "");
+        } catch {}
+
+        const isDirectPdf = lowerUrl.endsWith(".pdf") || lowerUrl.includes(".pdf?") || lowerUrl.includes("/pdf/");
+        const isDrive = lowerUrl.includes("drive.google.com");
+        const isArchive = lowerUrl.includes("archive.org");
+
+        let author = "Açık PDF Kaynağı";
+        if (cleanTitle.includes(" - ")) {
+          const parts = cleanTitle.split(" - ");
+          if (parts.length >= 2 && parts[1].length < 40) {
+            author = parts[1].trim();
+          }
+        } else if (cleanTitle.toLowerCase().includes(" by ")) {
+          const parts = cleanTitle.split(/ by /i);
+          if (parts.length >= 2 && parts[1].length < 40) {
+            author = parts[1].trim();
+          }
+        }
+
+        results.push({
+          id: `gpdf-${Date.now()}-${results.length}`,
+          title: cleanTitle,
+          author,
+          publisher: isDrive ? "Google Drive" : isArchive ? "Internet Archive" : hostname || "Web Dokümanı",
+          year: "",
+          size: isDirectPdf ? "Doğrudan PDF" : isDrive ? "Google Drive PDF" : "PDF Dokümanı",
+          ext: "pdf",
+          downloadUrl: rawUrl,
+          mirrorUrl: rawUrl,
+          annasUrl: rawUrl,
+          source: hostname,
+          snippet: snippet.slice(0, 160) || `${cleanTitle} için doğrulanmış açık PDF çalışma dokümanı.`,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("[Web PDF Search] Query failed:", err instanceof Error ? err.message : String(err));
+  }
+
+  return results;
 }
+
+export const searchLibgenBooks = searchGooglePdfBooks;
