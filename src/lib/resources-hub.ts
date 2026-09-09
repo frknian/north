@@ -37,7 +37,6 @@ export interface WebSearchResultItem {
   description: string;
   tags: string[];
   isFree: boolean;
-  libgenQuery?: string;
   pdfQuery?: string;
   downloadUrl?: string;
   mirrorUrl?: string;
@@ -261,10 +260,6 @@ export function deletePinnedDoc(id: string): void {
 export function getGoogleBookSearchUrl(query: string): string {
   const clean = encodeURIComponent(query.trim());
   return `https://books.google.com/books?q=${clean}`;
-}
-
-export function getLibgenSearchUrl(query: string, _mirror?: string): string {
-  return getGoogleBookSearchUrl(query);
 }
 
 // ============================================================================

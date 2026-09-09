@@ -296,8 +296,6 @@ export interface GooglePdfBookResult {
   snippet: string;
 }
 
-export type LibgenBookResult = GooglePdfBookResult;
-
 export async function searchGooglePdfBooks(query: string, maxResults = 8): Promise<GooglePdfBookResult[]> {
   const clean = query.trim();
   if (!clean) return [];
@@ -446,5 +444,3 @@ export async function searchGooglePdfBooks(query: string, maxResults = 8): Promi
 
   return results;
 }
-
-export const searchLibgenBooks = searchGooglePdfBooks;
