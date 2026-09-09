@@ -436,7 +436,7 @@ export function NorthCalendar() {
   };
 
   return (
-    <div className="page-content space-y-5 pb-20 md:pb-10">
+    <div className="page-content space-y-5 pb-32 md:pb-10">
       {/* HEADER */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-4">
         <div>

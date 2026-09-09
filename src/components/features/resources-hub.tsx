@@ -291,7 +291,7 @@ export function ResourcesHub() {
   }
 
   return (
-    <div className="page-content space-y-6 pb-20">
+    <div className="page-content space-y-6 pb-32 md:pb-20">
       {/* 1. TOP HEADER & QUICK ACTION BAR */}
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div className="space-y-1">

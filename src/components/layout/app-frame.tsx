@@ -173,7 +173,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
       </main>
     );
   }
-  return <div className="north-shell min-h-dvh">
+  return <div className="north-shell min-h-dvh max-w-full overflow-x-hidden">
     <a className="skip-link" href="#north-content">İçeriğe geç</a>
     <header className={cn("north-topbar",scrolled&&"is-scrolled")}>
       <div className="north-topbar-inner">
@@ -191,14 +191,14 @@ export function AppFrame({children}:{children:React.ReactNode}) {
     <main
       id="north-content"
       className={cn(
-        "north-main",
+        "north-main max-w-full overflow-x-hidden",
         pathname === "/coach" && "!p-0 overflow-hidden h-[calc(100dvh-64px)] max-md:h-[calc(100dvh-124px)]",
         pathname === "/" && "md:py-2 md:pb-2"
       )}
       tabIndex={-1}
     >
       {areaRoutes.some(p=>pathname===p||pathname.startsWith(p+"/"))&&<div className="north-context"><Link href={primaryArea ? `/areas/${primaryArea.id}` : "/areas"}>Alanlar / {primaryArea?.name??"Ana hedef"}</Link><span>/ {titles[pathname]??"Ayrıntı"}</span></div>}
-      <div key={pathname} className={cn("north-route", pathname === "/coach" && "h-full overflow-hidden !p-0")}>{children}</div>
+      <div key={pathname} className={cn("north-route max-w-full overflow-x-hidden", pathname === "/coach" && "h-full overflow-hidden !p-0")}>{children}</div>
     </main>
     <NorthChatPopover/><MobileNavigation pathname={pathname}/>
   </div>;

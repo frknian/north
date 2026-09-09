@@ -33,10 +33,10 @@ export function NorthChatPopover({
   };
 
   return (
-    <div className="fixed bottom-20 right-4 z-40 sm:bottom-7 sm:right-7">
+    <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,8px))] right-3.5 z-40 sm:bottom-7 sm:right-7">
       {open ? (
         <section
-          className="mb-3 w-[calc(100vw-2rem)] sm:w-[420px] h-[620px] max-h-[85dvh] overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200 flex flex-col p-3 sm:p-4"
+          className="mb-3 w-[calc(100vw-1.75rem)] max-w-[420px] h-[620px] max-h-[80dvh] overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200 flex flex-col p-3 sm:p-4"
           aria-label="Planorth Koç sohbeti"
         >
           <NorthAI embedded taskId={taskId} onClose={() => setOpen(false)} />

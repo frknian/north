@@ -533,7 +533,7 @@ export function NorthWeek() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-white dark:bg-[#090d16] text-slate-900 dark:text-foreground font-sans selection:bg-primary/20 selection:text-primary pb-24">
+    <div className="relative min-h-screen bg-white dark:bg-[#090d16] text-slate-900 dark:text-foreground font-sans selection:bg-primary/20 selection:text-primary pb-32 md:pb-24">
       {/* Subtle Background Glows (dark mode only) */}
       <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none -z-0 opacity-0 dark:opacity-100" />
       <div className="fixed bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 dark:bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-0 opacity-0 dark:opacity-100" />

@@ -47,16 +47,28 @@ export function NorthToday() {
   if (!ready) return <div className="page-content" aria-busy="true">Planorth hazırlanıyor…</div>;
 
   return (
-    <div className="page-content north-today-v2 space-y-2.5 sm:space-y-3 pb-16 md:pb-2">
+    <div className="page-content north-today-v2 space-y-2.5 sm:space-y-3 pb-32 md:pb-2">
       <header className="north-today-header flex flex-col md:flex-row md:items-start md:justify-between gap-2.5 md:gap-6 mb-1 sm:mb-2">
           <div className="w-full md:w-auto">
             <p className="north-eyebrow mb-1 text-[11px] font-bold text-primary tracking-wider uppercase">{dateLabel}</p>
             <h1 className="text-2xl sm:text-3xl md:text-[34px] font-extrabold tracking-tight text-foreground">Bugün ne yapacaksın?</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 max-w-xl">{direction}</p>
           </div>
-          <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2 pt-1 border-t md:border-t-0 border-border/60">
-            <Companion state={state}/>
-            <div className="flex items-center gap-1.5">
+          <div className="flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between w-full md:w-auto gap-2 pt-1 border-t md:border-t-0 border-border/60">
+            <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+              <Companion state={state}/>
+              <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+                <Button variant="outline" size="xs" onClick={() => setMorningOpen(true)} className="rounded-xl text-[11px] h-8 px-2 shadow-2xs">
+                  <Sun className="mr-1 size-3 text-amber-500" />
+                  Sabah
+                </Button>
+                <Button variant="outline" size="xs" onClick={() => setEveningOpen(true)} className="rounded-xl text-[11px] h-8 px-2 shadow-2xs">
+                  <Moon className="mr-1 size-3 text-indigo-400" />
+                  Akşam
+                </Button>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5">
               <Button variant="outline" size="xs" onClick={() => setMorningOpen(true)} className="rounded-xl text-[11px] h-8 px-2.5 shadow-2xs">
                 <Sun className="mr-1 size-3.5 text-amber-500" />
                 Sabah Pusulası
@@ -96,7 +108,7 @@ export function NorthToday() {
 
         {/* AKTİF ALT KONU / SINAV KAMPI GÖSTERGESİ */}
         {activeSprint && (
-          <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-card/90 to-background px-3.5 py-2 text-xs flex flex-wrap items-center justify-between gap-2 shadow-2xs backdrop-blur-xs">
+          <div className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-card/90 to-background px-3.5 py-2 text-xs flex flex-wrap items-center justify-between gap-2 shadow-2xs backdrop-blur-xs w-full max-w-full overflow-hidden">
             <div className="flex items-center gap-2 min-w-0">
               <span className="flex items-center justify-center size-5 rounded-lg bg-primary/20 text-primary shrink-0">
                 <Target className="size-3" />
@@ -268,7 +280,7 @@ export function NorthToday() {
         <MicroHabitsWidget compact={true} />
 
         {/* HIZLI KISAYOLLAR: ALT KONU / SINAV KAMPI BAŞLAT & KAYNAK VE KİTAP ARA */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5 w-full max-w-full overflow-hidden">
           <button
             type="button"
             onClick={() => setSprintLauncherOpen(true)}

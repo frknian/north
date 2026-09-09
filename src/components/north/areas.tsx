@@ -152,7 +152,7 @@ export function NorthAreas({ id }: { id?: string }) {
   const visibleAreas = state.areas.filter((area) => showInactive || isAreaActive(area));
 
   return (
-    <div className="page-content space-y-6 pb-20">
+    <div className="page-content space-y-6 pb-32 md:pb-20">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">Hedef Alanların</h1>
@@ -848,7 +848,7 @@ function AreaWorkspace({
   ];
 
   return (
-    <div className="page-content space-y-6 pb-24">
+    <div className="page-content space-y-6 pb-32 md:pb-24">
       {/* BREADCRUMB / BACK LINK */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <Link href="/areas" className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group">

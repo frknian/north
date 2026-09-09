@@ -93,7 +93,7 @@ export default function LabsPage() {
   }
 
   return (
-    <div className="page-content space-y-6 pb-20">
+    <div className="page-content space-y-6 pb-32 md:pb-20">
       {/* HEADER */}
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div>
