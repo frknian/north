@@ -284,23 +284,21 @@ export function NorthToday() {
             <ArrowRight className="size-3.5 text-primary shrink-0 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
           </button>
 
-          <Button asChild variant="ghost" className="group h-auto p-0 hover:bg-transparent font-normal">
-            <Link
-              href="/resources"
-              className="flex items-center justify-between gap-3 w-full px-3.5 py-2 sm:py-2.5 rounded-2xl border border-border/80 bg-gradient-to-r from-background via-card/80 to-muted/20 hover:border-border hover:bg-muted/30 transition-all text-left shadow-2xs"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="size-8 rounded-xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <Search className="size-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-foreground truncate">Kaynak ve Kitap Ara</p>
-                  <p className="text-[10px] text-muted-foreground truncate">Web, Libgen, NotebookLM ve kütüphane</p>
-                </div>
+          <Link
+            href="/resources"
+            className="group flex items-center justify-between gap-3 px-3.5 py-2 sm:py-2.5 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-card/80 to-background hover:border-primary/50 hover:bg-primary/15 transition-all text-left shadow-2xs cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="size-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Search className="size-4" />
               </div>
-              <ArrowRight className="size-3.5 text-muted-foreground group-hover:text-foreground shrink-0 group-hover:translate-x-0.5 transition-all" />
-            </Link>
-          </Button>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground truncate">Kaynak ve Kitap Ara</p>
+                <p className="text-[10px] text-muted-foreground truncate">Web, Libgen, NotebookLM ve kütüphane</p>
+              </div>
+            </div>
+            <ArrowRight className="size-3.5 text-primary shrink-0 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+          </Link>
         </div>
 
         {/* GÜNLÜK TAMAMLANMA VE SIRA DURUMU */}
