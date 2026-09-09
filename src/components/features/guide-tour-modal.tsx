@@ -172,18 +172,18 @@ export const TOUR_STEPS: TourStep[] = [
     accentColor: "from-cyan-500/20 to-blue-500/20 border-cyan-500/30 text-cyan-500",
     features: [
       {
-        title: "Çoklu Kaynak Arama Motoru",
-        desc: "Canlı Web araması ve Google onaylı PDF kitap arama entegrasyonu ile kaynaklarını doğrudan sistem içinden bul.",
+        title: "Kitaplık & Google Onaylı PDF Arama",
+        desc: "Kitap isminin yanındaki arama çubuğuyla veya sistem içi Google PDF motoruyla açık kitap ve kaynakları doğrudan bul.",
         icon: Search,
       },
       {
-        title: "PDF & Kitap Sayfası Pinleme",
-        desc: "Okuduğun kitabın veya belgenin belirli sayfa aralıklarını kaydet, sayfa ekran görüntüsünü pinle.",
+        title: "Kişisel Sayfa Aralıkları & Pinli Belgeler",
+        desc: "Kitapların sayfa aralıklarını (örn: Sayfa 45-62) pinle ve yönet. Burası tamamen senin kişisel çalışma alanındır.",
         icon: BookOpen,
       },
       {
-        title: "AI Kaynak Özeti & NotebookLM",
-        desc: "Eklediğin kaynaklardan tek tıkla yapay zeka özeti çıkart veya doğrudan NotebookLM export markdown dosyası indir.",
+        title: "NotebookLM Paketi & AI Özeti",
+        desc: "Seçili kaynaklardan anında yapay zeka özeti al; tek tıkla NotebookLM için Markdown kaynak paketi kopyala.",
         icon: Sparkles,
       },
     ],
