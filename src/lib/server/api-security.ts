@@ -30,7 +30,7 @@ function consumeRate(key: string, now: number, perMinute: number, perDay: number
 export async function secureApiRequest(
   request: Request,
   scope: string,
-  limits: { perMinute?: number; perDay?: number } = {},
+  limits: { perMinute?: number; perDay?: number; unlimited?: boolean } = {},
 ): Promise<SecurityResult> {
   const origin = request.headers.get("origin");
   if (origin && origin !== "null" && origin !== new URL(request.url).origin) {
@@ -41,10 +41,11 @@ export async function secureApiRequest(
   if (!user) return { ok: false, response: apiError("Oturum gerekli.", 401) };
 
   const now = Date.now();
-  const perMinute = limits.perMinute ?? 8;
-  const perDay = limits.perDay ?? 50;
+  const perMinute = limits.unlimited ? 120 : (limits.perMinute ?? 8);
+  const perDay = limits.unlimited ? 10_000 : (limits.perDay ?? 50);
   const scopedRate = consumeRate(`${user.uid}:${scope}`, now, perMinute, perDay);
-  const globalAiRate = scope.startsWith("ai:") ? consumeRate(`${user.uid}:ai:global`, now, 12, 80) : null;
+  const isExemptAi = Boolean(limits.unlimited || scope === "ai:north");
+  const globalAiRate = (scope.startsWith("ai:") && !isExemptAi) ? consumeRate(`${user.uid}:ai:global`, now, 12, 80) : null;
   const limited = scopedRate.limited ? scopedRate : globalAiRate?.limited ? globalAiRate : null;
   if (limited) {
     return { ok: false, response: apiError("İstek sınırına ulaştın. Bir süre sonra tekrar dene.", 429, { "Retry-After": String(limited.retryAfter) }) };

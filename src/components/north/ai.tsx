@@ -245,10 +245,6 @@ export function NorthAI({
 
     const usage = workspace.coaching.preferences.aiUsage;
     const count = usage.date === today ? usage.count : 0;
-    if (count >= workspace.coaching.preferences.dailyAiLimit) {
-      setError(`Bugünkü North AI sınırına ulaştın (${count}/${workspace.coaching.preferences.dailyAiLimit}).`);
-      return;
-    }
 
     const attachmentsToSend = [...pendingAttachments];
     setPendingAttachments([]);
@@ -790,9 +786,12 @@ export function NorthAI({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground font-medium">
+              <span
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs text-primary font-medium"
+                title="OpenAI, Groq ve Planorth Yedek Motoru ile kesintisiz ve limitsiz koçluk"
+              >
                 <Sparkles className="size-3 text-primary shrink-0" />
-                <span>Kullanım: <strong className="text-foreground">{usageCount}</strong> / {dailyLimit}</span>
+                <span>Hibrit Koç · <strong>Sınırsız</strong></span>
               </span>
 
               <DropdownMenu>
@@ -846,9 +845,24 @@ export function NorthAI({
                           <div className="rounded-2xl rounded-tl-xs bg-muted/60 dark:bg-muted/30 border border-border/80 p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed text-foreground shadow-2xs">
                             <MessageResponse>{message.content}</MessageResponse>
                           </div>
-                          <span className="text-[10px] text-muted-foreground ml-1 block font-mono">
-                            {new Date(message.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground ml-1 font-mono">
+                            <span>
+                              {new Date(message.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                            {message.model && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground/80 border border-border/60">
+                                {message.model.includes("gpt")
+                                  ? "OpenAI"
+                                  : message.model.includes("llama")
+                                  ? "Groq"
+                                  : message.model.includes("deepseek")
+                                  ? "DeepSeek"
+                                  : message.model.includes("planorth")
+                                  ? "Planorth Motoru"
+                                  : message.model}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ) : (
