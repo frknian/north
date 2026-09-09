@@ -629,9 +629,9 @@ export function NorthFocus({ id }: { id: string }) {
   return (
     <main className="w-full max-w-none px-2 sm:px-3 py-2 min-h-screen lg:h-screen flex flex-col gap-2 overflow-y-auto lg:overflow-hidden">
       {/* 1. COMPACT TOP CONTROL BAR (Unified Navigation, Area, Task, Centered Digital Timer, Controls) */}
-      <header className="shrink-0 rounded-2xl border bg-card/90 backdrop-blur-md px-3 py-2 shadow-xs grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 min-h-[58px]">
+      <header className="shrink-0 rounded-2xl border bg-card/90 backdrop-blur-md px-3 py-2 shadow-xs flex flex-wrap lg:flex-nowrap items-center justify-between gap-2 sm:gap-3 min-h-[58px]">
         {/* Left: Back, Area, Task Title & Goal */}
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1 max-w-xs sm:max-w-sm lg:max-w-md">
           <button
             type="button"
             onClick={() => {
@@ -702,7 +702,7 @@ export function NorthFocus({ id }: { id: string }) {
         </div>
 
         {/* Center: Digital Timer (40:00) with -+5 and 10 dk buttons (Süreyi ortaya al, çember yerine 40:00) */}
-        <div className="flex items-center justify-center gap-1 sm:gap-2 shrink-0 py-0.5">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 shrink-0 py-0.5 mx-auto">
           {/* -10 and -5 minute buttons */}
           <div className="flex items-center gap-1">
             <button
@@ -777,7 +777,7 @@ export function NorthFocus({ id }: { id: string }) {
         </div>
 
         {/* Right: Controls & Tools */}
-        <div className="flex items-center justify-end gap-1.5 min-w-0">
+        <div className="flex items-center justify-end gap-1.5 shrink-0">
           {!timer ? (
             <Button size="sm" className="rounded-xl px-3 sm:px-4 text-xs font-semibold shadow-xs h-8" onClick={handleStart}>
               <Play className="mr-1.5 size-3.5" />
@@ -809,7 +809,7 @@ export function NorthFocus({ id }: { id: string }) {
           <Button
             variant={pipActive ? "secondary" : "outline"}
             size="sm"
-            className="hidden md:inline-flex rounded-xl text-xs px-2 h-8"
+            className="hidden xl:inline-flex rounded-xl text-xs px-2 h-8"
             onClick={handleTogglePip}
             title="Yüzen Mini Sayaç"
           >
@@ -820,7 +820,7 @@ export function NorthFocus({ id }: { id: string }) {
           <Button
             variant="outline"
             size="sm"
-            className="hidden md:inline-flex rounded-xl text-xs px-2 h-8"
+            className="hidden xl:inline-flex rounded-xl text-xs px-2 h-8"
             onClick={() => setBreathworkOpen(true)}
             title="2 Dakikalık Nefes ve Göz Molası"
           >
@@ -833,7 +833,7 @@ export function NorthFocus({ id }: { id: string }) {
             onClick={toggleIronWill}
             disabled={timer?.running}
             className={cn(
-              "hidden md:inline-flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs font-semibold transition-all h-8",
+              "hidden 2xl:inline-flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs font-semibold transition-all h-8",
               ironWill
                 ? "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400 shadow-xs"
                 : "border-border/60 bg-muted/40 text-muted-foreground hover:text-foreground"
@@ -847,7 +847,7 @@ export function NorthFocus({ id }: { id: string }) {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-xl text-xs px-2.5 h-8 font-medium gap-1 text-foreground"
+            className="rounded-xl text-xs px-2.5 h-8 font-medium gap-1 text-foreground shrink-0"
             onClick={() => {
               setResourcesModalTab("pinned");
               setResourcesModalOpen(true);
@@ -855,13 +855,13 @@ export function NorthFocus({ id }: { id: string }) {
             title="Odak Kaynak & Belge Masası"
           >
             <BookOpen className="size-3.5 text-indigo-500" />
-            <span className="hidden xl:inline">Kaynaklar</span>
+            <span className="hidden 2xl:inline">Kaynaklar</span>
             {activeRange && (
               <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
             )}
           </Button>
 
-          <SanalKutuphaneBadge className="hidden xl:inline-flex h-8 shrink-0" />
+          <SanalKutuphaneBadge className="hidden 2xl:inline-flex h-8 shrink-0" />
           <Companion state={state} compact />
         </div>
       </header>

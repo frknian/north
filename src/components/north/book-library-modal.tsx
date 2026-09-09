@@ -18,6 +18,7 @@ import {
   Star,
   Flame,
   ArrowRight,
+  Edit3,
 } from "lucide-react";
 import {
   Dialog,
@@ -84,6 +85,38 @@ export function BookLibraryModal({
       setTab(defaultTab);
     }
   }, [open, defaultTab]);
+
+  // Page Edit State
+  const [editingBookForPage, setEditingBookForPage] = useState<NorthBook | null>(null);
+  const [editPageInput, setEditPageInput] = useState<number>(0);
+  const [editTotalPagesInput, setEditTotalPagesInput] = useState<number>(100);
+  const [editStatusInput, setEditStatusInput] = useState<"reading" | "completed" | "want_to_read">("reading");
+
+  const handleOpenPageEdit = (book: NorthBook) => {
+    setEditingBookForPage(book);
+    setEditPageInput(book.currentPage || 0);
+    setEditTotalPagesInput(book.totalPages || 100);
+    setEditStatusInput(book.status);
+  };
+
+  const handleSavePageEdit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editingBookForPage) return;
+    const total = Math.max(1, editTotalPagesInput || 1);
+    const current = Math.min(total, Math.max(0, editPageInput || 0));
+    const isCompleted = current >= total;
+    const finalStatus = isCompleted ? "completed" : editStatusInput;
+
+    updateBook(editingBookForPage.id, {
+      currentPage: current,
+      totalPages: total,
+      status: finalStatus,
+      finishedAt: isCompleted ? (editingBookForPage.finishedAt || new Date().toISOString().slice(0, 10)) : undefined,
+    });
+    refreshShelf();
+    setEditingBookForPage(null);
+    toast.success(`"${editingBookForPage.title}" sayfası güncellendi: Sayfa ${current} / ${total}`);
+  };
 
   const refreshShelf = () => {
     setBooks(loadBooks());
@@ -191,7 +224,8 @@ export function BookLibraryModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl border-border/70 shadow-2xl">
         {/* Header */}
         <DialogHeader className="p-4 sm:p-5 border-b border-border/60 bg-muted/20 shrink-0">
@@ -395,8 +429,17 @@ export function BookLibraryModal({
                           {/* Progress Bar & Pages */}
                           <div className="space-y-1 pt-1">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="font-mono text-muted-foreground">
+                              <span className="font-mono text-muted-foreground flex items-center gap-1.5">
                                 Sayfa <strong className="text-foreground font-semibold">{book.currentPage}</strong> / {book.totalPages}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenPageEdit(book)}
+                                  className="rounded px-1.5 py-0.5 text-[9px] font-sans font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors inline-flex items-center gap-0.5"
+                                  title="Kaldığın sayfayı güncelle"
+                                >
+                                  <Edit3 className="size-2.5" />
+                                  Güncelle
+                                </button>
                               </span>
                               <span className="font-bold text-primary text-[10.5px]">%{percent}</span>
                             </div>
@@ -428,6 +471,15 @@ export function BookLibraryModal({
                           </button>
 
                           <div className="flex items-center gap-1.5">
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => handleOpenPageEdit(book)}
+                              className="rounded-xl text-[11px] font-medium h-7"
+                              title="Sayfa sayısını veya kaldığın sayfayı güncelle"
+                            >
+                              <Edit3 className="size-3 mr-1" /> Sayfa Güncelle
+                            </Button>
                             {book.status !== "completed" && (
                               <Button
                                 size="xs"
@@ -737,5 +789,192 @@ export function BookLibraryModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* SAYFA SAYISI GÜNCELLEME MODALI */}
+    <Dialog open={!!editingBookForPage} onOpenChange={(val) => !val && setEditingBookForPage(null)}>
+      <DialogContent className="sm:max-w-md rounded-3xl p-6">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold flex items-center gap-2">
+            <BookOpen className="size-4 text-primary" />
+            Sayfa Sayısını Güncelle
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {editingBookForPage ? (
+              <span>
+                <strong className="text-foreground">{editingBookForPage.title}</strong> ({editingBookForPage.author}) için okuma ilerlemeni kaydet.
+              </span>
+            ) : (
+              "Kitap sayfa sayısını ve kaldığın sayfayı güncelle."
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        {editingBookForPage && (
+          <form onSubmit={handleSavePageEdit} className="space-y-4 pt-2">
+            {/* Live Progress Preview */}
+            <div className="rounded-xl border bg-muted/20 p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-foreground">
+                  Sayfa {editPageInput} / {editTotalPagesInput}
+                </span>
+                <span className="font-mono text-primary font-bold">
+                  %{Math.min(100, Math.round((Math.max(0, editPageInput) / Math.max(1, editTotalPagesInput)) * 100))}
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
+                <div
+                  className="h-full bg-primary transition-all duration-200 rounded-full"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, (editPageInput / Math.max(1, editTotalPagesInput)) * 100))}%`,
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Kalan: {Math.max(0, editTotalPagesInput - editPageInput)} sayfa</span>
+                <span className="font-medium">
+                  {editPageInput >= editTotalPagesInput ? "🎉 Kitap tamamlandı olarak işaretlenecek!" : "Okumaya devam ediliyor"}
+                </span>
+              </div>
+            </div>
+
+            {/* Kaldığın Sayfa Stepper & Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <span>Kaldığın Sayfa</span>
+                <span className="text-[10px] text-muted-foreground font-normal">Son okuduğun sayfa numarası</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs font-semibold"
+                  onClick={() => setEditPageInput((p) => Math.max(0, p - 10))}
+                  disabled={editPageInput <= 0}
+                >
+                  -10
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs font-semibold"
+                  onClick={() => setEditPageInput((p) => Math.max(0, p - 1))}
+                  disabled={editPageInput <= 0}
+                >
+                  -1
+                </Button>
+                <input
+                  type="number"
+                  min={0}
+                  max={editTotalPagesInput}
+                  value={editPageInput}
+                  onChange={(e) => setEditPageInput(Math.max(0, Number(e.target.value) || 0))}
+                  className="flex-1 text-center rounded-xl border border-border bg-background px-3 py-1.5 text-sm font-bold font-mono text-foreground focus:border-primary focus:outline-hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs font-semibold"
+                  onClick={() => setEditPageInput((p) => Math.min(editTotalPagesInput, p + 1))}
+                  disabled={editPageInput >= editTotalPagesInput}
+                >
+                  +1
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs font-semibold text-primary"
+                  onClick={() => setEditPageInput((p) => Math.min(editTotalPagesInput, p + 5))}
+                  disabled={editPageInput >= editTotalPagesInput}
+                >
+                  +5
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs font-semibold text-primary"
+                  onClick={() => setEditPageInput((p) => Math.min(editTotalPagesInput, p + 10))}
+                  disabled={editPageInput >= editTotalPagesInput}
+                >
+                  +10
+                </Button>
+              </div>
+            </div>
+
+            {/* Hızlı Kısayol Butonları */}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                className="text-[10px] text-muted-foreground hover:text-foreground h-6 px-2"
+                onClick={() => setEditPageInput(0)}
+              >
+                Başa Al (0)
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                className="text-[10px] text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 h-6 px-2 ml-auto"
+                onClick={() => setEditPageInput(editTotalPagesInput)}
+              >
+                Tamamlandı Yap ({editTotalPagesInput}. sf)
+              </Button>
+            </div>
+
+            {/* Toplam Sayfa & Durum */}
+            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border/50">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground">Toplam Sayfa</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={editTotalPagesInput}
+                  onChange={(e) => setEditTotalPagesInput(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-mono font-semibold text-foreground focus:border-primary focus:outline-hidden"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground">Okuma Durumu</label>
+                <select
+                  value={editPageInput >= editTotalPagesInput ? "completed" : editStatusInput}
+                  onChange={(e) => setEditStatusInput(e.target.value as "reading" | "completed" | "want_to_read")}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-hidden"
+                >
+                  <option value="reading">Okunuyor</option>
+                  <option value="want_to_read">Okunacak</option>
+                  <option value="completed">Tamamlandı</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingBookForPage(null)}
+                className="rounded-xl text-xs"
+              >
+                İptal
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="rounded-xl text-xs font-semibold shadow-xs"
+              >
+                Sayfayı Kaydet
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }
