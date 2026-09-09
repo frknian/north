@@ -47,10 +47,8 @@ export function NorthToday() {
   if (!ready) return <div className="page-content" aria-busy="true">Planorth hazırlanıyor…</div>;
 
   return (
-    <div className="page-content north-today-v2 flex flex-col justify-between md:min-h-[calc(100dvh-96px)] md:max-h-[calc(100dvh-80px)] md:overflow-hidden pb-16 md:pb-2">
-      {/* ÜST & ORTA BLOK (Header + Wisdom + ŞİMDİ Odak Kartı + Alışkanlıklar + Kısayollar) */}
-      <div className="space-y-2.5 sm:space-y-3">
-        <header className="north-today-header flex flex-col md:flex-row md:items-start md:justify-between gap-2.5 md:gap-6 mb-1 sm:mb-2">
+    <div className="page-content north-today-v2 space-y-2.5 sm:space-y-3 pb-16 md:pb-2">
+      <header className="north-today-header flex flex-col md:flex-row md:items-start md:justify-between gap-2.5 md:gap-6 mb-1 sm:mb-2">
           <div className="w-full md:w-auto">
             <p className="north-eyebrow mb-1 text-[11px] font-bold text-primary tracking-wider uppercase">{dateLabel}</p>
             <h1 className="text-2xl sm:text-3xl md:text-[34px] font-extrabold tracking-tight text-foreground">Bugün ne yapacaksın?</h1>
@@ -304,21 +302,13 @@ export function NorthToday() {
             </Link>
           </Button>
         </div>
-      </div>
 
-      {/* ALT BLOK (FOOTER ANKRAJI) */}
-      <div className="mt-auto pt-2 sm:pt-3 shrink-0">
-        <footer className="north-today-footer pt-2 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
-            <span><b className="text-foreground">{completed}</b> / {Math.max(completed + sequence.length, 1)} tamamlandı</span>
-            <span>•</span>
-            <span><b className="text-foreground">{plannedMinutes}</b> dk sırada</span>
-          </div>
-          <Link href="/progress" className="text-primary hover:underline font-medium inline-flex items-center gap-1">
-            Gerçek ilerlemeyi gör <ArrowRight size={14}/>
-          </Link>
-        </footer>
-      </div>
+        {/* GÜNLÜK TAMAMLANMA VE SIRA DURUMU */}
+        <div className="flex items-center justify-center sm:justify-start gap-3 pt-0.5 px-1 text-[11px] text-muted-foreground">
+          <span><b className="text-foreground font-semibold">{completed}</b> / {Math.max(completed + sequence.length, 1)} tamamlandı</span>
+          <span>•</span>
+          <span><b className="text-foreground font-semibold">{plannedMinutes}</b> dk sırada</span>
+        </div>
 
       {/* RITUAL MODALS */}
       <MorningCompassModal

@@ -330,15 +330,11 @@ html.dark .north-logo-dark, .dark .north-logo-dark { display: block !important; 
 .north-profile { border-color:var(--border); color:var(--muted-foreground); }
 .north-profile:hover { color:var(--foreground); background:var(--muted); border-color:var(--primary); }
 .north-more-trigger { gap:5px; border:0; cursor:pointer; background:transparent; }
-.north-today-v2 { max-width:880px; margin:0 auto; padding-top:20px; padding-bottom:24px; }
+.north-today-v2 { max-width:880px; margin:0 auto; padding-top:16px; padding-bottom:24px; }
 @media(min-width:768px) {
   .north-today-v2 {
-    min-height: calc(100dvh - 100px);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding-top: 16px;
-    padding-bottom: 20px;
+    padding-top: 14px;
+    padding-bottom: 16px;
     box-sizing: border-box;
   }
 }

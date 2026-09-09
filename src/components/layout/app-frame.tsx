@@ -192,7 +192,8 @@ export function AppFrame({children}:{children:React.ReactNode}) {
       id="north-content"
       className={cn(
         "north-main",
-        pathname === "/coach" && "!p-0 overflow-hidden h-[calc(100dvh-64px)] max-md:h-[calc(100dvh-124px)]"
+        pathname === "/coach" && "!p-0 overflow-hidden h-[calc(100dvh-64px)] max-md:h-[calc(100dvh-124px)]",
+        pathname === "/" && "md:py-2 md:pb-2"
       )}
       tabIndex={-1}
     >
