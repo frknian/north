@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Award, BarChart3, BookOpen, CalendarDays, ClipboardList, FlaskConical, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Award, BarChart3, BookOpen, Briefcase, CalendarDays, ClipboardList, FlaskConical, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { NorthChatPopover } from "@/components/north/north-chat-popover";
 import { WorkspaceSearch } from "@/components/features/workspace-search";
 import { useWorkspace } from "@/components/features/workspace-provider";
@@ -22,11 +22,11 @@ const navigation = [
   { href: "/coach", label: "Koç", icon: Sparkles },
   { href: "/week", label: "Plan", icon: ClipboardList },
   { href: "/areas", label: "Alanlar", icon: Layers3 },
-  { href: "/calendar", label: "Takvim", icon: CalendarDays },
-  { href: "/progress", label: "İlerleme", icon: BarChart3 },
   { href: "/resources", label: "Kaynaklar", icon: BookOpen },
   { href: "/labs", label: "Lablar", icon: FlaskConical },
-  { href: "/evidence", label: "Kanıtlar", icon: ShieldCheck },
+  { href: "/evidence", label: "Portföy", icon: Briefcase },
+  { href: "/progress", label: "İlerleme", icon: BarChart3 },
+  { href: "/calendar", label: "Takvim", icon: CalendarDays },
 ];
 const areaRoutes = ["/skills", "/resources", "/career", "/knowledge", "/certifications", "/plan"];
 const titles: Record<string, string> = {
@@ -40,7 +40,7 @@ const titles: Record<string, string> = {
   "/reviews": "İlerleme & Değerlendirme",
   "/resources": "Kaynaklar & Araştırma Merkezi",
   "/labs": "Pratik Lab Günlüğü",
-  "/evidence": "Kanıtlar & Portföy",
+  "/evidence": "Portföy & Çıktılar",
   "/profile": "Profil ve Ayarlar",
   "/data": "Verilerim ve Güvenlik",
   "/skills": "Beceriler",

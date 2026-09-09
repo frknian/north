@@ -71,29 +71,29 @@ export function SkillOverview({ evidence = false }: { evidence?: boolean }) {
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            {evidence ? "Çalışma Kanıtlarım & Portföy" : "Gelişen Becerilerim"}
+            {evidence ? "Portföy & Çalışma Çıktılarım" : "Gelişen Becerilerim"}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Hedefine yaklaşırken ürettiğin doğrulanabilir çıktıları ve gelişen pratik yetkinliklerini takip et.
+            Hedefine yaklaşırken ürettiğin doğrulanabilir projeleri, yazıları ve gelişen pratik yetkinliklerini takip et.
           </p>
         </div>
 
         <Dialog open={openModal} onOpenChange={setOpenModal}>
           <DialogTrigger asChild>
             <Button size="sm" className="rounded-xl text-xs shadow-xs">
-              <Plus className="size-3.5 mr-1.5" /> Yeni Kanıt Ekle
+              <Plus className="size-3.5 mr-1.5" /> Yeni Çıktı / Proje Ekle
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-base font-semibold">Yeni Kanıt &amp; Çıktı Kaydet</DialogTitle>
+              <DialogTitle className="text-base font-semibold">Yeni Proje &amp; Çıktı Kaydet</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 Proje, lab çözümü, sertifika veya doğrulanabilir bir GitHub / web bağlantısı ekle.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2 text-xs">
               <div className="space-y-1">
-                <Label className="text-xs">Kanıt / Proje Başlığı</Label>
+                <Label className="text-xs">Proje / Çıktı Başlığı</Label>
                 <Input
                   value={draft.title}
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
@@ -149,7 +149,7 @@ export function SkillOverview({ evidence = false }: { evidence?: boolean }) {
                 disabled={!draft.title.trim() || !draft.description.trim()}
                 className="rounded-xl text-xs"
               >
-                Kanıtı Kaydet
+                Projeyi Kaydet
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -184,7 +184,7 @@ export function SkillOverview({ evidence = false }: { evidence?: boolean }) {
 
         <div className="rounded-2xl border bg-card/60 p-4 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-medium text-muted-foreground">Kayıtlı Kanıt &amp; Çıktılar</span>
+            <span className="text-[11px] font-medium text-muted-foreground">Kayıtlı Portföy &amp; Çıktılar</span>
             <p className="mt-1 text-2xl font-bold font-mono tracking-tight text-foreground">
               {totalProjects} <span className="text-xs font-normal text-muted-foreground">çıktı</span>
             </p>
@@ -279,7 +279,7 @@ export function SkillOverview({ evidence = false }: { evidence?: boolean }) {
                         setOpenModal(true);
                       }}
                     >
-                      + Kanıt Ekle
+                      + Çıktı Ekle
                     </Button>
                   </div>
                 </div>
