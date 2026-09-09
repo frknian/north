@@ -476,9 +476,28 @@ export interface WorkspaceState {
   companionSettings?: CompanionSettings;
 }
 
-export type CompanionColor = "blue" | "purple" | "emerald" | "amber" | "rose" | "cyan";
+export type CompanionColor =
+  | "blue"
+  | "purple"
+  | "emerald"
+  | "amber"
+  | "rose"
+  | "cyan"
+  | "indigo"
+  | "obsidian";
+
+export type CompanionOutfit =
+  | "none"
+  | "scarf"
+  | "glasses"
+  | "headphones"
+  | "hat"
+  | "crown"
+  | "cape"
+  | "bandana";
 
 export interface CompanionSettings {
   name: string;
   color: CompanionColor;
+  outfit?: CompanionOutfit;
 }

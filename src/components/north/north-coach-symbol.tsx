@@ -32,7 +32,7 @@ export function NorthCoachSymbol({
         )}
       >
         <Image
-          src="/planorth-coach-symbol.png"
+          src="/planorth-chatbot-symbol.png"
           alt={alt}
           width={size}
           height={size}
@@ -53,7 +53,7 @@ export function NorthCoachSymbol({
         )}
       >
         <Image
-          src="/planorth-coach-symbol.png"
+          src="/planorth-chatbot-symbol.png"
           alt={alt}
           width={size}
           height={size}
@@ -66,7 +66,7 @@ export function NorthCoachSymbol({
 
   return (
     <Image
-      src="/planorth-coach-symbol.png"
+      src="/planorth-chatbot-symbol.png"
       alt={alt}
       width={size}
       height={size}

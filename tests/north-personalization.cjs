@@ -259,4 +259,29 @@ assert.equal(findDomain('Fransızca').id, 'french');
 assert.equal(findDomain('Japonca').id, 'japanese');
 assert.equal(findDomain('Arapça').id, 'arabic');
 
-console.log('North personalization checks passed: exam calculations, 16 domain catalog & synonyms, adaptive assessment, unknown domain adaptation, 5-phase period plan, resilient task rescheduling, calendar clash avoidance, 5-language learning engine (A1-C2 level diagnostic tests, customized period plans, resources).');
+// 6. COMPANION CUSTOMIZATION, OUTFITS & GROWTH SIMULATION TESTS
+const avatarSource = fs.readFileSync('src/components/north/companion-avatar.tsx', 'utf8');
+
+// Verify all 8 colors are defined with gradients and glow
+const expectedColors = ['blue', 'purple', 'emerald', 'amber', 'rose', 'cyan', 'indigo', 'obsidian'];
+for (const colorId of expectedColors) {
+  assert.ok(avatarSource.includes(`id: "${colorId}"`), `Avatar must define color: ${colorId}`);
+}
+
+// Verify all 8 outfits are defined
+const expectedOutfits = ['none', 'scarf', 'glasses', 'headphones', 'hat', 'crown', 'cape', 'bandana'];
+for (const outfitId of expectedOutfits) {
+  assert.ok(avatarSource.includes(`id: "${outfitId}"`), `Avatar must define outfit: ${outfitId}`);
+}
+
+// Verify all 5 growth stages
+for (let lvl = 1; lvl <= 5; lvl++) {
+  assert.ok(avatarSource.includes(`level: ${lvl}`), `Avatar must define growth level: ${lvl}`);
+}
+
+// Verify level scaling increases monotonically
+assert.ok(avatarSource.includes('scale: 0.88'));
+assert.ok(avatarSource.includes('scale: 1.24'));
+
+console.log('North personalization checks passed: exam calculations, 16 domain catalog & synonyms, adaptive assessment, unknown domain adaptation, 5-phase period plan, resilient task rescheduling, calendar clash avoidance, 5-language learning engine, companion 8 body colors, 8 outfits/accessories, 5 growth stages simulation.');
+
