@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Award, BarChart3, BookOpen, Briefcase, CalendarDays, ClipboardList, FlaskConical, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Award, BarChart3, BookOpen, Briefcase, CalendarDays, CircleHelp, ClipboardList, FlaskConical, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { NorthChatPopover } from "@/components/north/north-chat-popover";
+import { GuideTourModal } from "@/components/features/guide-tour-modal";
 import { WorkspaceSearch } from "@/components/features/workspace-search";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { isFirebaseConfigured } from "@/lib/firebase/client";
@@ -200,7 +201,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
       {areaRoutes.some(p=>pathname===p||pathname.startsWith(p+"/"))&&<div className="north-context"><Link href={primaryArea ? `/areas/${primaryArea.id}` : "/areas"}>Alanlar / {primaryArea?.name??"Ana hedef"}</Link><span>/ {titles[pathname]??"Ayrıntı"}</span></div>}
       <div key={pathname} className={cn("north-route max-w-full overflow-x-hidden", pathname === "/coach" && "h-full overflow-hidden !p-0")}>{children}</div>
     </main>
-    <NorthChatPopover/><MobileNavigation pathname={pathname}/>
+    <NorthChatPopover/><MobileNavigation pathname={pathname}/><GuideTourModal/>
   </div>;
 }
 function TopNavigation({ pathname }: { pathname: string }) {
@@ -369,6 +370,14 @@ function MobileNavigation({ pathname }: { pathname: string }) {
           {/* ALT TERCİHLER VE TEMA BARI */}
           <div className="pt-3 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
             <Link
+              href="/profile?tab=guide"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-1.5 hover:text-foreground font-medium p-1.5 rounded-lg active:bg-muted/50"
+            >
+              <CircleHelp size={15} className="text-primary" />
+              <span>Kılavuz &amp; Tur</span>
+            </Link>
+            <Link
               href="/profile"
               onClick={() => setOpen(false)}
               className="flex items-center gap-1.5 hover:text-foreground font-medium p-1.5 rounded-lg active:bg-muted/50"
@@ -382,7 +391,7 @@ function MobileNavigation({ pathname }: { pathname: string }) {
               className="flex items-center gap-1.5 hover:text-foreground font-medium p-1.5 rounded-lg active:bg-muted/50"
             >
               <ShieldCheck size={15} className="text-primary" />
-              <span>Verilerim ve Güvenlik</span>
+              <span>Verilerim</span>
             </Link>
             <div className="flex items-center gap-2 pl-1">
               <span className="text-[11px]">Tema:</span>

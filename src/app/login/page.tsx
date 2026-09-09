@@ -23,11 +23,14 @@ import { deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
 import {
   ArrowRight,
   Check,
+  CircleHelp,
+  Compass,
   Flame,
   Languages,
   LoaderCircle,
   MailCheck,
   Sparkles,
+  Target,
   Trophy,
   Volume2,
 } from "lucide-react";
@@ -87,6 +90,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [noticeRead, setNoticeRead] = useState(false);
   const [kvkkOpen, setKvkkOpen] = useState(false);
+  const [systemInfoOpen, setSystemInfoOpen] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [pending, setPending] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -401,7 +405,7 @@ export default function LoginPage() {
 
         {/* ORTA: Giriş & Kayıt Kartı */}
         <div className="w-full max-w-md shrink-0">
-          <Brand />
+          <Brand onOpenSystemInfo={() => setSystemInfoOpen(true)} />
 
           <Card className="w-full border border-border bg-card text-card-foreground shadow-xl rounded-2xl overflow-hidden">
           <CardContent className="p-5 sm:p-7 space-y-4">
@@ -659,14 +663,23 @@ export default function LoginPage() {
                     )}
                   </div>
 
-                  {/* Alt Bilgi: KVKK Modal Butonu */}
-                  <div className="pt-2 text-center">
+                  {/* Alt Bilgi: Sistem Rehberi & KVKK Butonları */}
+                  <div className="pt-2 flex items-center justify-center gap-3 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setSystemInfoOpen(true)}
+                      className="text-[11px] font-medium text-primary hover:underline transition inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="size-3" />
+                      Planorth Nedir?
+                    </button>
+                    <span className="text-muted-foreground/40 text-[10px]">•</span>
                     <button
                       type="button"
                       onClick={() => setKvkkOpen(true)}
-                      className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition"
+                      className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition cursor-pointer"
                     >
-                      KVKK Aydınlatma Metni
+                      KVKK Metni
                     </button>
                   </div>
                 </div>
@@ -820,13 +833,147 @@ export default function LoginPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* SİSTEM & UYGULAMA REHBERİ POP-UP (MODAL) */}
+      <Dialog open={systemInfoOpen} onOpenChange={setSystemInfoOpen}>
+        <DialogContent className="max-w-2xl max-h-[85dvh] flex flex-col bg-card border-border text-card-foreground rounded-3xl p-6 shadow-2xl">
+          <DialogHeader className="space-y-1.5 text-left border-b border-border/60 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="size-8 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
+                <Sparkles className="size-4.5" />
+              </span>
+              <div>
+                <DialogTitle className="text-base sm:text-lg font-extrabold text-foreground">
+                  Planorth Nedir ve Nasıl Çalışır?
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Karar yorgunluğunu bitiren, suçluluk hissettirmeyen kişisel gelişim ve derin odaklanma sistemi.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs text-muted-foreground leading-relaxed py-2">
+            {/* 1. FELSEFE */}
+            <section className="rounded-2xl border border-primary/25 bg-primary/5 p-3.5 space-y-1.5 text-foreground">
+              <h4 className="font-bold text-xs text-primary flex items-center gap-1.5">
+                <Target className="size-3.5" /> Felsefemiz: Daha Az Karar, Daha Derin Odak
+              </h4>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Klasik yapılacaklar listeleri her gün ertelenen onlarca maddeyle suçluluk ve karar yorgunluğu yaratır. Planorth, her an sadece o sırada yapman gereken <strong>tek anlamlı göreve</strong> odaklandırır. Yetişmeyen işler borç olmaz; yapay zeka ile otomatik küçültülür veya haftalık havuza alınır.
+              </p>
+            </section>
+
+            {/* 2. TÜM SEKME VE MODÜLLER */}
+            <section className="space-y-2.5">
+              <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
+                Tüm Sekmeler ve Temel Yetenekler
+              </h4>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 space-y-1">
+                  <p className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                    <span>🏠</span> Bugün Ekranı
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    Büyük ŞİMDİ odak kartı, sabah pusulası, akşam günü suçluluksuz kapatma ritüeli ve günlük mikro alışkanlık zincirleri.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 space-y-1">
+                  <p className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                    <span>🎓</span> Alanlar &amp; Sınav Kampları
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    Vize/final haftaları veya kariyer konuları için elindeki PDF/ders notunu yükle; yapay zeka belgeyi inceler, modüllere böler ve seni hazırlar.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 space-y-1">
+                  <p className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                    <span>📋</span> Haftalık Esnek Plan
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    Görevleri tek tıkla küçültme (shrink), erteleme (postpone), havuza alma ve takvimdeki boşluklara akıllı otomatik dağıtım.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 space-y-1">
+                  <p className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                    <span>📚</span> Kaynaklar &amp; Kütüphane
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    Canlı Web ve Libgen akademik arama, NotebookLM entegrasyonu, PDF sayfa pinleme ve AI kaynak özetleri.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 space-y-1">
+                  <p className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                    <span>⚡</span> Zen Odak Kokpiti
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    6 kanallı ortam ses mikseri (yağmur, kafe vb.), yan panelde kaynak okuma ve çoklu sekme kilit koruması.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 space-y-1">
+                  <p className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                    <span>🤖</span> Planorth AI Koç
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    Çalışma alışkanlıklarını hatırlayan hafıza sistemi, proaktif uyarılar ve her an danışabileceğin kayan koç butonu.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* 3. KİMLER İÇİN */}
+            <section className="space-y-1 pt-1">
+              <h4 className="font-bold text-foreground text-xs">Kimler İçin İdeal?</h4>
+              <p className="text-[11px]">
+                Üniversite öğrencileri (vize, final, proje hazırlığı), yazılım ve siber güvenlik gibi teknik alanlarda çalışanlar, dil öğrenenler ve kariyerinde derinleşmek isteyen tüm profesyoneller için optimize edilmiştir.
+              </p>
+            </section>
+
+            {/* 4. GÜVENLİK */}
+            <section className="space-y-1 pt-1">
+              <h4 className="font-bold text-foreground text-xs">Güvenlik ve Gizlilik</h4>
+              <p className="text-[11px]">
+                Verileriniz şifrelenir ve KVKK ile tam uyumludur. Dilediğiniz zaman çalışma alanınızın tam bir JSON kopyasını indirebilir veya hesabınızı tek tıkla silebilirsiniz.
+              </p>
+            </section>
+          </div>
+
+          <DialogFooter className="flex-row items-center justify-between sm:justify-between gap-2 pt-3 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-border text-xs"
+              onClick={() => setSystemInfoOpen(false)}
+            >
+              Kapat
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-xl font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => {
+                setMode("signup");
+                setSystemInfoOpen(false);
+              }}
+            >
+              Hemen Kayıt Ol <ArrowRight className="size-3.5 ml-1" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
 
-function Brand() {
+function Brand({ onOpenSystemInfo }: { onOpenSystemInfo?: () => void } = {}) {
   return (
-    <div className="text-center mb-6 space-y-2">
+    <div className="text-center mb-6 space-y-2.5">
       <div className="inline-flex items-center justify-center gap-2.5">
         <NorthLogo size={42} priority />
         <span className="font-planorth text-2xl tracking-[0.04em] text-foreground">PLANORTH</span>
@@ -837,6 +984,18 @@ function Brand() {
       <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
         Kişiselleştirilmiş AI koçluk ve derin odaklanma ile hedeflerine adım adım ulaş.
       </p>
+      {onOpenSystemInfo && (
+        <div className="pt-0.5">
+          <button
+            type="button"
+            onClick={onOpenSystemInfo}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold shadow-2xs transition-all cursor-pointer hover:scale-105 active:scale-95"
+          >
+            <Sparkles className="size-3.5 animate-pulse text-primary" />
+            <span>Planorth Nedir? Sistemi Keşfet ↗</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
