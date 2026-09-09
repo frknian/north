@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { authenticatedAiFetch } from "@/lib/ai/client";
 import {
   NorthBook,
   loadBooks,
@@ -138,25 +139,63 @@ export function ResourcesHub() {
     });
   }, [recCategory, recMood, recLength, recQuery]);
 
-  // Handle Web Search
-  async function handleSearch(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    setSearchLoading(true);
+  // Safe API POST helper that sends Firebase token if logged in, otherwise falls back to standard fetch
+  async function apiPost(path: string, body: unknown) {
     try {
-      const res = await fetch("/api/ai/source-search", {
+      return await authenticatedAiFetch(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: searchQuery, category: searchCategory }),
+        body: JSON.stringify(body),
+      });
+    } catch {
+      return await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    }
+  }
+
+  // Handle Web & Resource Search
+  async function handleSearch(e?: React.FormEvent, overrideQuery?: string, overrideCategory?: string) {
+    if (e) e.preventDefault();
+    const queryToSearch = (overrideQuery !== undefined ? overrideQuery : searchQuery).trim();
+    const catToSearch = (overrideCategory !== undefined ? overrideCategory : searchCategory).trim();
+    if (!queryToSearch) {
+      toast.info("Lütfen aramak istediğin konuyu veya anahtar kelimeyi yaz.");
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const res = await apiPost("/api/ai/source-search", {
+        query: queryToSearch,
+        category: catToSearch,
       });
       const data = await res.json();
-      if (data.results) {
+      if (Array.isArray(data.results)) {
         setSearchResults(data.results);
+      } else {
+        setSearchResults([]);
       }
     } catch {
-      toast.error("Arama servisi şu an meşgul. Yerel doğrulanmış kaynaklar listeleniyor.");
+      toast.error("Arama servisi şu an meşgul. Lütfen tekrar dene.");
     } finally {
       setSearchLoading(false);
     }
+  }
+
+  // Handle Dedicated Libgen / Book Search
+  async function handleLibgenSearch(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    const q = (libgenInput || "").trim();
+    if (!q) {
+      toast.info("Lütfen aramak istediğin kitap, yazar adı veya ISBN yaz.");
+      return;
+    }
+    setSearchQuery(q);
+    setSearchCategory("Kitap");
+    await handleSearch(undefined, q, "Kitap");
   }
 
   // Handle AI Summary Generation
@@ -166,11 +205,7 @@ export function ResourcesHub() {
     setSummaryLoading(true);
     setSummaryModalOpen(true);
     try {
-      const res = await fetch("/api/ai/source-summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, content }),
-      });
+      const res = await apiPost("/api/ai/source-summary", { title, content });
       const data = await res.json();
       setSummaryOutput(data);
     } catch {
@@ -780,17 +815,9 @@ export function ResourcesHub() {
                   type="button"
                   onClick={() => {
                     setSearchQuery(chip);
-                    setSearchLoading(true);
-                    fetch("/api/ai/source-search", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ query: chip }),
-                    })
-                      .then((r) => r.json())
-                      .then((d) => setSearchResults(d.results || []))
-                      .finally(() => setSearchLoading(false));
+                    handleSearch(undefined, chip);
                   }}
-                  className="rounded-lg border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted"
+                  className="rounded-lg border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
                   {chip}
                 </button>
@@ -798,135 +825,289 @@ export function ResourcesHub() {
             </div>
 
             {/* Libgen Direct Search Bar */}
-            <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 mt-3 space-y-2.5">
-              <div className="flex items-center justify-between">
+            <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 mt-3 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="grid size-6 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
-                    <BookOpen className="size-3.5" />
+                  <span className="grid size-7 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                    <BookOpen className="size-4" />
                   </span>
                   <div>
-                    <h3 className="text-xs font-bold text-foreground">Libgen (Library Genesis) Akademik Köprüsü</h3>
-                    <p className="text-[10px] text-muted-foreground">Kitap, makale ve bilimsel araştırmaları anında tara.</p>
+                    <h3 className="text-xs font-bold text-foreground">Libgen (Library Genesis) &amp; Akademik Kitap Köprüsü</h3>
+                    <p className="text-[11px] text-muted-foreground">Kitap, makale, PDF ve bilimsel araştırmaları doğrudan Planorth içinde ara veya aynalarda aç.</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-[10px]">Ayna 1: libgen.is · Ayna 2: libgen.li</Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-[10px] text-indigo-600 dark:text-indigo-400 border-indigo-500/30">
+                    Canlı Tarama Aktif
+                  </Badge>
+                </div>
               </div>
 
-              <div className="flex gap-2">
+              <form onSubmit={handleLibgenSearch} className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={libgenInput}
                   onChange={(e) => setLibgenInput(e.target.value)}
-                  placeholder="Kitap başlığı, yazar adı veya ISBN yaz..."
-                  className="flex-1 rounded-xl border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-hidden"
+                  placeholder="Kitap adı, yazar veya ISBN yaz (örn: Active Directory, Clean Code, Burp Suite)..."
+                  className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-hidden"
                 />
-                <a
-                  href={getLibgenSearchUrl(libgenInput || "Cyber Security", "is")}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
+                <Button
+                  type="submit"
+                  disabled={searchLoading}
+                  className="rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 h-9"
                 >
-                  <span>Libgen.is</span>
-                  <ExternalLink className="size-3" />
-                </a>
-                <a
-                  href={getLibgenSearchUrl(libgenInput || "Cyber Security", "li")}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 rounded-xl border border-indigo-500/30 bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                >
-                  <span>Libgen.li</span>
-                  <ExternalLink className="size-3" />
-                </a>
-              </div>
+                  <Search className="mr-1.5 size-3.5" />
+                  Kitap Ara
+                </Button>
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "li")}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-xl border border-indigo-500/30 bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                    title="Libgen.li (En kararlı çalışan ayna)"
+                  >
+                    <span>Libgen.li</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                  <a
+                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "anna")}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                    title="Anna's Archive (Dünya gölge kütüphane arşivi)"
+                  >
+                    <span>Anna&apos;s Archive</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                  <a
+                    href={getLibgenSearchUrl(libgenInput || "Cyber Security", "is")}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hidden lg:inline-flex items-center gap-1 rounded-xl border border-border bg-background px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    title="Libgen.is (Alternatif ayna)"
+                  >
+                    <span>Libgen.is</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                </div>
+              </form>
             </div>
           </div>
 
-          {/* Search Results Grid */}
-          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-            {searchResults.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col justify-between rounded-2xl border bg-card/70 p-4 space-y-3"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold px-2 py-0.5">
-                      {item.type.toUpperCase()}
-                    </span>
-                    <span className="text-muted-foreground truncate max-w-[120px]">{item.provider}</span>
+          {/* Loading Skeleton */}
+          {searchLoading && (
+            <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="rounded-2xl border bg-card/60 p-4 space-y-3 animate-pulse">
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 w-16 bg-muted rounded" />
+                    <div className="h-3 w-20 bg-muted rounded" />
                   </div>
-
-                  <h3 className="font-bold text-foreground text-sm leading-snug">
-                    {item.title}
-                  </h3>
-
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                    {item.description}
-                  </p>
-
-                  {item.keyTakeaways && item.keyTakeaways.length > 0 && (
-                    <div className="rounded-xl border bg-muted/30 p-2 text-[10px] space-y-1">
-                      <span className="font-semibold text-foreground">Önemli Noktalar:</span>
-                      <ul className="text-muted-foreground list-disc list-inside space-y-0.5">
-                        {item.keyTakeaways.slice(0, 2).map((takeaway, idx) => (
-                          <li key={idx} className="line-clamp-1">{takeaway}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <div className="h-5 w-3/4 bg-muted rounded" />
+                  <div className="h-12 w-full bg-muted rounded" />
+                  <div className="h-8 w-1/3 bg-muted rounded" />
                 </div>
+              ))}
+            </div>
+          )}
 
-                <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-1.5">
+          {/* Empty State / Search Results */}
+          {!searchLoading && searchResults.length === 0 && (
+            <div className="rounded-2xl border border-dashed bg-card/40 p-8 text-center space-y-3">
+              <div className="mx-auto grid size-10 place-items-center rounded-2xl bg-muted text-muted-foreground">
+                <Search className="size-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {searchQuery ? `"${searchQuery}" için doğrudan sonuç bulunamadı` : "Canlı Araştırma Yap veya Kitap Tara"}
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  {searchQuery
+                    ? "Aradığın konuyu doğrudan Libgen veya Anna's Archive aynalarında açabilir ya da farklı anahtar kelimelerle arama yapabilirsin."
+                    : "Yukarıdaki arama çubuğuna siber güvenlik konusu, araç veya kitap adı yazarak canlı web dokümanlarına ve akademik kitaplara erişebilirsin."}
+                </p>
+              </div>
+              {searchQuery && (
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                   <a
-                    href={item.url}
+                    href={getLibgenSearchUrl(searchQuery, "li")}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-xl bg-primary/10 text-primary px-3 py-1 text-xs font-semibold hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500"
                   >
-                    <span>Aç</span>
+                    <span>Libgen.li&apos;de Ara</span>
                     <ExternalLink className="size-3" />
                   </a>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRangeBookTitle(item.title);
-                        setRangeTopic("Önemli Bölüm");
-                        setRangeStart("1");
-                        setRangeEnd("30");
-                        setAddRangeModalOpen(true);
-                      }}
-                      className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
-                      title="Sayfa aralığı kaydet"
-                    >
-                      <Bookmark className="size-3.5" />
-                    </button>
-
-                    <a
-                      href={getLibgenSearchUrl(item.libgenQuery || item.title)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
-                      title="Libgen'de Ara"
-                    >
-                      <BookOpen className="size-3.5" />
-                    </a>
-
-                    <button
-                      type="button"
-                      onClick={() => handleGenerateSummary(item.title, `${item.description}\n\nKaynak: ${item.url}`)}
-                      className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-amber-500 hover:bg-muted"
-                      title="AI Özeti Çıkar"
-                    >
-                      <Sparkles className="size-3.5" />
-                    </button>
-                  </div>
+                  <a
+                    href={getLibgenSearchUrl(searchQuery, "anna")}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-xl border bg-background px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+                  >
+                    <span>Anna&apos;s Archive&apos;da Ara</span>
+                    <ExternalLink className="size-3" />
+                  </a>
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
+
+          {/* Search Results Grid */}
+          {!searchLoading && searchResults.length > 0 && (
+            <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+              {searchResults.map((item) => {
+                const isBook = item.type === "book" || Boolean(item.downloadUrl || item.author);
+                return (
+                  <div
+                    key={item.id}
+                    className="flex flex-col justify-between rounded-2xl border bg-card/70 p-4 space-y-3 hover:border-border/80 transition-colors"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(
+                            "rounded-md font-semibold px-2 py-0.5 uppercase",
+                            isBook
+                              ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          )}>
+                            {isBook ? "KİTAP / LİBGEN" : item.type.toUpperCase()}
+                          </span>
+                          {item.fileExt && (
+                            <span className="rounded-md bg-muted px-1.5 py-0.5 font-bold uppercase text-[9px] text-muted-foreground">
+                              {item.fileExt}
+                            </span>
+                          )}
+                          {item.fileSize && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {item.fileSize}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-muted-foreground truncate max-w-[120px]" title={item.provider}>
+                          {item.provider}
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-foreground text-sm leading-snug">
+                        {item.title}
+                      </h3>
+
+                      {item.author && (
+                        <p className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                          <BookOpen className="size-3 shrink-0" />
+                          <span className="truncate">{item.author} {item.year ? `(${item.year})` : ""}</span>
+                        </p>
+                      )}
+
+                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                        {item.description}
+                      </p>
+
+                      {item.keyTakeaways && item.keyTakeaways.length > 0 && (
+                        <div className="rounded-xl border bg-muted/30 p-2 text-[10px] space-y-1">
+                          <span className="font-semibold text-foreground">Önemli Noktalar:</span>
+                          <ul className="text-muted-foreground list-disc list-inside space-y-0.5">
+                            {item.keyTakeaways.slice(0, 2).map((takeaway, idx) => (
+                              <li key={idx} className="line-clamp-1">{takeaway}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <a
+                          href={item.downloadUrl || item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-semibold transition-colors",
+                            isBook
+                              ? "bg-indigo-600 text-white hover:bg-indigo-500"
+                              : "bg-primary/10 text-primary hover:bg-primary/20"
+                          )}
+                        >
+                          <span>{isBook ? "İndir / Oku" : "Aç"}</span>
+                          {isBook ? <Download className="size-3" /> : <ExternalLink className="size-3" />}
+                        </a>
+
+                        {isBook && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              addBook({
+                                title: item.title.split(/[-–—|:]/)[0].trim(),
+                                author: item.author || "Seçkin Yazar",
+                                category: "Teknik",
+                                totalPages: 300,
+                                currentPage: 0,
+                                status: "reading",
+                              });
+                              setBooks(loadBooks());
+                              toast.success(`"${item.title.split(/[-–—|:]/)[0].trim()}" kitaplığına eklendi!`);
+                            }}
+                            className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                            title="Kitaplığıma Ekle"
+                          >
+                            <Plus className="size-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRangeBookTitle(item.title);
+                            setRangeTopic("Önemli Bölüm");
+                            setRangeStart("1");
+                            setRangeEnd("30");
+                            setAddRangeModalOpen(true);
+                          }}
+                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                          title="Sayfa aralığı kaydet"
+                        >
+                          <Bookmark className="size-3.5" />
+                        </button>
+
+                        <a
+                          href={item.annasUrl || getLibgenSearchUrl(item.libgenQuery || item.title, "anna")}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted text-[10px] font-bold"
+                          title="Anna's Archive Aynası"
+                        >
+                          A
+                        </a>
+
+                        <a
+                          href={item.mirrorUrl || getLibgenSearchUrl(item.libgenQuery || item.title, "li")}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-indigo-500 hover:bg-muted"
+                          title="Libgen Aynasında Aç"
+                        >
+                          <BookOpen className="size-3.5" />
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateSummary(item.title, `${item.description}\n\nKaynak: ${item.url}`)}
+                          className="rounded-lg border bg-muted/30 p-1.5 text-muted-foreground hover:text-amber-500 hover:bg-muted"
+                          title="AI Özeti Çıkar"
+                        >
+                          <Sparkles className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

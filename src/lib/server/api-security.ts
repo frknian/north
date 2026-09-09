@@ -30,14 +30,15 @@ function consumeRate(key: string, now: number, perMinute: number, perDay: number
 export async function secureApiRequest(
   request: Request,
   scope: string,
-  limits: { perMinute?: number; perDay?: number; unlimited?: boolean } = {},
+  limits: { perMinute?: number; perDay?: number; unlimited?: boolean; optionalAuth?: boolean } = {},
 ): Promise<SecurityResult> {
   const origin = request.headers.get("origin");
   if (origin && origin !== "null" && origin !== new URL(request.url).origin) {
     return { ok: false, response: apiError("İstek kaynağına izin verilmedi.", 403) };
   }
 
-  const user = await verifyFirebaseRequest(request);
+  const verified = await verifyFirebaseRequest(request);
+  const user: VerifiedUser | null = verified ?? (limits.optionalAuth ? { uid: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "anonymous", email: undefined } : null);
   if (!user) return { ok: false, response: apiError("Oturum gerekli.", 401) };
 
   const now = Date.now();

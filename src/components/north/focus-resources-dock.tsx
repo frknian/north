@@ -6,6 +6,7 @@ import {
   Bookmark,
   Check,
   Copy,
+  Download,
   ExternalLink,
   FileText,
   Layers,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { authenticatedAiFetch } from "@/lib/ai/client";
 import {
   loadSavedPageRanges,
   updateSavedPageRange,
@@ -554,14 +556,23 @@ export function FocusResourcesModal({
     setIsSearching(true);
     setSearchError("");
     try {
-      const res = await fetch("/api/ai/source-search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: searchQuery.trim(), limit: 6 }),
-      });
+      let res: Response;
+      try {
+        res = await authenticatedAiFetch("/api/ai/source-search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: searchQuery.trim(), limit: 8 }),
+        });
+      } catch {
+        res = await fetch("/api/ai/source-search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: searchQuery.trim(), limit: 8 }),
+        });
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Arama hatası");
-      setSearchResults(data.results || []);
+      setSearchResults(Array.isArray(data.results) ? data.results : []);
     } catch (err: any) {
       setSearchError(err.message || "Arama başarısız oldu.");
     } finally {
@@ -1044,27 +1055,38 @@ export function FocusResourcesModal({
                 <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-2.5 flex items-center justify-between gap-2">
                   <div className="min-w-0 text-xs">
                     <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                      Libgen (Library Genesis) Araması:
+                      Libgen &amp; Kitap Aynaları:
                     </span>{" "}
                     <span className="text-muted-foreground truncate">&ldquo;{searchQuery}&rdquo;</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <a
-                      href={getLibgenSearchUrl(searchQuery, "is")}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg border bg-background px-2.5 py-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10"
-                    >
-                      libgen.is
-                      <ExternalLink className="size-2.5" />
-                    </a>
-                    <a
                       href={getLibgenSearchUrl(searchQuery, "li")}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg border bg-background px-2.5 py-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10"
+                      className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 text-white px-2 py-1 text-[10px] font-bold hover:bg-indigo-500"
+                      title="Libgen.li (En kararlı ayna)"
                     >
                       libgen.li
+                      <ExternalLink className="size-2.5" />
+                    </a>
+                    <a
+                      href={getLibgenSearchUrl(searchQuery, "anna")}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg border bg-background px-2 py-1 text-[10px] font-bold text-foreground hover:bg-muted"
+                      title="Anna's Archive (Gölge kütüphane)"
+                    >
+                      Anna&apos;s
+                      <ExternalLink className="size-2.5" />
+                    </a>
+                    <a
+                      href={getLibgenSearchUrl(searchQuery, "is")}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hidden sm:inline-flex items-center gap-1 rounded-lg border bg-background px-2 py-1 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-muted"
+                    >
+                      libgen.is
                       <ExternalLink className="size-2.5" />
                     </a>
                   </div>
@@ -1077,44 +1099,74 @@ export function FocusResourcesModal({
 
               {/* Search Results */}
               <div className="space-y-2">
-                {searchResults.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-2xl border bg-background/80 p-3 space-y-2 transition-all hover:border-indigo-500/40"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-0.5 text-[10px]">
-                          {item.type.toUpperCase()}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground truncate">{item.provider}</span>
+                {searchResults.map((item) => {
+                  const isBook = item.type === "book" || Boolean(item.downloadUrl || item.author);
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border bg-background/80 p-3 space-y-2 transition-all hover:border-indigo-500/40"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={cn(
+                            "rounded font-bold px-2 py-0.5 text-[10px]",
+                            isBook
+                              ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          )}>
+                            {isBook ? "KİTAP" : item.type.toUpperCase()}
+                          </span>
+                          {item.fileExt && (
+                            <span className="rounded bg-muted px-1.5 py-0.5 font-bold uppercase text-[9px] text-muted-foreground">
+                              {item.fileExt}
+                            </span>
+                          )}
+                          {item.fileSize && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {item.fileSize}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-muted-foreground truncate">{item.provider}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <a
+                            href={item.downloadUrl || item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={cn(
+                              "inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg transition-colors",
+                              isBook
+                                ? "bg-indigo-600 text-white hover:bg-indigo-500"
+                                : "text-indigo-600 dark:text-indigo-400 hover:underline"
+                            )}
+                          >
+                            <span>{isBook ? "İndir" : "Kaynağa Git"}</span>
+                            {isBook ? <Download className="size-2.5" /> : <ExternalLink className="size-3" />}
+                          </a>
+                        </div>
                       </div>
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline shrink-0"
-                      >
-                        Kaynağa Git
-                        <ExternalLink className="size-3" />
-                      </a>
+
+                      <h4 className="text-xs font-bold text-foreground">{item.title}</h4>
+                      {item.author && (
+                        <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
+                          {item.author} {item.year ? `(${item.year})` : ""}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">{item.description}</p>
+
+                      {item.keyTakeaways && item.keyTakeaways.length > 0 && (
+                        <div className="rounded-xl bg-muted/30 p-2 space-y-1">
+                          {item.keyTakeaways.map((takeaway, i) => (
+                            <div key={i} className="text-[10px] text-muted-foreground flex items-start gap-1.5">
+                              <span className="text-indigo-500 font-bold">•</span>
+                              <span>{takeaway}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-
-                    <h4 className="text-xs font-bold text-foreground">{item.title}</h4>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">{item.description}</p>
-
-                    {item.keyTakeaways && item.keyTakeaways.length > 0 && (
-                      <div className="rounded-xl bg-muted/30 p-2 space-y-1">
-                        {item.keyTakeaways.map((takeaway, i) => (
-                          <div key={i} className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-                            <span className="text-indigo-500 font-bold">•</span>
-                            <span>{takeaway}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

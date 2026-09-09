@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { generateText } from "ai";
 import { careerModel, hasAiConfiguration, securityBoundary } from "@/lib/ai/model";
 import { readLimitedJson, secureApiRequest } from "@/lib/server/api-security";
+import { verifyFirebaseRequest } from "@/lib/firebase/admin";
 
 export async function POST(request: Request) {
-  const access = await secureApiRequest(request, "ai:source-summary");
+  const access = await secureApiRequest(request, "ai:source-summary", { optionalAuth: true });
   if (!access.ok) return access.response;
 
   const body = await readLimitedJson(request);
@@ -39,7 +40,8 @@ export async function POST(request: Request) {
     notebookLmPrompt: `${title} kaynağındaki ana argümanları ve en sık karşılaşılan tuzakları adım adım analiz edebilir misin?`,
   };
 
-  if (!hasAiConfiguration()) {
+  const user = await verifyFirebaseRequest(request);
+  if (!user || !hasAiConfiguration()) {
     return NextResponse.json(fallbackResponse);
   }
 

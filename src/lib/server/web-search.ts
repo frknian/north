@@ -252,3 +252,93 @@ export function detectResourceSearchIntent(
 
   return { shouldSearch: false, query: "" };
 }
+
+export interface LibgenBookResult {
+  id: string;
+  title: string;
+  author: string;
+  publisher: string;
+  year: string;
+  size: string;
+  ext: string;
+  downloadUrl: string;
+  mirrorUrl: string;
+  annasUrl: string;
+}
+
+export async function searchLibgenBooks(query: string, maxResults = 6): Promise<LibgenBookResult[]> {
+  const clean = query.trim();
+  if (!clean) return [];
+
+  try {
+    const searchUrl = `https://libgen.li/index.php?req=${encodeURIComponent(clean)}&columns%5B%5D=t&columns%5B%5D=a&columns%5B%5D=s&res=${Math.max(maxResults * 2, 10)}`;
+    const response = await fetch(searchUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (!response.ok) return [];
+
+    const html = await response.text();
+    const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
+    const books: LibgenBookResult[] = [];
+
+    for (const row of rows) {
+      const rowHtml = row[1];
+      if (rowHtml.includes("<th")) continue;
+
+      const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => m[1]);
+      if (cells.length < 8) continue;
+
+      const firstCell = cells[0];
+      const titleMatch = /href="edition\.php\?id=([^"]+)"[^>]*>([\s\S]*?)<\/a>/i.exec(firstCell);
+      if (!titleMatch) continue;
+
+      const editionId = titleMatch[1];
+      const rawTitle = titleMatch[2].replace(/<[^>]+>/g, "").trim();
+      if (!rawTitle) continue;
+
+      const author = cells[1].replace(/<[^>]+>/g, "").trim();
+      const publisher = cells[2].replace(/<[^>]+>/g, "").trim();
+      const year = cells[3].replace(/<[^>]+>/g, "").trim();
+      const size = cells[6].replace(/<[^>]+>/g, "").trim();
+      const ext = cells[7].replace(/<[^>]+>/g, "").trim().toLowerCase();
+
+      const md5Match = /md5=([a-f0-9]{32})/i.exec(cells[8] || "");
+      const md5 = md5Match ? md5Match[1] : null;
+
+      const downloadUrl = md5
+        ? `https://libgen.li/ads.php?md5=${md5}`
+        : `https://libgen.li/edition.php?id=${editionId}`;
+
+      const mirrorUrl = `https://libgen.li/edition.php?id=${editionId}`;
+      const annasUrl = md5
+        ? `https://annas-archive.org/md5/${md5}`
+        : `https://annas-archive.org/search?q=${encodeURIComponent(rawTitle)}`;
+
+      books.push({
+        id: `libgen-${editionId}`,
+        title: rawTitle,
+        author: author || "Bilinmiyor",
+        publisher: publisher || "Akademik / Açık Kaynak",
+        year: year || "",
+        size: size || "",
+        ext: ext || "pdf",
+        downloadUrl,
+        mirrorUrl,
+        annasUrl,
+      });
+
+      if (books.length >= maxResults) break;
+    }
+
+    return books;
+  } catch (err) {
+    console.warn("[Libgen Search] Query failed:", err instanceof Error ? err.message : String(err));
+    return [];
+  }
+}
