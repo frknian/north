@@ -1,4 +1,4 @@
-const CACHE = "planorth-brand-v13";
+const CACHE = "planorth-brand-v14";
 const CORE = ["/offline.html", "/planorth-192.png", "/planorth-512.png", "/planorth-180.png", "/apple-touch-icon.png", "/favicon.ico"];
 self.addEventListener("install", event => {
   self.skipWaiting();
