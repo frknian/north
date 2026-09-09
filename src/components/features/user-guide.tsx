@@ -69,28 +69,35 @@ const guideTabs: GuideSection[] = [
     points: [
       {
         title: "Büyük 'ŞİMDİ' Odak Kartı",
-        desc: "Karar yorgunluğunu sıfırlayan odak kartı. O an yapman gereken tek görevi, ayrılan süreyi ve ana kazanımı dev bir kart olarak sunar.",
+        desc: "O an yapman gereken tek görevi, ayrılan süreyi ve ana kazanımı dev bir kart olarak sunar.",
         subBullets: [
           "'Odak Seansını Başlat' ile anında Odak Kokpiti'ne geçiş",
-          "Gözünde büyüyen görevler için kart üzerinden anında 'Yarıya Küçült' kısayolu",
-          "Beklenmeyen durumlarda vicdani rahatlıkla 'Ertele' seçeneği",
+          "Gözünde büyüyen görevler için tek tıkla 'Yarıya Küçült' kısayolu",
         ],
       },
       {
-        title: "Sabah Pusulası Ritüeli (2 Dakika)",
-        desc: "Her sabah güne başlamadan önce niyetini belirle ve günün tek ana önceliğini mühürle. Günün yönü karmaşaya girmeden netleşir.",
+        title: "Sabah & Akşam Ritüelleri",
+        desc: "Günün niyetini belirle ve akşam muhasebesini borçsuz tamamla.",
+        subBullets: [
+          "Sabah Pusulası: 2 dakikada günün tek ana önceliğini mühürle",
+          "Günü Kapat: Yetişmeyenleri suçluluk duymadan sonraki güne devret",
+        ],
       },
       {
-        title: "Günü Kapat Ritüeli (2 Dakika)",
-        desc: "Akşam çalışmayı noktalarken günün muhasebesini yap. Yetişmeyen işler borç veya negatif puan olmaz; sonraki güne veya haftalık havuza suçluluk duymadan devredilir.",
-      },
-      {
-        title: "Aktif Alt Konu & Sınav Kampı Şeridi",
-        desc: "Devam eden bir vize, final veya teknik kampın varsa, ana ekranın en üstünde kalan gün sayısı, sınav tarihi ve tamamlanan modül oranı canlı olarak akar.",
+        title: "Aktif Sınav & Konu Kampı Şeridi",
+        desc: "Devam eden sınav veya sprintlerin geri sayım ve modül ilerlemesini canlı izle.",
+        subBullets: [
+          "Kalan gün sayısı, sınav tarihi ve tamamlanan modül yüzdesi",
+          "Ana ekranın en üstünde dikkat çekici canlı ilerleme bandı",
+        ],
       },
       {
         title: "Mikro Alışkanlık Takibi",
-        desc: "Su tüketimi, 15 sayfa kitap okuma, teknik terim tekrarı gibi günlük mikro alışkanlık zincirlerini tek dokunuşla işaretle.",
+        desc: "Günlük su tüketimi, 15 sayfa kitap okuma veya terim tekrarı zincirleri.",
+        subBullets: [
+          "Tek dokunuşla tamamlanan alışkanlık zincirleri",
+          "Günün genel temposunu canlı tutan mikro aksiyonlar",
+        ],
       },
     ],
     proTip: "Sabahları ilk iş Sabah Pusulası'nı tamamla; odaklanacağın tek görevi seçtikten sonra gün içinde başka listelere bakma.",
@@ -106,20 +113,35 @@ const guideTabs: GuideSection[] = [
     points: [
       {
         title: "Kişisel Hedef Alanları",
-        desc: "Siber Güvenlik, Yazılım, Yabancı Dil, Tıp, Matematik, KPSS vb. alanların her birine özel seviye, hedef ve görev matrisi bulunur.",
+        desc: "Siber Güvenlik, Yazılım, Dil, Tıp, Matematik, KPSS vb. alanlar.",
+        subBullets: [
+          "Her alana özel seviye, hedef ve görev matrisi",
+          "Uzmanlaşmak istediğin tüm disiplinleri ayrı ayrı yönet",
+        ],
       },
       {
         title: "Alt Konu & Sınav Kampı (Topic Sprint)",
-        desc: "Üniversite vizesi, finali, sertifika sınavı veya iş mülakatı için belirli bir bitiş tarihi olan yoğun çalışma kampı başlat.",
+        desc: "Vize, final veya sertifika sınavı için geri sayımlı yoğun kamp başlat.",
         subBullets: [
-          "Bitiş tarihini seç (örneğin: 14 gün sonra)",
-          "Özel alt konuyu veya ders başlığını tanımla",
-          "Takvime sınav etkinliği ve geri sayım otomatik işlensin",
+          "Bitiş tarihini seç; takvime sınav etkinliği otomatik işlensin",
+          "Bugün ekranının üstünde canlı geri sayım ve ilerleme şeridi aksın",
         ],
       },
       {
         title: "PDF & Ders Notu Analiz Entegrasyonu",
-        desc: "Elinizdeki ders slaytını, konu özetini veya teknik dokümanı yükle. Sistem belgeyi analiz eder, 4-5 uygulanabilir modüle böler ve günlük görevleri otomatik oluşturur.",
+        desc: "Ders slaytını veya konu özetini yükle; sistem belgeyi modüllere bölsün.",
+        subBullets: [
+          "Belgeyi analiz ederek 4-5 uygulanabilir çalışma modülü çıkarır",
+          "Günlük uygulanabilir mikro görevleri otomatik oluşturur",
+        ],
+      },
+      {
+        title: "Adaptif Teşhis & Seviye Testi",
+        desc: "Alanına özel teşhis sorularıyla eksik konularını tespit et.",
+        subBullets: [
+          "Hangi konularda darboğaz yaşadığını saniyeler içinde belirle",
+          "Gelişim hızına göre kişiselleştirilmiş görev yoğunluğu",
+        ],
       },
     ],
     proTip: "Bir sınava çalışırken tüm kitabı bir kerede bitirmeye çalışma; notlarını PDF olarak yükleyip sistemin modüllere bölmesine izin ver.",
@@ -135,24 +157,35 @@ const guideTabs: GuideSection[] = [
     points: [
       {
         title: "Görev Küçültme (Shrink)",
-        desc: "Zamanın yetmediği veya gözünde büyüyen bir görevi tek tıkla yarı yarıya küçült. Örneğin 60 dakikalık derin blok anında 30 dakikalık mikro adıma dönüşür.",
-      },
-      {
-        title: "Borçsuz Erteleme (Postpone) & Havuz (Pool)",
-        desc: "Görevi başka bir güne aktarabilir ya da belirli bir güne bağlamadan haftalık esnek havuza bırakabilirsin.",
-      },
-      {
-        title: "Takvime Akıllı Otomatik Dağıtım (Smart Distribution)",
-        desc: "Havuzda bekleyen görevleri takvimindeki gerçek boş saatlere tek tıkla dağıt.",
+        desc: "Gözünde büyüyen veya vakit kalmayan görevi tek tıkla yarı yarıya küçült.",
         subBullets: [
-          "'Yalnızca Hafta Sonu': Görevleri sadece Cumartesi ve Pazar boşluklarına yerleştirir",
-          "'Yalnızca Hafta İçi': Hafta sonuna dokunmaz, Pazartesi-Cuma arasına dengeli böler",
-          "'Özel Günler': Seçtiğin günlerdeki (örneğin Salı ve Perşembe) boşlukları kullanır",
+          "60 dakikalık derin blok anında 30 dakikalık mikro adıma dönüşür",
+          "Başlama direncini kırarak ivme kazanmanı sağlar",
+        ],
+      },
+      {
+        title: "Borçsuz Erteleme & Havuz (Pool)",
+        desc: "Görevi başka güne aktar veya tarihsiz haftalık esnek havuza bırak.",
+        subBullets: [
+          "Yapılamayan işler vicdan azabı veya negatif puan yaratmaz",
+          "Haftalık havuza atılan görevler müsait anlarda yeniden canlandırılır",
+        ],
+      },
+      {
+        title: "Takvime Akıllı Otomatik Dağıtım",
+        desc: "Havuzda bekleyen işleri takvimdeki boş saatlere tek tıkla yerleştir.",
+        subBullets: [
+          "'Yalnızca Hafta Sonu' veya 'Hafta İçi' filtreleriyle akıllı eşleme",
+          "Manuel planlamayla vakit kaybetmeden dengeli dağıtım",
         ],
       },
       {
         title: "Kapasite Aşımı Koruması",
-        desc: "Bir güne kapasitenin üzerinde görev yığılması durumunda sistem uyarı verir ve aşırı yüklenmeni önler.",
+        desc: "Güne kapasitenin üzerinde görev yığılmasını önleyen akıllı denge.",
+        subBullets: [
+          "Kişisel sınırlarını aşan günlerde sistem nazikçe uyarı verir",
+          "Tükenmişlik hissetmeden sürdürülebilir çalışma temposu kurar",
+        ],
       },
     ],
     proTip: "Haftalık planda pazar günleri havuzdaki işleri 'Yalnızca Hafta Sonu' filtresiyle boşluklara dağıtarak hafta içini hafiflet.",
@@ -167,36 +200,35 @@ const guideTabs: GuideSection[] = [
     details: "Ders kitaplarını, açık akademik dokümanları ve yapay zeka araştırma araçlarını birleştiren 4 sekmeli araştırma merkezi.",
     points: [
       {
-        title: "1. Kitaplık & Okuma Sekmesi",
-        desc: "Kişisel kitaplarını ekle, okuma durumunu (Okunuyor, İstek Listesi, Tamamlandı) ve sayfa ilerlemeni takip et.",
+        title: "1. Kitaplık & Okuma Takibi",
+        desc: "Kişisel kitaplarını ekle, okuma durumunu ve sayfa ilerlemeni takip et.",
         subBullets: [
-          "Kitap İçi Arama Çubuğu: Her kitabın yanındaki arama çubuğuyla o kitaba ait açık kaynakları veya Google PDF materyallerini doğrudan ara",
-          "Okuma seansları ve hedef sayfa aralıkları belirleme",
+          "Kitap yanındaki arama çubuğuyla açık kaynakları ve Google PDF'leri doğrudan ara",
+          "Okuma seansları başlat ve sayfa hedeflerini güncelle",
         ],
       },
       {
-        title: "2. Web & Google PDF Arama Sekmesi",
-        desc: "Sistem içinden canlı web araması ve Google onaylı açık PDF kitap arama motoru. Harici sekme açmadan güvenilir sonuçları, sayfa özetlerini ve PDF bağlantılarını listeler.",
+        title: "2. Canlı Web & Google PDF Arama",
+        desc: "Sistem içinden canlı Google Books ve doğrulanmış açık PDF arama motoru.",
         subBullets: [
-          "Doğrulanmış açık kaynak ve üniversite PDF'lerini anında listeleme",
-          "Bulunan kitabı tek tıkla kendi kişisel kütüphanene kaydetme",
+          "Harici sekmeye yönlendirmeden sistem içinde önizleme ve PDF bağlantılarını listele",
+          "Bulunan kitabı tek tıkla kendi kişisel kütüphanene kaydet",
         ],
       },
       {
-        title: "3. Pinli Belgeler & Sayfa Aralıkları Sekmesi",
-        desc: "Tamamen kullanıcının KİŞİSEL ALANIDIR. Sistem buraya zorla veya izinsiz öneri eklemez.",
+        title: "3. Pinli Belgeler & Sayfa Aralıkları",
+        desc: "Tamamen kullanıcının KİŞİSEL ALANIDIR; sistem buraya izinsiz öneri eklemez.",
         subBullets: [
           "Kitapların veya belgelerin belirli sayfa aralıklarını (örn: Sayfa 45 - 62) kaydet",
-          "Ders notu veya sayfa ekran görüntülerini pinle",
-          "İncelemen bittiğinde sayfaları tek tek veya topluca temizle",
+          "Ders notlarını pinle; Odak Kokpiti yan panelinde sekme değiştirmeden incele",
         ],
       },
       {
-        title: "4. NotebookLM & AI Özetleyici Sekmesi",
-        desc: "Yapay zeka ile kaynak özeti çıkar veya tek tıkla NotebookLM için Markdown kaynak paketi kopyala.",
+        title: "4. NotebookLM & AI Özetleyici",
+        desc: "Yapay zeka ile kaynak özeti çıkar veya NotebookLM kaynak paketi kopyala.",
         subBullets: [
-          "NotebookLM Kaynak Paketi: Seçili tüm kaynakları tek tıkla panoya kopyalayarak Google NotebookLM'e yapıştır",
-          "NotebookLM Çalışma Alanı: Resmi Google NotebookLM arayüzüne tek tıkla geçiş yap",
+          "NotebookLM Kaynak Paketi: Seçili kaynakları tek tıkla panoya kopyalayıp aktar",
+          "Resmi Google NotebookLM çalışma alanına hızlı geçiş",
         ],
       },
     ],
@@ -208,24 +240,40 @@ const guideTabs: GuideSection[] = [
     badge: "5. DERİN ODAK & ZEN",
     icon: Play,
     color: "text-rose-500 bg-rose-500/10 border-rose-500/20",
-    summary: "Zen modu, 6 kanallı ortam ses mikseri, entegre yan kaynak dock'u ve dikkat kilidi.",
+    summary: "Zen modu, Spotify/Apple/YouTube & ortam ses mikseri, entegre yan kaynak dock'u ve dikkat kilidi.",
     details: "Masaüstünde tam 100vh kilitli, dikkati dağıtacak hiçbir gereksiz menü barındırmayan saf odak alanı.",
     points: [
       {
-        title: "Zen Odak Modu",
-        desc: "Sayaç başladığında tüm dış etkenler gizlenir. Ekranda yalnızca kalan süre, görev ismi ve alt adımlar kalır.",
+        title: "Zen Odak & 100vh Kilitli Arayüz",
+        desc: "Sayaç başladığında dış etkenler gizlenir; ekranda yalnızca kalan süre ve görev kalır.",
+        subBullets: [
+          "25/5 Pomodoro veya 50/10 derin blok çalışma döngüleri",
+          "Masaüstünde tam ekran kilitli, scrollsüz saf odak arayüzü",
+        ],
       },
       {
-        title: "6 Kanallı Ortam Ses Mikseri",
-        desc: "Kendi ses miksajını oluştur: Yağmur, Fırtına, Kafe, Şömine, Okyanus Dalgası ve Beyaz Gürültü. Her birinin ses seviyesini bağımsız ayarla.",
+        title: "Spotify, Apple, YouTube & Ortam Sesleri",
+        desc: "Kendi mikserini ayarla veya müzik servislerinden hazır/özel odak listeni bağla.",
+        subBullets: [
+          "Spotify, Apple Music ve YouTube canlı Lofi / 40Hz konsantrasyon yayınları",
+          "Yağmur, Fırtına, Kafe, Şömine, Okyanus ve Beyaz Gürültü mikseri",
+        ],
       },
       {
         title: "Yan Kaynak Dock'u (Entegre Okuma)",
-        desc: "Çalışırken tarayıcı sekmeleri arasında kaybolma. Görevinle ilgili pinli PDF sayfalarını, web linklerini veya notlarını sağ panelde aç.",
+        desc: "Çalışırken tarayıcı sekmeleri arasında kaybolmadan dokümanları sağ panelde aç.",
+        subBullets: [
+          "Pinli PDF sayfalarını, ders notlarını ve linkleri yan dock'ta görüntüle",
+          "Sekme değiştirmeden okuma ve çalışma akışını kesintisiz sürdür",
+        ],
       },
       {
         title: "Sekme & Dikkat Kilidi",
         desc: "Odak seansı sırasında başka sekmelere geçişi hatırlatarak derin çalışma süreni korur.",
+        subBullets: [
+          "Tarayıcı odağı kaybolduğunda nazik sesli veya görsel uyarı",
+          "Günün sonunda harcanan gerçek kesintisiz odak dakikalarını belgeler",
+        ],
       },
     ],
     proTip: "Zor ve yoğun zihinsel işlerde 'Yağmur + Şömine' mikserini %40 seviyesinde açarak kulaklıkla çalış.",
@@ -236,20 +284,40 @@ const guideTabs: GuideSection[] = [
     badge: "6. RADAR & HAFTALIK RİTÜEL",
     icon: BarChart3,
     color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
-    summary: "5 eksenli radar analizi, haftalık pazar kapatma ritüeli ve seviye atlayan yol arkadaşı.",
+    summary: "5 eksenli radar analizi, haftalık pazar kapatma ritüeli, seviye atlayan yol arkadaşı ve ısı haritası.",
     details: "Süslü başarı yüzdeleri yerine harcanan gerçek odak dakikalarını ve somut pratik çıktıları ölçer.",
     points: [
       {
         title: "5 Eksenli Radar Analizi",
-        desc: "Gelişimini 5 temel boyutta objektif olarak gör: Tutarlılık, Derin Odak Süresi, Pratik Çıktı, Çeşitlilik ve Plan Disiplini.",
+        desc: "Gelişimini 5 temel boyutta objektif olarak gör ve dengeli büyü.",
+        subBullets: [
+          "Tutarlılık, Derin Odak Süresi, Pratik Çıktı, Çeşitlilik ve Plan Disiplini",
+          "Tek boyutlu puanlar yerine çok eksenli yetkinlik haritası",
+        ],
       },
       {
         title: "Haftalık Pazar Kapatma Ritüeli",
-        desc: "Her pazar 10 dakikada haftalık retrospektifini yap: Kazanılan başarılar, yaşanan darboğazlar ve gelecek haftanın tek ana hedefi.",
+        desc: "Her pazar 10 dakikada haftalık retrospektifini yap ve yeni haftayı mühürle.",
+        subBullets: [
+          "Geçen haftanın darboğazı çözülmeden yeni hafta başlatılmaz",
+          "Kazanılan zaferler, yaşanan tıkanıklıklar ve gelecek haftanın tek ana hedefi",
+        ],
       },
       {
         title: "Büyüyen Yol Arkadaşı (Companion)",
-        desc: "Tamamladığın odak seansları ve ulaştığın hedeflerle seviye atlayan, seni motive eden sanal refakatçin.",
+        desc: "Tamamladığın odak seansları ve ulaştığın hedeflerle seviye atlayan refakatçin.",
+        subBullets: [
+          "Çalışma serilerini (streak) koruyarak yeni seviyelere yükselt",
+          "Yargılamayan, yapıcı geri bildirimler veren yol gösterici sanal refakatçi",
+        ],
+      },
+      {
+        title: "Odak Isı Haritası & İstatistikler",
+        desc: "Günlük ve haftalık bazda hangi saatlerde daha verimli çalıştığını analiz et.",
+        subBullets: [
+          "Saatlik odak yoğunluk grafiği ve tamamlanan görev dağılımı",
+          "Haftalık toplam derin çalışma dakikalarının tarihsel seyri",
+        ],
       },
     ],
     proTip: "Pazar günleri ritüeli tamamlamadan yeni haftanın görevlerini planlama; önce geçen haftanın darboğazını tespit et.",
@@ -260,20 +328,40 @@ const guideTabs: GuideSection[] = [
     badge: "7. KAPASİTE KORUMA",
     icon: CalendarDays,
     color: "text-teal-500 bg-teal-500/10 border-teal-500/20",
-    summary: "Sabit okul/iş blokları, çakışma engelleme ve günlük serbest zaman hesabı.",
+    summary: "Sabit okul/iş blokları, çakışma engelleme, günlük serbest zaman hesabı ve akıllı yerleştirme.",
     details: "Gerçek hayatın sınırlarını sisteme öğretir; böylece ulaşılamaz hayali planlar yerine gerçekçi programlar sunar.",
     points: [
       {
         title: "Sabit Zaman Blokları",
-        desc: "Okul ders saatlerini, hastane mesailerini veya iş toplantılarını takvime gir.",
+        desc: "Okul ders saatlerini, iş mesailerini veya spor/uyku bloklarını takvime gir.",
+        subBullets: [
+          "Değiştirilemez zorunlu saatleri sisteme öğreterek sınırlarını çiz",
+          "Tekrarlayan haftalık programları tek seferde tanımla",
+        ],
       },
       {
-        title: "Dinamik Boşluk Eşleme",
+        title: "Dinamik Boşluk Eşleme (Smart Slotting)",
         desc: "Görevler yalnızca sabit blokların dışındaki gerçek boş zaman pencerelerine atanır.",
+        subBullets: [
+          "Görev süreleriyle gerçek boşlukları milimetrik eşleştirir",
+          "Takvimde üst üste binen çakışmaları tamamen ortadan kaldırır",
+        ],
       },
       {
-        title: "Aşırı Yüklenme Koruması",
-        desc: "Günde 8 saat mesaisi olan birine ek olarak 6 saatlik ağır görev yazılmasını engeller.",
+        title: "Aşırı Yüklenme & Kapasite Koruması",
+        desc: "Günde 8 saat mesaisi olan birine ek olarak 6 saatlik ağır görev atanmasını engeller.",
+        subBullets: [
+          "Günlük serbest zaman kotası aşıldığında sistem nazikçe uyarır",
+          "Tükenmişliği (burnout) önceden engelleyen gerçekçi koruma",
+        ],
+      },
+      {
+        title: "Haftalık Plandan Otomatik Dağıtım",
+        desc: "Haftalık havuzdaki işleri boşluklara uygun gün filtreleriyle anında paylaştır.",
+        subBullets: [
+          "'Yalnızca Hafta Sonu' veya 'Hafta İçi' filtreleriyle akıllı eşleme",
+          "Manuel saat ayarlamaya gerek kalmadan saniyeler içinde takvimlendirme",
+        ],
       },
     ],
     proTip: "Haftanın başında önce sabit mesai bloklarını takvime gir; ardından görevleri haftalık plandan otomatik dağıt.",
@@ -284,20 +372,40 @@ const guideTabs: GuideSection[] = [
     badge: "8. SOMUT KANITLAR",
     icon: Briefcase,
     color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
-    summary: "Doğrulanabilir kanıtlar (/evidence), teknik hata günlüğü (/labs) ve sertifika takibi (/certifications).",
+    summary: "Doğrulanabilir kanıtlar (/evidence), teknik hata günlüğü (/labs), sertifika takibi ve CV çıktısı.",
     details: "Öğrendiğini kanıtlayan somut çıktıları, bağımsız problem çözümlerini ve kariyer hedeflerini belgeler.",
     points: [
       {
         title: "Portföy & Kanıtlar (/evidence)",
-        desc: "Tamamlanan GitHub reposu, yazılan teknik makale, hazırlanan sunum veya proje bağlantılarını somut kanıt olarak kaydet.",
+        desc: "Tamamlanan GitHub reposu, teknik makale, sunum veya canlı proje linklerini kaydet.",
+        subBullets: [
+          "Soyut iddialar yerine doğrulanabilir somut kanıtlarla ilerle",
+          "İş başvurularında ve değerlendirmelerde sunulabilir portföy arşivi",
+        ],
       },
       {
-        title: "Pratik Lab Günlüğü (/labs)",
-        desc: "Zorlandığın problemleri, aldığın hata kodlarını, denediğin yolları ve bağımsız çözüm süreni günlüğe işle.",
+        title: "Pratik Hata & Lab Günlüğü (/labs)",
+        desc: "Zorlandığın problemleri, aldığın hata kodlarını, denediğin yolları günlüğe işle.",
+        subBullets: [
+          "Bağımsız problem çözme yeteneğini belgeleyen teknik günlük",
+          "Mülakatlarda anlatabileceğin gerçek debugging hikayeleri",
+        ],
       },
       {
-        title: "Sertifika Yol Haritası (/certifications)",
-        desc: "Hedeflediğin sınavların tarihlerini, resmi kaynaklarını ve konu kapsamlarını takip et.",
+        title: "Sertifika & Sınav Yol Haritası (/certifications)",
+        desc: "Hedeflediğin sınavların tarihlerini, resmi kaynaklarını ve kapsamlarını takip et.",
+        subBullets: [
+          "Sınav hazırlık aşamalarını adım adım izle",
+          "Kazanılan resmi sertifikaları doğrulanabilir kimliklerle arşivle",
+        ],
+      },
+      {
+        title: "Kariyer & CV Dönüştürücü (/career)",
+        desc: "Kazanılan yetkinlikleri ve tamamlanan projeleri profesyonel CV maddelerine dönüştür.",
+        subBullets: [
+          "Yapay zeka ile ATS uyumlu, etki odaklı başarı maddeleri oluştur",
+          "Mülakat simülatörüyle hedeflenen pozisyona özel prova yap",
+        ],
       },
     ],
     proTip: "Çözdüğün her zorlu teknik sorunu lab günlüğüne yaz; mülakatlarda ve teknik değerlendirmelerde en büyük kanıtın bu olacaktır.",
@@ -308,20 +416,40 @@ const guideTabs: GuideSection[] = [
     badge: "9. STRATEJİK MENTOR",
     icon: Sparkles,
     color: "text-primary bg-primary/10 border-primary/20",
-    summary: "Kalıcı kural hafızası, kayan koç butonu ve stratejik hazır komutlar.",
+    summary: "Kalıcı kural hafızası, kayan koç butonu, önleyici müdahale ve stratejik hazır komutlar.",
     details: "Sıradan bir chatbot değildir; senin çalışma sınırlarını, kurallarını öğrenen ve planını savunan bir mentordur.",
     points: [
       {
-        title: "Kalıcı Kural Hafızası",
-        desc: "Koç'a söylediğin çalışma kuralları unutulmaz. Örneğin: 'Pazartesi sabahları hafif okuma ver', 'Gece 22:00'den sonraya zor soru koyma' dediğinde bunu kalıcı olarak kaydeder.",
+        title: "Kalıcı Kural Hafızası (AI Memory)",
+        desc: "Koç'a söylediğin çalışma kuralları unutulmaz ve gelecekteki kararlarda uygulanır.",
+        subBullets: [
+          "'Pazartesi sabahları hafif oku', 'Gece 22:00'den sonraya zor iş koyma' kuralları",
+          "Profil > AI Hafızası sekmesinden kuralları istediğin an düzenle veya sil",
+        ],
       },
       {
         title: "Kayan Koç Butonu (Floating Widget)",
-        desc: "Hangi sayfada olursan ol sağ alttaki simgeye dokunarak anında Koç'a danışabilir, planını güncelletebilirsin.",
+        desc: "Hangi sayfada olursan ol sağ alttaki simgeye dokunarak anında Koç'a danış.",
+        subBullets: [
+          "Bulunduğun sekmenin bağlamını otomatik olarak anlar",
+          "Planını, hedeflerini veya takvimini sohbet ederek anında günceller",
+        ],
       },
       {
-        title: "Önleyici Müdahale",
-        desc: "Haftalık hedeflerinden saptığında veya aşırı yüklendiğinde Koç seni nazikçe uyarır ve planı hafifletmeyi önerir.",
+        title: "Önleyici Müdahale & Darboğaz Koruması",
+        desc: "Hedeflerinden saptığında veya aşırı yüklendiğinde Koç seni nazikçe uyarır.",
+        subBullets: [
+          "Suçluluk hissettirmeden planı kurtaracak alternatif yollar sunar",
+          "Gözünde büyüyen görevleri otomatik olarak parçalar",
+        ],
+      },
+      {
+        title: "Hazır Stratejik Hızlı Komutlar",
+        desc: "Tek dokunuşla çalışan güçlü yapay zeka kısayolları.",
+        subBullets: [
+          "'Günü Yeniden Planla', 'Ağır Görevi Parçala', 'Haftalık Darboğazı Bul'",
+          "Zaman kaybetmeden en doğru stratejik karara ulaş",
+        ],
       },
     ],
     proTip: "Koç ile konuşurken çekinme; çalışma alışkanlıkların hakkındaki tüm kurallarını Profil > AI Hafızası sekmesinden de düzenleyebilirsin.",
@@ -549,7 +677,7 @@ export function UserGuide() {
               return (
                 <Card
                   key={item.tab}
-                  className="border border-border/80 bg-card hover:border-primary/40 transition-all flex flex-col justify-between"
+                  className="border border-border/80 bg-card hover:border-primary/40 transition-all flex flex-col h-full"
                 >
                   <CardHeader className="pb-2.5">
                     <div className="flex items-center justify-between gap-2 mb-2">
@@ -567,7 +695,7 @@ export function UserGuide() {
                       {item.summary}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3 text-xs pt-1">
+                  <CardContent className="space-y-3 text-xs pt-1 flex-1 flex flex-col">
                     <div className="space-y-2.5 border-t border-border/50 pt-2.5">
                       {item.points.map((pt, pIdx) => (
                         <div key={pIdx} className="space-y-1">
@@ -598,7 +726,7 @@ export function UserGuide() {
                       </div>
                     )}
 
-                    <div className="pt-2 border-t border-border/40 flex items-center justify-between">
+                    <div className="pt-2 border-t border-border/40 flex items-center justify-between mt-auto">
                       <Button asChild variant="ghost" size="xs" className="text-[11px] h-7 px-2 text-primary">
                         <Link href={item.route}>
                           Sekmeye Git <ArrowRight className="size-3 ml-1" />
@@ -634,7 +762,7 @@ export function UserGuide() {
             {workflows.map((flow) => {
               const FlowIcon = flow.icon;
               return (
-                <Card key={flow.title} className="border border-border/80 bg-card flex flex-col justify-between">
+                <Card key={flow.title} className="border border-border/80 bg-card flex flex-col h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <Badge variant="outline" className="text-[10px] font-semibold text-primary border-primary/30">
@@ -646,7 +774,7 @@ export function UserGuide() {
                       {flow.title}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3 pt-0">
+                  <CardContent className="space-y-3 pt-0 flex-1 flex flex-col">
                     <div className="space-y-2 border-t border-border/50 pt-3">
                       {flow.steps.map((st, sIdx) => (
                         <div key={sIdx} className="flex items-start gap-2.5 text-xs">
