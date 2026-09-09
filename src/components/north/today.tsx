@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Feather, Moon, Play, Sparkles, Sun, Zap, BookOpen, Target } from "lucide-react";
+import { ArrowRight, Feather, Moon, Play, Sparkles, Sun, Zap, BookOpen, Target, GraduationCap, Search } from "lucide-react";
 import { dailySelection, dayKey, getActiveSprint, rolloverUnfinishedTasks } from "@/lib/north";
 import { useNorth, Companion } from "./shared";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { RestCelebrationCard } from "./progress-charts";
 import { getTodayWisdom } from "@/lib/daily-wisdom";
 import { MicroHabitsWidget, MorningCompassModal, EveningWinddownModal } from "./daily-rituals";
 import { FocusLauncherDialog } from "./focus-launcher-dialog";
+import { SprintLauncherDialog } from "./area-sprint-hub";
 
 export function NorthToday() {
   const { state, update, ready } = useNorth();
@@ -17,6 +18,7 @@ export function NorthToday() {
   const [eveningOpen, setEveningOpen] = useState(false);
   const [focusLauncherOpen, setFocusLauncherOpen] = useState(false);
   const [focusLauncherMode, setFocusLauncherMode] = useState<"free" | "reading">("free");
+  const [sprintLauncherOpen, setSprintLauncherOpen] = useState(false);
   const today = dayKey();
   const sequence = dailySelection(state, today);
   const current = sequence[0];
@@ -46,9 +48,9 @@ export function NorthToday() {
 
   return (
     <div className="page-content north-today-v2 flex flex-col justify-between md:min-h-[calc(100dvh-96px)] md:max-h-[calc(100dvh-80px)] md:overflow-hidden pb-16 md:pb-2">
-      {/* ÜST & ORTA BLOK (Header + Wisdom + Büyütülmüş ŞİMDİ Odak Kartı) */}
-      <div className="space-y-3 sm:space-y-4">
-        <header className="north-today-header flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-8 mb-2 sm:mb-3">
+      {/* ÜST & ORTA BLOK (Header + Wisdom + ŞİMDİ Odak Kartı + Alışkanlıklar + Kısayollar) */}
+      <div className="space-y-2.5 sm:space-y-3">
+        <header className="north-today-header flex flex-col md:flex-row md:items-start md:justify-between gap-2.5 md:gap-6 mb-1 sm:mb-2">
           <div className="w-full md:w-auto">
             <p className="north-eyebrow mb-1 text-[11px] font-bold text-primary tracking-wider uppercase">{dateLabel}</p>
             <h1 className="text-2xl sm:text-3xl md:text-[34px] font-extrabold tracking-tight text-foreground">Bugün ne yapacaksın?</h1>
@@ -262,13 +264,51 @@ export function NorthToday() {
             </div>
           </section>
         )}
+        {/* GÜNLÜK MİKRO ALIŞKANLIKLAR (YUKARI KAYDIRILDI) */}
+        <MicroHabitsWidget compact={true} />
+
+        {/* HIZLI KISAYOLLAR: ALT KONU / SINAV KAMPI BAŞLAT & KAYNAK VE KİTAP ARA */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+          <button
+            type="button"
+            onClick={() => setSprintLauncherOpen(true)}
+            className="group flex items-center justify-between gap-3 px-3.5 py-2 sm:py-2.5 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-card/80 to-background hover:border-primary/50 hover:bg-primary/15 transition-all text-left shadow-2xs cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="size-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <GraduationCap className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground truncate">Alt Konu &amp; Sınav Kampı Başlat</p>
+                <p className="text-[10px] text-muted-foreground truncate">Vize, final veya özel konu sprinti oluştur</p>
+              </div>
+            </div>
+            <ArrowRight className="size-3.5 text-primary shrink-0 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+          </button>
+
+          <Button asChild variant="ghost" className="group h-auto p-0 hover:bg-transparent font-normal">
+            <Link
+              href="/resources"
+              className="flex items-center justify-between gap-3 w-full px-3.5 py-2 sm:py-2.5 rounded-2xl border border-border/80 bg-gradient-to-r from-background via-card/80 to-muted/20 hover:border-border hover:bg-muted/30 transition-all text-left shadow-2xs"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="size-8 rounded-xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Search className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-foreground truncate">Kaynak ve Kitap Ara</p>
+                  <p className="text-[10px] text-muted-foreground truncate">Web, Libgen, NotebookLM ve kütüphane</p>
+                </div>
+              </div>
+              <ArrowRight className="size-3.5 text-muted-foreground group-hover:text-foreground shrink-0 group-hover:translate-x-0.5 transition-all" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      {/* ALT BLOK (PEMBE KISIM: MİKRO ALIŞKANLIKLAR & İLERLEME ÖZETİ - AŞAĞIYA ANKRAJLI) */}
-      <div className="mt-auto pt-4 sm:pt-6 space-y-3 shrink-0">
-        <MicroHabitsWidget />
-
-        <footer className="north-today-footer pt-3 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+      {/* ALT BLOK (FOOTER ANKRAJI) */}
+      <div className="mt-auto pt-2 sm:pt-3 shrink-0">
+        <footer className="north-today-footer pt-2 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
             <span><b className="text-foreground">{completed}</b> / {Math.max(completed + sequence.length, 1)} tamamlandı</span>
             <span>•</span>
@@ -280,34 +320,40 @@ export function NorthToday() {
         </footer>
       </div>
 
-    {/* RITUAL MODALS */}
-    <MorningCompassModal
-      open={morningOpen}
-      onOpenChange={setMorningOpen}
-      state={state}
-      onSelectPrimary={(taskId) => {
-        update((curr) => ({
-          ...curr,
-          tasks: curr.tasks.map((t) => (t.id === taskId ? { ...t, mandatory: true, date: today } : t)),
-        }));
-      }}
-    />
+      {/* RITUAL MODALS */}
+      <MorningCompassModal
+        open={morningOpen}
+        onOpenChange={setMorningOpen}
+        state={state}
+        onSelectPrimary={(taskId) => {
+          update((curr) => ({
+            ...curr,
+            tasks: curr.tasks.map((t) => (t.id === taskId ? { ...t, mandatory: true, date: today } : t)),
+          }));
+        }}
+      />
 
-    <EveningWinddownModal
-      open={eveningOpen}
-      onOpenChange={setEveningOpen}
-      state={state}
-      onApplyRollover={() => {
-        const result = rolloverUnfinishedTasks(state, today);
-        update(() => result.state);
-      }}
-    />
+      <EveningWinddownModal
+        open={eveningOpen}
+        onOpenChange={setEveningOpen}
+        state={state}
+        onApplyRollover={() => {
+          const result = rolloverUnfinishedTasks(state, today);
+          update(() => result.state);
+        }}
+      />
 
-    <FocusLauncherDialog
-      open={focusLauncherOpen}
-      onOpenChange={setFocusLauncherOpen}
-      defaultMode={focusLauncherMode}
-    />
-  </div>
+      <FocusLauncherDialog
+        open={focusLauncherOpen}
+        onOpenChange={setFocusLauncherOpen}
+        defaultMode={focusLauncherMode}
+      />
+
+      <SprintLauncherDialog
+        open={sprintLauncherOpen}
+        onOpenChange={setSprintLauncherOpen}
+        defaultAreaId={currentArea?.id || state.areas[0]?.id}
+      />
+    </div>
   );
 }

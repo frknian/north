@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -89,17 +89,8 @@ export function AreaSprintHub({ area }: AreaSprintHubProps) {
     (s) => s.areaId === area.id && s.status === "active"
   );
 
-  // Modal states
+  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [level, setLevel] = useState("Lisans Seviyesi");
-  const [targetDate, setTargetDate] = useState(shiftDay(today, 7));
-  const [dailyMinutes, setDailyMinutes] = useState(area.preferredSessionMinutes || 50);
-  const [notesContent, setNotesContent] = useState("");
-  const [fileName, setFileName] = useState("");
-  const [loadingAi, setLoadingAi] = useState(false);
-  const [generatedModules, setGeneratedModules] = useState<AreaSprintModule[]>([]);
-  const [strategyNote, setStrategyNote] = useState("");
 
   // Countdown calculations
   const daysLeft = activeSprint
@@ -119,157 +110,6 @@ export function AreaSprintHub({ area }: AreaSprintHubProps) {
   const totalModulesCount = activeSprint ? activeSprint.modules.length : 0;
   const progressPercent =
     totalModulesCount > 0 ? Math.round((completedModulesCount / totalModulesCount) * 100) : 0;
-
-  // Handle Preset selection
-  const applyPreset = (preset: (typeof sprintPresets)[0]) => {
-    let suggestedTitle = preset.title;
-    if (/matematik/i.test(area.name)) {
-      suggestedTitle =
-        preset.label.includes("Vize")
-          ? "Diferansiyel Sistemler & Vize Soru Çözümü"
-          : "Diferansiyel Sistemler (Lisans Seviyesi)";
-    } else if (/siber|cyber/i.test(area.name)) {
-      suggestedTitle =
-        preset.label.includes("Vize")
-          ? "Web Application Security & Zafiyet Analizi"
-          : "Web Application Security (OWASP & PortSwigger)";
-    }
-    setTitle(suggestedTitle);
-    setLevel(preset.level);
-    setTargetDate(shiftDay(today, preset.days));
-    setDailyMinutes(preset.minutes);
-  };
-
-  // Handle File Input (PDF / Text / Notes)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setFileName(file.name);
-
-    if (file.type.includes("text") || file.name.endsWith(".txt") || file.name.endsWith(".md")) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = (event.target?.result as string) || "";
-        setNotesContent(text.slice(0, 5000));
-      };
-      reader.readAsText(file);
-    } else if (file.type.includes("pdf") || file.name.endsWith(".pdf")) {
-      // Clean extracted name as default title if not set
-      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
-      if (!title.trim()) {
-        setTitle(cleanName);
-      }
-      // Provide guidance note for PDF
-      setNotesContent(
-        (curr) =>
-          curr ||
-          `[Yüklenen Belge: ${file.name}]\nBu PDF dökümanındaki ders slaytları, konu başlıkları ve vize/final gereksinimleri hedefleniyor.`
-      );
-    }
-  };
-
-  // Call AI Endpoint to Generate Modules
-  const handleGenerateModules = async () => {
-    if (!title.trim()) return;
-    setLoadingAi(true);
-
-    try {
-      const res = await fetch("/api/ai/topic-sprint", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          areaName: area.name,
-          sprintTitle: title.trim(),
-          level: level.trim(),
-          targetDate,
-          dailyMinutes,
-          notesContent,
-          fileName,
-        }),
-      });
-
-      if (!res.ok) throw new Error("AI yanıt veremedi");
-      const data = await res.json();
-
-      if (Array.isArray(data.modules) && data.modules.length > 0) {
-        setGeneratedModules(data.modules);
-        setStrategyNote(data.strategyNote || "");
-      }
-    } catch (err) {
-      console.warn("AI generation fallback to deterministic logic:", err);
-      // Fallback manual generation
-      const fallback: AreaSprintModule[] = [
-        {
-          id: crypto.randomUUID(),
-          title: `1. Aşama: ${title} Temel Kavramlar ve Ön Koşullar`,
-          summary: "Ders notlarının taranması ve temel kavram haritasının çıkarılması.",
-          estimatedMinutes: dailyMinutes,
-          targetDate: today,
-          status: "pending",
-        },
-        {
-          id: crypto.randomUUID(),
-          title: `2. Aşama: ${title} Çekirdek İlkeler ve Formüller`,
-          summary: "Konunun ana kuralları, ispatları veya mimari prensipleri.",
-          estimatedMinutes: dailyMinutes,
-          targetDate: shiftDay(today, 2),
-          status: "pending",
-        },
-        {
-          id: crypto.randomUUID(),
-          title: `3. Aşama: ${title} Yoğun Problem & Soru Çözümü`,
-          summary: "Örnek vaka analizi, çıkmış sınav soruları veya lab uygulaması.",
-          estimatedMinutes: dailyMinutes,
-          targetDate: shiftDay(today, 4),
-          status: "pending",
-        },
-        {
-          id: crypto.randomUUID(),
-          title: `4. Aşama: Kritik Zayıf Noktalar & Final Simülasyonu`,
-          summary: "Bitiş tarihinden önce kapsamlı deneme ve zaman sınırlı pratik.",
-          estimatedMinutes: dailyMinutes,
-          targetDate: targetDate,
-          status: "pending",
-        },
-      ];
-      setGeneratedModules(fallback);
-      setStrategyNote(`${area.name} alanında hedefine göre 4 aşamalı odak yolu hazırlandı.`);
-    } finally {
-      setLoadingAi(false);
-    }
-  };
-
-  // Save the new sprint and generate tasks
-  const handleLaunchSprint = () => {
-    if (!title.trim() || generatedModules.length === 0) return;
-
-    const newSprint: AreaSprint = {
-      id: crypto.randomUUID(),
-      areaId: area.id,
-      title: title.trim(),
-      level: level.trim(),
-      targetDate,
-      dailyMinutesTarget: dailyMinutes,
-      sourceType: fileName ? "pdf" : notesContent ? "notes" : "manual",
-      fileName: fileName || undefined,
-      notesContent: notesContent || undefined,
-      status: "active",
-      createdAt: new Date().toISOString(),
-      modules: generatedModules,
-    };
-
-    update((curr) => {
-      const { updatedState } = createSprintTasks(curr, newSprint);
-      return updatedState;
-    });
-
-    setModalOpen(false);
-    setGeneratedModules([]);
-    setTitle("");
-    setNotesContent("");
-    setFileName("");
-  };
 
   // Toggle module done / pending
   const handleToggleModule = (moduleId: string, currentStatus: "pending" | "done") => {
@@ -515,229 +355,432 @@ export function AreaSprintHub({ area }: AreaSprintHubProps) {
         </div>
       )}
 
-      {/* ------------------------------------------------------------- */}
-      {/* 3. YENİ KAMP OLUŞTURMA SİHİRBAZI (DIALOG)                     */}
-      {/* ------------------------------------------------------------- */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <GraduationCap className="size-5 text-primary" />
-              {area.name} Alt Konu &amp; Sınav Kampı Başlat
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Ders notunu veya PDF&apos;ini yükle, bitiş tarihini belirle; yapay zeka seni gün gün
-              sınava veya hedefine hazırlasın.
-            </DialogDescription>
-          </DialogHeader>
+      <SprintLauncherDialog
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        defaultAreaId={area.id}
+      />
+    </section>
+  );
+}
 
-          <div className="space-y-4 py-2">
-            {/* Hızlı Şablon Seçimi */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground font-semibold">
-                Hızlı Kamp Şablonları
+export function SprintLauncherDialog({
+  open,
+  onOpenChange,
+  defaultAreaId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultAreaId?: string;
+}) {
+  const { state, update } = useNorth();
+  const today = dayKey();
+  const activeAreas = state.areas.filter((a) => !a.archived && a.status !== "archived");
+  const [selectedAreaId, setSelectedAreaId] = useState<string>(
+    defaultAreaId || activeAreas[0]?.id || ""
+  );
+
+  useEffect(() => {
+    if (defaultAreaId) {
+      setSelectedAreaId(defaultAreaId);
+    } else if (activeAreas.length > 0 && !selectedAreaId) {
+      setSelectedAreaId(activeAreas[0].id);
+    }
+  }, [defaultAreaId, activeAreas, selectedAreaId]);
+
+  const targetArea = activeAreas.find((a) => a.id === selectedAreaId) || activeAreas[0];
+
+  const [title, setTitle] = useState("");
+  const [level, setLevel] = useState("Lisans Seviyesi");
+  const [targetDate, setTargetDate] = useState(shiftDay(today, 7));
+  const [dailyMinutes, setDailyMinutes] = useState(targetArea?.preferredSessionMinutes || 50);
+  const [notesContent, setNotesContent] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [loadingAi, setLoadingAi] = useState(false);
+  const [generatedModules, setGeneratedModules] = useState<AreaSprintModule[]>([]);
+  const [strategyNote, setStrategyNote] = useState("");
+
+  const applyPreset = (preset: (typeof sprintPresets)[0]) => {
+    let suggestedTitle = preset.title;
+    const areaName = targetArea?.name || "";
+    if (/matematik/i.test(areaName)) {
+      suggestedTitle =
+        preset.label.includes("Vize")
+          ? "Diferansiyel Sistemler & Vize Soru Çözümü"
+          : "Diferansiyel Sistemler (Lisans Seviyesi)";
+    } else if (/siber|cyber/i.test(areaName)) {
+      suggestedTitle =
+        preset.label.includes("Vize")
+          ? "Web Application Security & Zafiyet Analizi"
+          : "Web Application Security (OWASP & PortSwigger)";
+    }
+    setTitle(suggestedTitle);
+    setLevel(preset.level);
+    setTargetDate(shiftDay(today, preset.days));
+    setDailyMinutes(preset.minutes);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileName(file.name);
+
+    if (file.type.includes("text") || file.name.endsWith(".txt") || file.name.endsWith(".md")) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = (event.target?.result as string) || "";
+        setNotesContent(text.slice(0, 5000));
+      };
+      reader.readAsText(file);
+    } else if (file.type.includes("pdf") || file.name.endsWith(".pdf")) {
+      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+      if (!title.trim()) {
+        setTitle(cleanName);
+      }
+      setNotesContent(
+        (curr) =>
+          curr ||
+          `[Yüklenen Belge: ${file.name}]\nBu PDF dökümanındaki ders slaytları, konu başlıkları ve vize/final gereksinimleri hedefleniyor.`
+      );
+    }
+  };
+
+  const handleGenerateModules = async () => {
+    if (!title.trim() || !targetArea) return;
+    setLoadingAi(true);
+
+    try {
+      const res = await fetch("/api/ai/topic-sprint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          areaName: targetArea.name,
+          sprintTitle: title.trim(),
+          level: level.trim(),
+          targetDate,
+          dailyMinutes,
+          notesContent,
+          fileName,
+        }),
+      });
+
+      if (!res.ok) throw new Error("AI yanıt veremedi");
+      const data = await res.json();
+
+      if (Array.isArray(data.modules) && data.modules.length > 0) {
+        setGeneratedModules(data.modules);
+        setStrategyNote(data.strategyNote || "");
+      }
+    } catch (err) {
+      console.warn("AI generation fallback to deterministic logic:", err);
+      const fallback: AreaSprintModule[] = [
+        {
+          id: crypto.randomUUID(),
+          title: `1. Aşama: ${title} Temel Kavramlar ve Ön Koşullar`,
+          summary: "Ders notlarının taranması ve temel kavram haritasının çıkarılması.",
+          estimatedMinutes: dailyMinutes,
+          targetDate: today,
+          status: "pending",
+        },
+        {
+          id: crypto.randomUUID(),
+          title: `2. Aşama: ${title} Çekirdek İlkeler ve Formüller`,
+          summary: "Konunun ana kuralları, ispatları veya mimari prensipleri.",
+          estimatedMinutes: dailyMinutes,
+          targetDate: shiftDay(today, 2),
+          status: "pending",
+        },
+        {
+          id: crypto.randomUUID(),
+          title: `3. Aşama: ${title} Yoğun Problem & Soru Çözümü`,
+          summary: "Örnek vaka analizi, çıkmış sınav soruları veya lab uygulaması.",
+          estimatedMinutes: dailyMinutes,
+          targetDate: shiftDay(today, 4),
+          status: "pending",
+        },
+        {
+          id: crypto.randomUUID(),
+          title: `4. Aşama: Kritik Zayıf Noktalar & Final Simülasyonu`,
+          summary: "Bitiş tarihinden önce kapsamlı deneme ve zaman sınırlı pratik.",
+          estimatedMinutes: dailyMinutes,
+          targetDate: targetDate,
+          status: "pending",
+        },
+      ];
+      setGeneratedModules(fallback);
+      setStrategyNote(`${targetArea.name} alanında hedefine göre 4 aşamalı odak yolu hazırlandı.`);
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
+  const handleLaunchSprint = () => {
+    if (!title.trim() || !targetArea || generatedModules.length === 0) return;
+
+    const newSprint: AreaSprint = {
+      id: crypto.randomUUID(),
+      areaId: targetArea.id,
+      title: title.trim(),
+      level: level.trim(),
+      targetDate,
+      dailyMinutesTarget: dailyMinutes,
+      sourceType: fileName ? "pdf" : notesContent ? "notes" : "manual",
+      fileName: fileName || undefined,
+      notesContent: notesContent || undefined,
+      status: "active",
+      createdAt: new Date().toISOString(),
+      modules: generatedModules,
+    };
+
+    update((curr) => {
+      const { updatedState } = createSprintTasks(curr, newSprint);
+      return updatedState;
+    });
+
+    onOpenChange(false);
+    setGeneratedModules([]);
+    setTitle("");
+    setNotesContent("");
+    setFileName("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-bold flex items-center gap-2">
+            <GraduationCap className="size-5 text-primary" />
+            {targetArea ? `${targetArea.name} ` : ""}Alt Konu &amp; Sınav Kampı Başlat
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Ders notunu veya PDF&apos;ini yükle, bitiş tarihini belirle; yapay zeka seni gün gün
+            sınava veya hedefine hazırlasın.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Alan Seçici (Birden fazla alan varsa) */}
+          {activeAreas.length > 1 && (
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Hedef Alan</Label>
+              <select
+                value={selectedAreaId}
+                onChange={(e) => setSelectedAreaId(e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                {activeAreas.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.icon} {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Hızlı Şablon Seçimi */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground font-semibold">
+              Hızlı Kamp Şablonları
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              {sprintPresets.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => applyPreset(p)}
+                  className="p-2.5 rounded-xl border border-border/80 bg-background/60 hover:border-primary/50 hover:bg-primary/5 text-left transition-all"
+                >
+                  <p className="text-xs font-bold text-foreground">{p.label}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {p.days} gün · {p.minutes} dk/gün
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Konu Başlığı & Seviye */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2 space-y-1">
+              <Label className="text-xs font-semibold">Alt Konu / Kamp Başlığı</Label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Örn: Diferansiyel Sistemler, Web App Sec..."
+                className="text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Seviye / Amaç</Label>
+              <select
+                value={level}
+                onChange={(e) => setLevel(e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="Lisans Seviyesi">Lisans Seviyesi</option>
+                <option value="Üniversite Vize Kampı">Vize Kampı</option>
+                <option value="Üniversite Final Sınavı">Final Sınavı</option>
+                <option value="İş Hayatı / Profesyonel">İş Hayatı</option>
+                <option value="Başlangıç / Temel">Başlangıç</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Hedef Bitiş Tarihi & Günlük Süre */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">
+                Ne Zamana Kadar Bitireceksin? (Sınav Günü)
               </Label>
-              <div className="grid grid-cols-2 gap-2">
-                {sprintPresets.map((p) => (
-                  <button
-                    key={p.label}
-                    type="button"
-                    onClick={() => applyPreset(p)}
-                    className="p-2.5 rounded-xl border border-border/80 bg-background/60 hover:border-primary/50 hover:bg-primary/5 text-left transition-all"
+              <Input
+                type="date"
+                min={today}
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+                className="text-xs font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Günlük Seans Süresi (Dakika)</Label>
+              <select
+                value={dailyMinutes}
+                onChange={(e) => setDailyMinutes(Number(e.target.value))}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+              >
+                <option value="30">30 dk / gün</option>
+                <option value="45">45 dk / gün</option>
+                <option value="50">50 dk / gün</option>
+                <option value="60">60 dk / gün (Önerilen Vize Raporu)</option>
+                <option value="90">90 dk / gün (Yoğun Kamp)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Dosya Yükleme veya Not Yapıştırma */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">
+                Ders Notu / PDF Yükle veya Metin Yapıştır (Opsiyonel)
+              </Label>
+              {fileName && (
+                <span className="text-[11px] text-primary font-mono truncate max-w-[200px]">
+                  ✓ {fileName}
+                </span>
+              )}
+            </div>
+
+            <label className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-2xl p-3 text-center block cursor-pointer bg-muted/10 hover:bg-muted/20 transition-all">
+              <UploadCloud className="size-5 mx-auto text-muted-foreground mb-1" />
+              <span className="text-xs font-semibold text-foreground block">
+                PDF veya Ders Notu Dosyası Seç
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                PDF, TXT, Markdown veya slayt notları (.pdf, .txt, .md)
+              </span>
+              <input
+                type="file"
+                accept=".pdf,.txt,.md,.doc,.docx"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+
+            <textarea
+              value={notesContent}
+              onChange={(e) => setNotesContent(e.target.value)}
+              placeholder="Veya çalışacağın konunun ders notlarını, alt başlıklarını veya sınav kapsamını buraya yapıştır..."
+              rows={3}
+              className="w-full rounded-xl border border-input bg-background p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+            />
+          </div>
+
+          {/* AI Generate Button */}
+          <div className="pt-1">
+            <Button
+              type="button"
+              onClick={handleGenerateModules}
+              disabled={!title.trim() || loadingAi}
+              className="w-full rounded-xl text-xs font-bold h-9 shadow-xs"
+            >
+              {loadingAi ? (
+                <>
+                  <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                  Yapay Zeka Müfredatı İnceliyor &amp; Görevlendiriyor…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-3.5 mr-1.5" />
+                  AI ile Müfredatı Çıkar &amp; Günlere Dağıt
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Generated Modules Preview */}
+          {generatedModules.length > 0 && (
+            <div className="space-y-2.5 pt-2 border-t border-border/60">
+              {strategyNote && (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-xs text-foreground flex items-start gap-2">
+                  <Sparkles className="size-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-[11px] leading-relaxed">{strategyNote}</p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-foreground">
+                  Oluşturulan Odak Adımları ({generatedModules.length} Seans)
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Hedef: {targetDate}
+                </span>
+              </div>
+
+              <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                {generatedModules.map((m, idx) => (
+                  <div
+                    key={m.id}
+                    className="p-2.5 rounded-xl border border-border/70 bg-background/80 flex items-center justify-between text-xs gap-2"
                   >
-                    <p className="text-xs font-bold text-foreground">{p.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {p.days} gün · {p.minutes} dk/gün
-                    </p>
-                  </button>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground truncate text-xs">
+                        {idx + 1}. {m.title}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">{m.summary}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-mono text-muted-foreground">
+                      <span>{m.targetDate}</span>
+                      <Badge variant="outline" className="text-[9px]">
+                        {m.estimatedMinutes} dk
+                      </Badge>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
+          )}
+        </div>
 
-            {/* Konu Başlığı & Seviye */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2 space-y-1">
-                <Label className="text-xs font-semibold">Alt Konu / Kamp Başlığı</Label>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Örn: Diferansiyel Sistemler, Web App Sec..."
-                  className="text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Seviye / Amaç</Label>
-                <select
-                  value={level}
-                  onChange={(e) => setLevel(e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  <option value="Lisans Seviyesi">Lisans Seviyesi</option>
-                  <option value="Üniversite Vize Kampı">Vize Kampı</option>
-                  <option value="Üniversite Final Sınavı">Final Sınavı</option>
-                  <option value="İş Hayatı / Profesyonel">İş Hayatı</option>
-                  <option value="Başlangıç / Temel">Başlangıç</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Hedef Bitiş Tarihi & Günlük Süre */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">
-                  Ne Zamana Kadar Bitireceksin? (Sınav Günü)
-                </Label>
-                <Input
-                  type="date"
-                  min={today}
-                  value={targetDate}
-                  onChange={(e) => setTargetDate(e.target.value)}
-                  className="text-xs font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Günlük Seans Süresi (Dakika)</Label>
-                <select
-                  value={dailyMinutes}
-                  onChange={(e) => setDailyMinutes(Number(e.target.value))}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
-                >
-                  <option value="30">30 dk / gün</option>
-                  <option value="45">45 dk / gün</option>
-                  <option value="50">50 dk / gün</option>
-                  <option value="60">60 dk / gün (Önerilen Vize Raporu)</option>
-                  <option value="90">90 dk / gün (Yoğun Kamp)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Dosya Yükleme veya Not Yapıştırma */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">
-                  Ders Notu / PDF Yükle veya Metin Yapıştır (Opsiyonel)
-                </Label>
-                {fileName && (
-                  <span className="text-[11px] text-primary font-mono truncate max-w-[200px]">
-                    ✓ {fileName}
-                  </span>
-                )}
-              </div>
-
-              {/* Upload Drop area */}
-              <label className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-2xl p-3 text-center block cursor-pointer bg-muted/10 hover:bg-muted/20 transition-all">
-                <UploadCloud className="size-5 mx-auto text-muted-foreground mb-1" />
-                <span className="text-xs font-semibold text-foreground block">
-                  PDF veya Ders Notu Dosyası Seç
-                </span>
-                <span className="text-[10px] text-muted-foreground">
-                  PDF, TXT, Markdown veya slayt notları (.pdf, .txt, .md)
-                </span>
-                <input
-                  type="file"
-                  accept=".pdf,.txt,.md,.doc,.docx"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-
-              {/* Textarea for lecture notes or syllabus */}
-              <textarea
-                value={notesContent}
-                onChange={(e) => setNotesContent(e.target.value)}
-                placeholder="Veya çalışacağın konunun ders notlarını, alt başlıklarını veya sınav kapsamını buraya yapıştır..."
-                rows={3}
-                className="w-full rounded-xl border border-input bg-background p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
-              />
-            </div>
-
-            {/* AI Generate Button */}
-            <div className="pt-1">
-              <Button
-                type="button"
-                onClick={handleGenerateModules}
-                disabled={!title.trim() || loadingAi}
-                className="w-full rounded-xl text-xs font-bold h-9 shadow-xs"
-              >
-                {loadingAi ? (
-                  <>
-                    <Loader2 className="size-3.5 mr-1.5 animate-spin" />
-                    Yapay Zeka Müfredatı İnceliyor &amp; Görevlendiriyor…
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="size-3.5 mr-1.5" />
-                    AI ile Müfredatı Çıkar &amp; Günlere Dağıt
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Generated Modules Preview */}
-            {generatedModules.length > 0 && (
-              <div className="space-y-2.5 pt-2 border-t border-border/60">
-                {strategyNote && (
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-xs text-foreground flex items-start gap-2">
-                    <Sparkles className="size-4 text-primary shrink-0 mt-0.5" />
-                    <p className="text-[11px] leading-relaxed">{strategyNote}</p>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-foreground">
-                    Oluşturulan Odak Adımları ({generatedModules.length} Seans)
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    Hedef: {targetDate}
-                  </span>
-                </div>
-
-                <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                  {generatedModules.map((m, idx) => (
-                    <div
-                      key={m.id}
-                      className="p-2.5 rounded-xl border border-border/70 bg-background/80 flex items-center justify-between text-xs gap-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-foreground truncate text-xs">
-                          {idx + 1}. {m.title}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground truncate">{m.summary}</p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-mono text-muted-foreground">
-                        <span>{m.targetDate}</span>
-                        <Badge variant="outline" className="text-[9px]">
-                          {m.estimatedMinutes} dk
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setModalOpen(false)}
-              className="text-xs rounded-xl"
-            >
-              Vazgeç
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleLaunchSprint}
-              disabled={generatedModules.length === 0}
-              className="text-xs rounded-xl font-bold"
-            >
-              <Zap className="size-3.5 mr-1.5 fill-current" />
-              Kampı Başlat &amp; Takvime Ekle
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </section>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="text-xs rounded-xl"
+          >
+            Vazgeç
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleLaunchSprint}
+            disabled={generatedModules.length === 0}
+            className="text-xs rounded-xl font-bold"
+          >
+            <Zap className="size-3.5 mr-1.5 fill-current" />
+            Kampı Başlat &amp; Takvime Ekle
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sun, Moon, Check, Sparkles, CheckCircle2, Circle } from "lucide-react";
 import { dayKey, rolloverUnfinishedTasks, type NorthState } from "@/lib/north";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface Habit {
   id: string;
@@ -23,7 +24,7 @@ const DEFAULT_HABITS: Habit[] = [
 
 const HABITS_KEY = "north:daily_micro_habits";
 
-export function MicroHabitsWidget() {
+export function MicroHabitsWidget({ compact = false }: { compact?: boolean }) {
   const today = dayKey();
   const [habits, setHabits] = useState<Habit[]>(DEFAULT_HABITS);
 
@@ -58,8 +59,8 @@ export function MicroHabitsWidget() {
   };
 
   return (
-    <section className="rounded-2xl border bg-card/60 p-4 backdrop-blur-xs">
-      <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2.5">
+    <section className={cn("rounded-2xl border bg-card/60 backdrop-blur-xs transition-all", compact ? "p-3 sm:p-3.5" : "p-4")}>
+      <div className={cn("flex items-center justify-between gap-2 border-b border-border/40", compact ? "pb-2" : "pb-2.5")}>
         <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
           <span>🎯</span> Günlük Mikro Alışkanlıklar
         </span>
@@ -67,7 +68,7 @@ export function MicroHabitsWidget() {
           {habits.filter((h) => h.completedDate === today).length} / {habits.length} tamamlandı
         </span>
       </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+      <div className={cn("grid gap-2 sm:grid-cols-3", compact ? "mt-2" : "mt-3")}>
         {habits.map((h) => {
           const isDone = h.completedDate === today;
           return (
@@ -75,21 +76,23 @@ export function MicroHabitsWidget() {
               key={h.id}
               type="button"
               onClick={() => toggleHabit(h.id)}
-              className={`flex items-center justify-between rounded-xl border p-2.5 text-left text-xs transition-all ${
+              className={cn(
+                "flex items-center justify-between rounded-xl border text-left text-xs transition-all",
+                compact ? "p-2 sm:p-2.5" : "p-2.5",
                 isDone
                   ? "border-emerald-500/30 bg-emerald-500/10 text-foreground"
                   : "border-border/60 bg-background/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-              }`}
+              )}
             >
-              <div className="flex items-center gap-2">
-                <span>{h.icon}</span>
-                <div>
-                  <p className="font-medium text-xs leading-tight text-foreground">{h.title}</p>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="shrink-0">{h.icon}</span>
+                <div className="min-w-0">
+                  <p className="font-medium text-xs leading-tight text-foreground truncate">{h.title}</p>
                   <span className="text-[10px] text-muted-foreground">{h.streak} gün zincir</span>
                 </div>
               </div>
-              <div className={`grid size-5 place-items-center rounded-full border ${isDone ? "border-emerald-500 bg-emerald-500 text-white" : "border-muted-foreground/30"}`}>
-                {isDone && <Check className="size-3 stroke-[3]" />}
+              <div className={cn("grid place-items-center rounded-full border shrink-0", compact ? "size-4.5" : "size-5", isDone ? "border-emerald-500 bg-emerald-500 text-white" : "border-muted-foreground/30")}>
+                {isDone && <Check className="size-2.5 stroke-[3]" />}
               </div>
             </button>
           );
