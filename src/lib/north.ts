@@ -718,7 +718,10 @@ export function initializeNorth(workspace: WorkspaceState): NorthState {
     area.metric = domain?.metric ?? area.metric;
     const configuredGoal = workspace.profile.areaGoals?.[name];
     area.goal = configuredGoal?.goal || (index === 0 ? workspace.profile.goal : "");
-    area.description = configuredGoal?.targetWeeks ? `${configuredGoal.targetWeeks} haftalık hedef` : "";
+    const durationUnitLabels: Record<string, string> = { day: "günlük", week: "haftalık", month: "aylık", year: "yıllık" };
+    area.description = configuredGoal?.durationValue && configuredGoal?.durationUnit
+      ? `${configuredGoal.durationValue} ${durationUnitLabels[configuredGoal.durationUnit] ?? "haftalık"} hedef`
+      : (configuredGoal?.targetWeeks ? `${configuredGoal.targetWeeks} haftalık hedef` : "");
     area.resources = domain?.resources.join("\n") ?? starterResourcesFor(kind);
     area.weeklyMinutes = index === 0 ? workspace.profile.weeklyCapacityHours * 60 : 0;
     area.priority = index === 0 ? 3 : 2;
@@ -917,13 +920,20 @@ export function dropTask(task: NorthTask): NorthTask {
 }
 
 export function generatePeriodPlan(targetWeeks: number, primaryGoal: string): import("./types").Milestone[] {
-  const weeks = targetWeeks >= 4 && targetWeeks <= 52 ? targetWeeks : ([4, 8, 12, 16, 24].includes(targetWeeks) ? targetWeeks : 12);
-  const totalDays = weeks * 7;
-  const d1 = Math.max(7, Math.round(totalDays * 0.15));
-  const d2 = Math.max(d1 + 7, Math.round(totalDays * 0.35));
-  const d3 = Math.max(d2 + 7, Math.round(totalDays * 0.65));
-  const d4 = Math.max(d3 + 7, Math.round(totalDays * 0.85));
-  const d5 = totalDays;
+  const weeks = Math.max(1, Math.min(260, Math.round(targetWeeks || 12)));
+  const totalDays = Math.max(7, Math.round(weeks * 7));
+  let d1 = Math.max(1, Math.round(totalDays * 0.2));
+  let d2 = Math.max(d1 + 1, Math.round(totalDays * 0.4));
+  let d3 = Math.max(d2 + 1, Math.round(totalDays * 0.6));
+  let d4 = Math.max(d3 + 1, Math.round(totalDays * 0.8));
+  let d5 = totalDays;
+
+  if (d4 >= d5) {
+    d4 = Math.max(d3 + 1, d5 - 1);
+    if (d3 >= d4) d3 = Math.max(d2 + 1, d4 - 1);
+    if (d2 >= d3) d2 = Math.max(d1 + 1, d3 - 1);
+    if (d1 >= d2) d1 = Math.max(1, d2 - 1);
+  }
 
   const g = primaryGoal.toLocaleLowerCase("tr").replace(/\u0307/g, "").trim();
   const isChess = /satranç|chess|elo/i.test(g);

@@ -252,6 +252,23 @@ assert.ok(enPlan[2].title.includes('Yoğun Üretim'));
 assert.ok(enPlan[3].title.includes('Aralıklı Tekrar'));
 assert.ok(enPlan[4].title.includes('Seviye Kanıtı'));
 
+// Flexible Duration Period Plans (2 weeks, 5 weeks, 36 weeks)
+const plan2w = generatePeriodPlan(2, 'Python Temelleri');
+assert.equal(plan2w.length, 5);
+assert.ok(plan2w[0].horizonDays < plan2w[1].horizonDays);
+assert.ok(plan2w[1].horizonDays < plan2w[2].horizonDays);
+assert.ok(plan2w[2].horizonDays < plan2w[3].horizonDays);
+assert.ok(plan2w[3].horizonDays <= plan2w[4].horizonDays);
+assert.equal(plan2w[4].horizonDays, 14);
+
+const plan5w = generatePeriodPlan(5, 'Siber Güvenlik Web Hacking');
+assert.equal(plan5w.length, 5);
+assert.equal(plan5w[4].horizonDays, 35);
+
+const plan36w = generatePeriodPlan(36, 'YKS Matematik & Geometri');
+assert.equal(plan36w.length, 5);
+assert.equal(plan36w[4].horizonDays, 252);
+
 // Domain catalog integration
 assert.equal(findDomain('İngilizce').id, 'english');
 assert.equal(findDomain('Almanca').id, 'german');

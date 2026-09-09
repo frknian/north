@@ -5,7 +5,7 @@ import { NorthLogo } from "@/components/layout/north-logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Compass, DollarSign, Info, Plus, ShieldCheck, Target, Trash2, University } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, Calendar, Compass, DollarSign, Info, Plus, ShieldCheck, Target, Trash2, University } from "lucide-react";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +21,17 @@ import {
   getLanguageLevelLabel,
   type LanguageLevel,
 } from "@/lib/language-learning";
-import { calculateAgeFromBirthDate, birthDateToAgeRange, type AgeRange, type InitialSetupInput, type LifeSituation } from "@/lib/types";
+import {
+  calculateAgeFromBirthDate,
+  birthDateToAgeRange,
+  durationToTargetWeeks,
+  formatDurationSummary,
+  type AgeRange,
+  type DurationUnit,
+  type AreaGoalSetting,
+  type InitialSetupInput,
+  type LifeSituation,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -145,11 +155,38 @@ export default function OnboardingPage() {
       primaryFocus: current.primaryFocus || clean,
       areaGoals: {
         ...current.areaGoals,
-        [clean]: { goal: initialGoal, targetWeeks: 12, level: initialLevel, levelRating: initialRating },
+        [clean]: {
+          goal: initialGoal,
+          targetWeeks: 12,
+          durationValue: 12,
+          durationUnit: "week",
+          level: initialLevel,
+          levelRating: initialRating,
+        },
       },
       assessmentAnswers: {},
     }));
     setDraft("");
+  }
+
+  function handleDurationChange(area: string, value: number, unit: DurationUnit) {
+    const safeVal = Math.max(1, value);
+    const targetWeeks = durationToTargetWeeks(safeVal, unit);
+    setForm((current) => ({
+      ...current,
+      areaGoals: {
+        ...current.areaGoals,
+        [area]: {
+          ...current.areaGoals[area],
+          goal: current.areaGoals[area]?.goal ?? "",
+          targetWeeks,
+          durationValue: safeVal,
+          durationUnit: unit,
+          level: current.areaGoals[area]?.level,
+          levelRating: current.areaGoals[area]?.levelRating,
+        },
+      },
+    }));
   }
 
   const handleCopyAssessmentQuestion = (e: React.ClipboardEvent) => {
@@ -195,7 +232,10 @@ export default function OnboardingPage() {
           {
             goal: form.areaGoals[area]?.goal.trim() || `${area} için düzenli ve ölçülebilir bir çalışma planı kurmak`,
             targetWeeks: form.areaGoals[area]?.targetWeeks ?? 12,
+            durationValue: form.areaGoals[area]?.durationValue ?? form.areaGoals[area]?.targetWeeks ?? 12,
+            durationUnit: form.areaGoals[area]?.durationUnit ?? "week",
             level: form.areaGoals[area]?.level,
+            levelRating: form.areaGoals[area]?.levelRating,
           },
         ])
       );
@@ -223,7 +263,10 @@ export default function OnboardingPage() {
           {
             goal: form.areaGoals[area]?.goal.trim() || `${area} için düzenli bir çalışma düzeni kurmak`,
             targetWeeks: form.areaGoals[area]?.targetWeeks ?? 12,
+            durationValue: form.areaGoals[area]?.durationValue ?? form.areaGoals[area]?.targetWeeks ?? 12,
+            durationUnit: form.areaGoals[area]?.durationUnit ?? "week",
             level: form.areaGoals[area]?.level,
+            levelRating: form.areaGoals[area]?.levelRating,
           },
         ])
       );
@@ -243,7 +286,13 @@ export default function OnboardingPage() {
     }
   }
 
-  const primaryTargetWeeks = form.areaGoals[form.interests[0]]?.targetWeeks ?? 12;
+  const primaryAreaGoal = form.areaGoals[form.interests[0]];
+  const primaryTargetWeeks = primaryAreaGoal?.targetWeeks ?? 12;
+  const primaryDurationSummary = formatDurationSummary(
+    primaryAreaGoal?.durationValue,
+    primaryAreaGoal?.durationUnit,
+    primaryTargetWeeks
+  );
 
   return (
     <main className="relative min-h-dvh bg-background px-4 py-6 sm:py-10">
@@ -547,52 +596,133 @@ export default function OnboardingPage() {
                         </button>
                       ))}
                     </div>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_190px]">
-                      <Input
-                        value={form.areaGoals[area]?.goal ?? ""}
-                        onChange={(event) =>
-                          setForm((current) => ({
-                            ...current,
-                            areaGoals: {
-                              ...current.areaGoals,
-                              [area]: {
-                                ...current.areaGoals[area],
-                                goal: event.target.value,
-                                targetWeeks: current.areaGoals[area]?.targetWeeks ?? 12,
-                                level: current.areaGoals[area]?.level ?? (lang ? "beginner" : undefined),
+                    <div className="mt-3 space-y-2.5">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-foreground">
+                          Bu alandaki ana hedefin:
+                        </Label>
+                        <Input
+                          value={form.areaGoals[area]?.goal ?? ""}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              areaGoals: {
+                                ...current.areaGoals,
+                                [area]: {
+                                  ...current.areaGoals[area],
+                                  goal: event.target.value,
+                                  targetWeeks: current.areaGoals[area]?.targetWeeks ?? 12,
+                                  durationValue: current.areaGoals[area]?.durationValue ?? 12,
+                                  durationUnit: current.areaGoals[area]?.durationUnit ?? "week",
+                                  level: current.areaGoals[area]?.level ?? (lang ? "beginner" : undefined),
+                                },
                               },
-                            },
-                            goal: current.interests[0] === area ? event.target.value : current.goal,
-                          }))
-                        }
-                        placeholder={`${area} alanında hangi somut sonuca ulaşmak istiyorsun?`}
-                      />
-                      <Select
-                        value={String(form.areaGoals[area]?.targetWeeks ?? 12)}
-                        onValueChange={(value) =>
-                          setForm((current) => ({
-                            ...current,
-                            areaGoals: {
-                              ...current.areaGoals,
-                              [area]: {
-                                ...current.areaGoals[area],
-                                goal: current.areaGoals[area]?.goal ?? "",
-                                targetWeeks: Number(value),
-                                level: current.areaGoals[area]?.level ?? (lang ? "beginner" : undefined),
-                              },
-                            },
-                          }))
-                        }
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="4">4 hafta (Hızlı döngü)</SelectItem>
-                          <SelectItem value="8">8 hafta (2 aylık odak)</SelectItem>
-                          <SelectItem value="12">12 hafta (Dönem planı)</SelectItem>
-                          <SelectItem value="16">16 hafta (4 aylık program)</SelectItem>
-                          <SelectItem value="24">24 hafta (Kapsamlı hazırlık)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                              goal: current.interests[0] === area ? event.target.value : current.goal,
+                            }))
+                          }
+                          placeholder={`${area} alanında hangi somut sonuca ulaşmak istiyorsun?`}
+                        />
+                      </div>
+
+                      {/* Esnek Süre Seçimi: İstenen Süre (2 hafta, 5 hafta vb.) veya Gün / Ay / Yıl */}
+                      {(() => {
+                        const areaGoal = form.areaGoals[area];
+                        const durationValue = areaGoal?.durationValue ?? areaGoal?.targetWeeks ?? 12;
+                        const durationUnit: DurationUnit = areaGoal?.durationUnit ?? "week";
+                        const targetWeeks = areaGoal?.targetWeeks ?? 12;
+
+                        return (
+                          <div className="rounded-xl border border-border/70 bg-muted/20 p-2.5 sm:p-3 space-y-2 text-xs">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                                <Clock className="size-3.5 text-primary" />
+                                Hedef Çalışma Süresi:
+                              </span>
+                              <span className="font-semibold text-primary px-2.5 py-0.5 rounded-md bg-primary/10 text-[11px]">
+                                {formatDurationSummary(durationValue, durationUnit, targetWeeks)}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              {/* Sayı Girişi */}
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max={durationUnit === "day" ? 1800 : durationUnit === "week" ? 260 : durationUnit === "month" ? 60 : 5}
+                                  value={durationValue}
+                                  onChange={(e) => {
+                                    const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                                    handleDurationChange(area, val, durationUnit);
+                                  }}
+                                  className="h-8 w-20 text-xs font-bold text-center rounded-lg bg-background"
+                                />
+                              </div>
+
+                              {/* Birim Seçimi: Gün / Hafta / Ay / Yıl */}
+                              <div className="flex items-center rounded-lg border border-border/70 bg-background p-0.5 text-xs">
+                                {(
+                                  [
+                                    { unit: "day", label: "Gün" },
+                                    { unit: "week", label: "Hafta" },
+                                    { unit: "month", label: "Ay" },
+                                    { unit: "year", label: "Yıl" },
+                                  ] as const
+                                ).map((item) => {
+                                  const isSelected = durationUnit === item.unit;
+                                  return (
+                                    <button
+                                      key={item.unit}
+                                      type="button"
+                                      onClick={() => handleDurationChange(area, durationValue, item.unit)}
+                                      className={cn(
+                                        "px-2.5 py-1 text-[11px] rounded-md transition-all",
+                                        isSelected
+                                          ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                                          : "text-muted-foreground hover:text-foreground"
+                                      )}
+                                    >
+                                      {item.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Hızlı Seçenekler (2 hf, 4 hf, 8 hf, 12 hf, 24 hf, 36 hf, 6 ay, 1 yıl) */}
+                              <div className="flex flex-wrap items-center gap-1 sm:ml-auto text-[10px]">
+                                <span className="text-muted-foreground mr-0.5 hidden sm:inline">Hızlı:</span>
+                                {[
+                                  { label: "2 hf", val: 2, u: "week" as const },
+                                  { label: "4 hf", val: 4, u: "week" as const },
+                                  { label: "8 hf", val: 8, u: "week" as const },
+                                  { label: "12 hf", val: 12, u: "week" as const },
+                                  { label: "24 hf", val: 24, u: "week" as const },
+                                  { label: "36 hf", val: 36, u: "week" as const },
+                                  { label: "6 ay", val: 6, u: "month" as const },
+                                  { label: "1 yıl", val: 1, u: "year" as const },
+                                ].map((preset) => {
+                                  const isPresetActive = durationValue === preset.val && durationUnit === preset.u;
+                                  return (
+                                    <button
+                                      key={preset.label}
+                                      type="button"
+                                      onClick={() => handleDurationChange(area, preset.val, preset.u)}
+                                      className={cn(
+                                        "px-2 py-0.5 rounded border transition-all",
+                                        isPresetActive
+                                          ? "border-primary bg-primary/20 text-primary font-bold shadow-2xs"
+                                          : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                                      )}
+                                    >
+                                      {preset.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
@@ -938,19 +1068,19 @@ export default function OnboardingPage() {
             <CardHeader>
               <CardTitle>Kişisel Dönem Planın Hazır</CardTitle>
               <CardDescription>
-                Sabit günler yerine seçtiğin {primaryTargetWeeks} haftalık hedefe göre 5 aşamalı gelişim yolu oluşturuldu.
+                Sabit günler yerine seçtiğin {primaryDurationSummary} hedefine göre 5 aşamalı gelişim yolu oluşturuldu.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="grid gap-3 sm:grid-cols-4">
                 <Summary label="Başlangıç Sinyali" value={`${adaptiveResult.score}/${adaptiveResult.total}`} detail="Giriş göstergesi" />
-                <Summary label="Dönem Süresi" value={`${primaryTargetWeeks} Hafta`} detail="5 aşamalı yol haritası" />
+                <Summary label="Dönem Süresi" value={primaryDurationSummary} detail="5 aşamalı yol haritası" />
                 <Summary label="Haftalık Yük" value={`${form.weeklyCapacityHours} saat/hf`} detail={`${form.preferredSessionMinutes} dk oturum`} />
                 <Summary label="Kaynak Tercihi" value={form.learningPreferences?.cost === "free_only" ? "Ücretsiz" : "Esnek"} detail={form.learningPreferences?.language === "tr" ? "Türkçe" : "İngilizce/İki Dilli"} />
               </div>
 
               <div className="rounded-xl border bg-muted/20 p-5 space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">5 Aşamalı Dönem Yol Haritası ({primaryTargetWeeks} Hafta)</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">5 Aşamalı Dönem Yol Haritası ({primaryDurationSummary})</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-3">
                     <span className="size-6 rounded-full bg-primary/20 text-primary grid place-items-center text-xs font-bold">1</span>

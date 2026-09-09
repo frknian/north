@@ -39,6 +39,54 @@ export interface LearningPreferences {
   weeklyBudget: number;
 }
 
+export type DurationUnit = "day" | "week" | "month" | "year";
+
+export interface AreaGoalSetting {
+  goal: string;
+  targetWeeks: number;
+  durationValue?: number;
+  durationUnit?: DurationUnit;
+  level?: string;
+  levelRating?: number;
+}
+
+export function durationToTargetWeeks(value: number, unit: DurationUnit): number {
+  const safeVal = Math.max(1, value);
+  switch (unit) {
+    case "day":
+      return Math.max(1, Math.round(safeVal / 7));
+    case "week":
+      return safeVal;
+    case "month":
+      return Math.max(1, Math.round(safeVal * 4.33));
+    case "year":
+      return Math.max(1, Math.round(safeVal * 52));
+    default:
+      return safeVal;
+  }
+}
+
+export function formatDurationSummary(value?: number, unit?: DurationUnit, fallbackWeeks?: number): string {
+  if (value && unit) {
+    const targetW = durationToTargetWeeks(value, unit);
+    if (unit === "week") {
+      return `${value} hafta (~${value * 7} gün)`;
+    }
+    if (unit === "day") {
+      return `${value} gün (~${targetW} hafta)`;
+    }
+    if (unit === "month") {
+      return `${value} ay (~${targetW} hafta)`;
+    }
+    if (unit === "year") {
+      return `${value} yıl (~${targetW} hafta)`;
+    }
+    return `${value} ${unit}`;
+  }
+  const w = fallbackWeeks ?? 12;
+  return `${w} hafta (~${w * 7} gün)`;
+}
+
 export interface Profile {
   id: string;
   fullName: string;
@@ -55,7 +103,7 @@ export interface Profile {
   lifeSituation?: LifeSituation;
   learningPreferences?: LearningPreferences;
   interests?: string[];
-  areaGoals?: Record<string, { goal: string; targetWeeks: number; level?: string; levelRating?: number }>;
+  areaGoals?: Record<string, AreaGoalSetting>;
   university?: {
     isStudent: boolean;
     school?: string;
@@ -288,7 +336,7 @@ export interface InitialSetupInput {
   track: string;
   primaryFocus: string;
   interests: string[];
-  areaGoals: Record<string, { goal: string; targetWeeks: number; level?: string; levelRating?: number }>;
+  areaGoals: Record<string, AreaGoalSetting>;
   isUniversityStudent: boolean;
   universitySchool: string;
   universityDepartment: string;
