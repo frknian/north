@@ -115,19 +115,44 @@ export function NorthWeek() {
 
   const [selectedDay, setSelectedDay] = useState<string>(defaultSelectedDay);
 
-  // Active Planning Days (default Monday to Friday [0, 1, 2, 3, 4] - weekend off by default)
+  // Active Planning Days (7-day automatic default: [0, 1, 2, 3, 4, 5, 6])
   const [activePlanDays, setActivePlanDays] = useState<number[]>(() => {
     if (typeof window !== "undefined") {
       try {
-        const saved = localStorage.getItem("north_active_plan_days");
-        if (saved) {
-          const parsed = JSON.parse(saved);
+        const savedV2 = localStorage.getItem("north_active_plan_days_v2");
+        if (savedV2) {
+          const parsed = JSON.parse(savedV2);
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch {}
     }
-    return [0, 1, 2, 3, 4];
+    return [0, 1, 2, 3, 4, 5, 6];
   });
+
+  // Synchronize with workspace profile workingDays if configured
+  useEffect(() => {
+    if (workspace?.profile?.workingDays && workspace.profile.workingDays.length > 0) {
+      const pDays = workspace.profile.workingDays;
+      setActivePlanDays(pDays);
+      try {
+        localStorage.setItem("north_active_plan_days_v2", JSON.stringify(pDays));
+        localStorage.setItem("north_active_plan_days", JSON.stringify(pDays));
+      } catch {}
+    }
+  }, [workspace?.profile?.workingDays]);
+
+  const updateActivePlanDays = (days: number[]) => {
+    setActivePlanDays(days);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("north_active_plan_days_v2", JSON.stringify(days));
+        localStorage.setItem("north_active_plan_days", JSON.stringify(days));
+      } catch {}
+    }
+    if (workspace?.updateProfile) {
+      workspace.updateProfile({ workingDays: days });
+    }
+  };
 
   const [replanModalOpen, setReplanModalOpen] = useState(false);
   const [tempPlanDays, setTempPlanDays] = useState<number[]>(activePlanDays);
@@ -353,14 +378,47 @@ export function NorthWeek() {
   };
 
   const handleExecuteReplan = (days: number[], force: boolean, excludedAreas: string[]) => {
-    setActivePlanDays(days);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("north_active_plan_days", JSON.stringify(days));
-      } catch {}
-    }
+    updateActivePlanDays(days);
     handleAutoPlan(force, days, excludedAreas);
     setReplanModalOpen(false);
+  };
+
+  const handleToggleDayRest = (dayIndex: number) => {
+    let nextDays: number[];
+    const dayLabels = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
+    const dayName = dayLabels[dayIndex] || "Gün";
+
+    if (activePlanDays.includes(dayIndex)) {
+      if (activePlanDays.length <= 1) {
+        showToast("⚠️ En az 1 çalışma günü açık olmalıdır.");
+        return;
+      }
+      nextDays = activePlanDays.filter((i) => i !== dayIndex);
+      updateActivePlanDays(nextDays);
+      const targetDate = weekDays[dayIndex]?.date;
+      if (targetDate) {
+        update((curr) => {
+          const tasksToShift = curr.tasks.map((t) =>
+            t.date === targetDate && t.status !== "done" && t.status !== "cancelled"
+              ? { ...t, date: "" }
+              : t
+          );
+          const redistributed = distributePlanTasksToCalendar(tasksToShift, {
+            weeklyHours: curr.weeklyHours,
+            events: curr.events,
+            week: currentWeekKey,
+            forceRedistribute: false,
+            activeDayIndices: nextDays,
+          });
+          return { ...curr, tasks: redistributed };
+        });
+      }
+      showToast(`🏖️ ${dayName} tatil / dinlenme günü yapıldı. Görevler diğer günlere aktarıldı.`);
+    } else {
+      nextDays = [...activePlanDays, dayIndex].sort((a, b) => a - b);
+      updateActivePlanDays(nextDays);
+      showToast(`💼 ${dayName} çalışma günü olarak plana dahil edildi.`);
+    }
   };
 
   const handleToggleAreaForWeek = (areaId: string, customWeek?: string) => {
@@ -896,7 +954,18 @@ export function NorthWeek() {
                 Haftanın her gününde hangi alanlara ve görevlere odaklanacağını tek bakışta gör.
               </p>
             </div>
-            <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <button
+                onClick={() => {
+                  updateActivePlanDays([0, 1, 2, 3, 4, 5, 6]);
+                  handleAutoPlan(true, [0, 1, 2, 3, 4, 5, 6]);
+                }}
+                className="font-medium text-foreground transition flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-xs text-blue-700 dark:text-blue-300"
+                title="Tüm görevleri hafta sonu dahil 7 güne dengeli yay"
+              >
+                <Sparkles className="w-3 h-3 text-blue-500" />
+                7 Güne Otomatik Yay
+              </button>
               <button
                 onClick={() => {
                   setTempPlanDays(activePlanDays);
@@ -907,7 +976,7 @@ export function NorthWeek() {
                 title="Haftalık planlama günlerini düzenle ve günlere yeniden dağıt"
               >
                 <RotateCcw className="w-3 h-3 text-primary" />
-                Haftayı Yeniden Planla &amp; Günler
+                Haftayı Planla &amp; Günler
               </button>
               <Link
                 href="/calendar"
@@ -918,14 +987,15 @@ export function NorthWeek() {
             </div>
           </div>
 
-          {/* HAFTALIK ODAK HARİTASI (Pzt: x, y • Sal: y, z • Çar: x, z ...) */}
+          {/* HAFTALIK ODAK HARİTASI (Tüm Günler) */}
           <div className="flex flex-wrap items-center gap-2 py-2.5 px-3.5 rounded-xl bg-muted/40 border border-border text-xs">
             <span className="font-bold text-foreground/90 flex items-center gap-1.5 shrink-0">
               <Sparkles className="w-3.5 h-3.5 text-blue-400" />
               Haftalık Odak Haritası:
             </span>
             <div className="flex flex-wrap items-center gap-2">
-              {weekDays.slice(0, 5).map((d) => {
+              {weekDays.map((d) => {
+                const isRest = !activePlanDays.includes(d.dayIndex);
                 const areaNames = d.dayAreas.map((a) => a.name);
                 return (
                   <button
@@ -939,19 +1009,17 @@ export function NorthWeek() {
                     )}
                   >
                     <span className="font-bold text-foreground">{d.dayName}:</span>
-                    {areaNames.length > 0 ? (
+                    {isRest ? (
+                      <span className="text-amber-500 dark:text-amber-400 font-medium text-[10px]">Tatil</span>
+                    ) : areaNames.length > 0 ? (
                       <span className="text-blue-700 dark:text-blue-300 font-medium">{areaNames.join(", ")}</span>
                     ) : (
                       <span className="text-muted-foreground/80 italic">Serbest</span>
                     )}
-                    {d.dayIndex < 4 && <span className="text-slate-700 ml-1">•</span>}
+                    {d.dayIndex < 6 && <span className="text-slate-700 ml-1">•</span>}
                   </button>
                 );
               })}
-              <span className="text-muted-foreground/60">|</span>
-              <span className="text-[11px] text-muted-foreground">
-                Cmt: <span className="text-muted-foreground/80">Dinlenme</span> • Paz: <span className="text-muted-foreground/80">Retrospektif</span>
-              </span>
             </div>
           </div>
 
@@ -960,9 +1028,6 @@ export function NorthWeek() {
             {weekDays.map((day) => {
               const hasTasks = day.tasks.length > 0;
               const isSelected = selectedDay === day.date;
-              const isWeekend = day.dayIndex >= 5;
-              const isSaturday = day.dayIndex === 5;
-              const isSunday = day.dayIndex === 6;
 
               return (
                 <div
@@ -994,10 +1059,31 @@ export function NorthWeek() {
                             SEÇİLİ
                           </span>
                         )}
-                        {!activePlanDays.includes(day.dayIndex) && (
-                          <span className="px-1.5 py-0.2 bg-muted text-muted-foreground rounded text-[9px] font-semibold tracking-wider" title="Bu gün planlama dışı">
-                            DİNLENME
-                          </span>
+                        {!activePlanDays.includes(day.dayIndex) ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleDayRest(day.dayIndex);
+                            }}
+                            className="px-1.5 py-0.2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 rounded text-[9px] font-bold transition flex items-center gap-0.5"
+                            title="Bu günü çalışma gününe çevir ve plana dahil et"
+                          >
+                            <span>TATİL</span>
+                            <span className="text-[8px] underline">Aç</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleDayRest(day.dayIndex);
+                            }}
+                            className="px-1.5 py-0.2 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 rounded text-[9px] font-medium transition"
+                            title="Bu günü tatil/dinlenme günü yap"
+                          >
+                            Tatil Yap
+                          </button>
                         )}
                       </div>
                       <span className="text-[11px] font-semibold text-muted-foreground font-mono">
@@ -1028,7 +1114,7 @@ export function NorthWeek() {
                         })
                       ) : (
                         <span className="text-[10px] text-muted-foreground/80 italic">
-                          {!activePlanDays.includes(day.dayIndex) ? "Plan Dışı / Dinlenme" : isSaturday ? "Serbest Zaman" : isSunday ? "Haftalık Kapanış" : "Atanmış alan yok"}
+                          {!activePlanDays.includes(day.dayIndex) ? "Tatil / Dinlenme Günü" : "Atanmış görev yok"}
                         </span>
                       )}
                     </div>
@@ -1075,15 +1161,10 @@ export function NorthWeek() {
                             </div>
                           );
                         })
-                      ) : isSaturday ? (
+                      ) : !activePlanDays.includes(day.dayIndex) ? (
                         <div className="py-4 text-center text-muted-foreground/80">
-                          <p className="text-xs font-medium">Hafta Sonu Dinlenme</p>
-                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">Yenilenme Günü</p>
-                        </div>
-                      ) : isSunday ? (
-                        <div className="py-4 text-center text-muted-foreground/80">
-                          <p className="text-xs font-medium">Haftalık İnceleme</p>
-                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">17:00 Retrospektif</p>
+                          <p className="text-xs font-medium text-amber-500/90">Tatil / Dinlenme</p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">Plan Dışı Gün</p>
                         </div>
                       ) : (
                         <div className="py-4 text-center text-muted-foreground/80">
@@ -1929,14 +2010,24 @@ export function NorthWeek() {
               /* If target is a taskId, show days to assign to */
               <div className="space-y-2">
                 <span className="text-xs text-muted-foreground">Hangi güne atamak istersin?</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {weekDays.slice(0, 5).map((d) => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {weekDays.map((d) => (
                     <button
                       key={d.date}
                       onClick={() => handleAssignTaskToDay(assignDayTarget!, d.date)}
-                      className="p-2.5 rounded-lg bg-muted/40 hover:bg-muted border border-border text-left transition"
+                      className={cn(
+                        "p-2.5 rounded-lg border text-left transition",
+                        !activePlanDays.includes(d.dayIndex)
+                          ? "bg-muted/20 border-dashed border-border opacity-70 hover:opacity-100"
+                          : "bg-muted/40 hover:bg-muted border-border"
+                      )}
                     >
-                      <div className="text-xs font-bold text-foreground">{d.dayName}</div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">{d.dayName}</span>
+                        {!activePlanDays.includes(d.dayIndex) && (
+                          <span className="text-[9px] font-semibold text-amber-500">Tatil</span>
+                        )}
+                      </div>
                       <div className="text-[10px] text-muted-foreground">
                         {d.dayNum} {d.monthName} {d.isToday ? "• Bugün" : ""}
                       </div>
@@ -1969,25 +2060,13 @@ export function NorthWeek() {
               Haftalık Planlama &amp; Gün Seçimi
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Görevlerin hangi günlere dağıtılacağını seç. Çalışmadığın günleri (örneğin hafta sonunu) devre dışı bırakabilirsin.
+              Görevlerin hangi günlere dağıtılacağını seç. Çalışmadığın günleri tatil / dinlenme olarak ayarlayabilirsin.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             {/* Quick Presets */}
             <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setTempPlanDays([0, 1, 2, 3, 4])}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-semibold border transition",
-                  JSON.stringify([...tempPlanDays].sort()) === JSON.stringify([0, 1, 2, 3, 4])
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted text-muted-foreground hover:text-foreground border-border"
-                )}
-              >
-                Hafta İçi (Haftasonu Kapalı)
-              </button>
               <button
                 type="button"
                 onClick={() => setTempPlanDays([0, 1, 2, 3, 4, 5, 6])}
@@ -1998,7 +2077,31 @@ export function NorthWeek() {
                     : "bg-muted text-muted-foreground hover:text-foreground border-border"
                 )}
               >
-                Tüm Hafta (7 Gün)
+                Tüm Hafta (7 Gün - Varsayılan)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTempPlanDays([0, 1, 2, 3, 4])}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-semibold border transition",
+                  JSON.stringify([...tempPlanDays].sort()) === JSON.stringify([0, 1, 2, 3, 4])
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground hover:text-foreground border-border"
+                )}
+              >
+                Hafta İçi (Hafta Sonu Tatil)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTempPlanDays([0, 1, 2, 3, 4, 5])}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-semibold border transition",
+                  JSON.stringify([...tempPlanDays].sort()) === JSON.stringify([0, 1, 2, 3, 4, 5])
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground hover:text-foreground border-border"
+                )}
+              >
+                6 Gün (Pazar Tatil)
               </button>
               <button
                 type="button"
@@ -2051,7 +2154,7 @@ export function NorthWeek() {
                     >
                       <span className="text-xs">{d.label}</span>
                       <span className="text-[9px] mt-0.5 font-medium">
-                        {isSelected ? "Açık" : "Kapalı"}
+                        {isSelected ? "Çalışma" : "Tatil"}
                       </span>
                     </button>
                   );
@@ -2060,11 +2163,16 @@ export function NorthWeek() {
               {!tempPlanDays.includes(5) && !tempPlanDays.includes(6) ? (
                 <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1 font-medium">
                   <Check className="w-3 h-3" />
-                  Hafta sonu (Cumartesi ve Pazar) kapalı — hiçbir görev hafta sonuna yerleştirilmeyecek.
+                  Hafta sonu (Cumartesi ve Pazar) tatil modunda — görev yerleştirilmeyecek.
+                </p>
+              ) : tempPlanDays.length === 7 ? (
+                <p className="text-[11px] text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-1 font-medium">
+                  <Check className="w-3 h-3" />
+                  Tüm 7 gün aktif çalışma — görevler tüm haftaya dengeli dağıtılır.
                 </p>
               ) : (
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                  Seçilen gün sayısı: {tempPlanDays.length} gün
+                  Seçilen gün sayısı: {tempPlanDays.length} gün ({7 - tempPlanDays.length} gün tatil/dinlenme)
                 </p>
               )}
             </div>

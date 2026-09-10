@@ -98,6 +98,7 @@ export interface Profile {
   universityMode: UniversityMode;
   preferredSessionMinutes: 45 | 50 | 60;
   weeklyCapacityHours: number;
+  workingDays?: number[]; // Active days 0..6 (0=Mon, 6=Sun). Default: [0, 1, 2, 3, 4, 5, 6] (7 days)
   birthDate?: string;
   ageRange?: AgeRange;
   lifeSituation?: LifeSituation;

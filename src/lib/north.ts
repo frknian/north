@@ -227,10 +227,10 @@ export function distributePlanTasksToCalendar(
   const events = options.events || [];
   const excludedAreaIds = options.excludedAreaIds || [];
   const weeklyMinutes = (options.weeklyHours ?? 10) * 60;
-  // Default to Mon-Fri (0, 1, 2, 3, 4) - weekends excluded by default
+  // Default to all 7 days (0: Pzt, 1: Sal, 2: Çar, 3: Per, 4: Cum, 5: Cmt, 6: Paz) - 7-day automatic planning
   const activeDayIndices = options.activeDayIndices && options.activeDayIndices.length > 0
     ? options.activeDayIndices
-    : [0, 1, 2, 3, 4];
+    : [0, 1, 2, 3, 4, 5, 6];
   const dailyTargetCapacity = Math.max(45, Math.round(weeklyMinutes / Math.max(1, activeDayIndices.length)));
 
   const dayMinutes: Record<string, number> = {};
@@ -256,7 +256,7 @@ export function distributePlanTasksToCalendar(
     }
   }
 
-  let availableDays = activeDays.length > 0 ? activeDays : daysInCurrentWeek.slice(0, 5);
+  let availableDays = activeDays.length > 0 ? activeDays : daysInCurrentWeek;
   if (!options.week && !options.forceRedistribute && today > activeDays[0]) {
     const fromToday = activeDays.filter((d) => d >= today);
     if (fromToday.length > 0) {
@@ -325,21 +325,35 @@ export function distributePlanTasksToCalendar(
     round++;
   }
 
-  // Assign interleaved tasks to available days with least load
+  // Assign interleaved tasks to available days with least load and balanced weekly spread (reaching weekends)
   const assignedMap = new Map<string, string>();
-  for (const task of interleavedTasks) {
-    let bestDay = availableDays[0];
-    let minMin = Infinity;
-    for (const d of availableDays) {
+  const totalTasks = interleavedTasks.length;
+  const numDays = availableDays.length;
+
+  interleavedTasks.forEach((task, taskIdx) => {
+    // Target ideal day index for this task to ensure even spread across the week (including weekends)
+    const idealDayIdx = totalTasks > 1 && numDays > 1
+      ? Math.round((taskIdx * (numDays - 1)) / (totalTasks - 1))
+      : (taskIdx % numDays);
+
+    let bestDay = availableDays[idealDayIdx] || availableDays[0];
+    let minScore = Infinity;
+
+    for (let i = 0; i < availableDays.length; i++) {
+      const d = availableDays[i];
       const currentLoad = dayMinutes[d] || 0;
-      if (currentLoad < minMin) {
-        minMin = currentLoad;
+      // Primary: least load (weighted heavily). Secondary: distance to ideal spread index.
+      const distance = Math.abs(i - idealDayIdx);
+      const score = currentLoad * 1000 + distance;
+
+      if (score < minScore) {
+        minScore = score;
         bestDay = d;
       }
     }
     dayMinutes[bestDay] = (dayMinutes[bestDay] || 0) + task.minutes;
     assignedMap.set(task.id, bestDay);
-  }
+  });
 
   return tasks.map((task) => {
     // If area is excluded for this week and forceRedistribute is true, move pending task to pool
@@ -419,7 +433,7 @@ export function distributeTasksAcrossMonth(
   const today = options.today || dayKey();
   const monthKey = options.monthKey || today.slice(0, 7);
   const strategy = options.strategy || "all_pool";
-  const skipWeekends = options.skipWeekends ?? true;
+  const skipWeekends = options.skipWeekends ?? false;
   const allowedDays =
     options.allowedDaysOfWeek && options.allowedDaysOfWeek.length > 0
       ? new Set(options.allowedDaysOfWeek)
@@ -630,11 +644,18 @@ export function rolloverUnfinishedTasks(state: NorthState, today = dayKey()): Ro
   const weekEnd = shiftDay(currentWeek, 6);
   const events = state.events || [];
   const weeklyMinutes = capacity(state);
-  const dailyTargetCapacity = Math.max(45, Math.round(weeklyMinutes / 5));
+  const dailyTargetCapacity = Math.max(45, Math.round(weeklyMinutes / 7));
 
+  const restProtection = new Set(
+    (state.protection || [])
+      .filter((p) => p.kind === "rest")
+      .map((p) => p.date)
+  );
   const candidateDays: string[] = [];
   for (let d = today; d <= weekEnd; d = shiftDay(d, 1)) {
-    candidateDays.push(d);
+    if (!restProtection.has(d)) {
+      candidateDays.push(d);
+    }
   }
   if (candidateDays.length === 0) {
     candidateDays.push(today);

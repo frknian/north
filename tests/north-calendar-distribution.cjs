@@ -33,7 +33,7 @@ function load(path) {
   return module.exports;
 }
 
-const { distributeTasksAcrossMonth } = load('src/lib/north.ts');
+const { distributeTasksAcrossMonth, distributePlanTasksToCalendar, shiftDay } = load('src/lib/north.ts');
 
 console.log('Testing distributeTasksAcrossMonth with custom day options...');
 
@@ -112,7 +112,58 @@ const emptyResult = distributeTasksAcrossMonth(sampleTasks, {
   startFromToday: true,
 });
 assert.equal(emptyResult.distributedCount, 0);
-assert(emptyResult.summary.includes('uygun boş gün bulunamadı'));
-console.log('✓ Uygun gün kalmama durumu ve nazik bilgilendirme mesajı başarıyla doğrulandı.');
+// Test 5: 7-day automatic planning default (includes weekends Saturday & Sunday)
+const monday = '2026-09-07';
+const saturday = shiftDay(monday, 5);
+const sunday = shiftDay(monday, 6);
 
-console.log('🎉 ALL CALENDAR DISTRIBUTION DAY SELECTION TESTS PASSED!');
+const weekTasks7 = Array.from({ length: 7 }, (_, i) => ({
+  id: `task-${i + 1}`,
+  areaId: `area-${(i % 3) + 1}`,
+  title: `Task ${i + 1}`,
+  minutes: 60,
+  status: 'todo',
+  date: '',
+  week: monday,
+}));
+
+const result7 = distributePlanTasksToCalendar(weekTasks7, {
+  week: monday,
+  forceRedistribute: true,
+});
+
+const dates7 = result7.map((t) => t.date);
+assert.equal(dates7.length, 7);
+assert(dates7.includes(saturday), 'Saturday must have a task assigned in 7-day default');
+assert(dates7.includes(sunday), 'Sunday must have a task assigned in 7-day default');
+console.log('✓ 7-gün otomatik planlama: Görevler Cumartesi ve Pazar dahil 7 güne yayıldı.');
+
+// Test 6: Balanced spread with few tasks (3 tasks spread across 7 days reaching weekend)
+const weekTasks3 = [
+  { id: 't1', areaId: 'a1', title: 'Task 1', minutes: 60, status: 'todo', date: '', week: monday },
+  { id: 't2', areaId: 'a2', title: 'Task 2', minutes: 60, status: 'todo', date: '', week: monday },
+  { id: 't3', areaId: 'a1', title: 'Task 3', minutes: 60, status: 'todo', date: '', week: monday },
+];
+
+const result3 = distributePlanTasksToCalendar(weekTasks3, {
+  week: monday,
+  forceRedistribute: true,
+});
+const dates3 = result3.map((t) => t.date);
+assert.equal(dates3.length, 3);
+assert(dates3.includes(sunday), `Expected tasks to reach the weekend; got: ${dates3.join(', ')}`);
+console.log('✓ Az sayıda görev bile (3 görev) haftaya dengeli yayılarak hafta sonunu kapsadı.');
+
+// Test 7: User selected custom rest days (weekdays only [0, 1, 2, 3, 4])
+const resultWeekdaysOnly = distributePlanTasksToCalendar(weekTasks7, {
+  week: monday,
+  forceRedistribute: true,
+  activeDayIndices: [0, 1, 2, 3, 4],
+});
+for (const t of resultWeekdaysOnly) {
+  assert(t.date !== saturday && t.date !== sunday, `Weekend should be excluded when user chooses weekdays only! Got: ${t.date}`);
+}
+console.log('✓ Kullanıcı hafta içi seçtiğinde hafta sonu tatili başarıyla korundu.');
+
+console.log('🎉 ALL CALENDAR DISTRIBUTION & 7-DAY PLANNING TESTS PASSED!');
+

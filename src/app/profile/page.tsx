@@ -10,6 +10,7 @@ import {
   BookOpenText,
   Bot,
   Brain,
+  Calendar,
   ChevronDown,
   ChevronUp,
   CircleHelp,
@@ -26,6 +27,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserGuide } from "@/components/features/user-guide";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -62,6 +64,42 @@ export default function ProfilePage() {
     rule: "",
     enabled: true,
   });
+
+  const currentWorkingDays: number[] = workspace.profile.workingDays && workspace.profile.workingDays.length > 0
+    ? workspace.profile.workingDays
+    : [0, 1, 2, 3, 4, 5, 6];
+
+  const handleToggleWorkingDay = (dayIdx: number) => {
+    let nextDays: number[];
+    if (currentWorkingDays.includes(dayIdx)) {
+      if (currentWorkingDays.length <= 1) {
+        toast.error("En az 1 çalışma günü seçili kalmalıdır.");
+        return;
+      }
+      nextDays = currentWorkingDays.filter((d) => d !== dayIdx);
+    } else {
+      nextDays = [...currentWorkingDays, dayIdx].sort((a, b) => a - b);
+    }
+    workspace.updateProfile({ workingDays: nextDays });
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("north_active_plan_days_v2", JSON.stringify(nextDays));
+        localStorage.setItem("north_active_plan_days", JSON.stringify(nextDays));
+      } catch {}
+    }
+    toast.success("Haftalık çalışma günleri güncellendi.");
+  };
+
+  const handleSetWorkingDaysPreset = (days: number[]) => {
+    workspace.updateProfile({ workingDays: days });
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("north_active_plan_days_v2", JSON.stringify(days));
+        localStorage.setItem("north_active_plan_days", JSON.stringify(days));
+      } catch {}
+    }
+    toast.success("Haftalık çalışma düzeni ayarlandı.");
+  };
 
   function saveNote() {
     if (!note.title.trim()) return;
@@ -182,6 +220,88 @@ export default function ProfilePage() {
                     </Select>
                   </Field>
                   <Field label="Haftalık kapasite (saat)"><Input type="number" min={1} max={60} value={workspace.profile.weeklyCapacityHours} onChange={(event) => workspace.updateProfile({ weeklyCapacityHours: Math.max(1, Number(event.target.value)) })} /></Field>
+                </div>
+
+                {/* Haftalık Çalışma ve Tatil Günleri */}
+                <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        Haftalık Çalışma ve Tatil Günleri
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Planorth haftalık görevleri varsayılan olarak seçtiğin çalışma günlerine otomatik dağıtır. Tatil günlerine görev atanmaz.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Button
+                        type="button"
+                        variant={currentWorkingDays.length === 7 ? "default" : "outline"}
+                        size="sm"
+                        className="text-xs h-7 px-2.5"
+                        onClick={() => handleSetWorkingDaysPreset([0, 1, 2, 3, 4, 5, 6])}
+                      >
+                        7 Gün (Tüm Hafta)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={JSON.stringify([...currentWorkingDays].sort()) === JSON.stringify([0, 1, 2, 3, 4]) ? "default" : "outline"}
+                        size="sm"
+                        className="text-xs h-7 px-2.5"
+                        onClick={() => handleSetWorkingDaysPreset([0, 1, 2, 3, 4])}
+                      >
+                        5 Gün (Hafta İçi)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={JSON.stringify([...currentWorkingDays].sort()) === JSON.stringify([0, 1, 2, 3, 4, 5]) ? "default" : "outline"}
+                        size="sm"
+                        className="text-xs h-7 px-2.5"
+                        onClick={() => handleSetWorkingDaysPreset([0, 1, 2, 3, 4, 5])}
+                      >
+                        6 Gün (Pazar Tatil)
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-2 pt-1">
+                    {[
+                      { idx: 0, label: "Pzt", full: "Pazartesi" },
+                      { idx: 1, label: "Sal", full: "Salı" },
+                      { idx: 2, label: "Çar", full: "Çarşamba" },
+                      { idx: 3, label: "Per", full: "Perşembe" },
+                      { idx: 4, label: "Cum", full: "Cuma" },
+                      { idx: 5, label: "Cmt", full: "Cumartesi" },
+                      { idx: 6, label: "Paz", full: "Pazar" },
+                    ].map((d) => {
+                      const isActive = currentWorkingDays.includes(d.idx);
+                      return (
+                        <button
+                          key={d.idx}
+                          type="button"
+                          onClick={() => handleToggleWorkingDay(d.idx)}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer",
+                            isActive
+                              ? "bg-primary/10 border-primary text-primary font-bold shadow-xs"
+                              : "bg-muted/40 border-border text-muted-foreground hover:border-muted-foreground/30"
+                          )}
+                          title={d.full}
+                        >
+                          <span className="text-xs">{d.label}</span>
+                          <span className={cn("text-[9px] mt-0.5 font-medium", isActive ? "text-primary" : "text-amber-500")}>
+                            {isActive ? "Çalışma" : "Tatil"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border">
+                    <span>Aktif Çalışma: <strong className="text-foreground">{currentWorkingDays.length} gün</strong></span>
+                    <span>Tatil / Dinlenme: <strong className="text-foreground">{7 - currentWorkingDays.length} gün</strong></span>
+                  </div>
                 </div>
 
                 {/* Resource Preferences */}

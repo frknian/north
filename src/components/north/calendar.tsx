@@ -97,7 +97,7 @@ export const CALENDAR_DAYS_OF_WEEK = [
 ];
 
 export function NorthCalendar() {
-  const { state, update } = useNorth();
+  const { state, update, workspace } = useNorth();
   const [date, setDate] = useState(dayKey());
   const [view, setView] = useState<"day" | "week" | "month">("month");
   const [eventDraft, setEventDraft] = useState<NorthEvent | null>(null);
@@ -156,12 +156,20 @@ export function NorthCalendar() {
   // Distribution options
   const [distributeStrategy, setDistributeStrategy] = useState<"all_pool" | "rebalance_month" | "area_specific">("all_pool");
   const [distributeAreaId, setDistributeAreaId] = useState<string>("");
-  // 1=Pzt, 2=Sal, 3=Çar, 4=Per, 5=Cum, 6=Cmt, 0=Paz. Default: all days
+  // 1=Pzt, 2=Sal, 3=Çar, 4=Per, 5=Cum, 6=Cmt, 0=Paz. Default: all 7 days
   const [distAllowedDays, setDistAllowedDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]);
   const [distRespectRest, setDistRespectRest] = useState<boolean>(true);
   const [distRespectBlocks, setDistRespectBlocks] = useState<boolean>(true);
   const [distMaxDailyTasks, setDistMaxDailyTasks] = useState<number>(2);
   const [distMaxDailyMinutes, setDistMaxDailyMinutes] = useState<number>(90);
+
+  // Sync with profile workingDays if configured
+  useEffect(() => {
+    if (workspace?.profile?.workingDays && workspace.profile.workingDays.length > 0) {
+      const mapped = workspace.profile.workingDays.map((d) => (d === 6 ? 0 : d + 1));
+      setDistAllowedDays(mapped);
+    }
+  }, [workspace?.profile?.workingDays]);
 
   const isAllDays = distAllowedDays.length === 7;
   const isWeekdaysOnly = distAllowedDays.length === 5 && [1, 2, 3, 4, 5].every((d) => distAllowedDays.includes(d));
@@ -372,10 +380,14 @@ export function NorthCalendar() {
 
   const handleRebalance = () => {
     const today = dayKey();
+    const activeIndices = workspace?.profile?.workingDays && workspace.profile.workingDays.length > 0
+      ? workspace.profile.workingDays
+      : [0, 1, 2, 3, 4, 5, 6];
     const distributed = distributePlanTasksToCalendar(state.tasks, {
       weeklyHours: state.weeklyHours,
       events: state.events,
       today,
+      activeDayIndices: activeIndices,
     });
     const rolled = rolloverUnfinishedTasks({ ...state, tasks: distributed }, today);
     update(() => rolled.state);
