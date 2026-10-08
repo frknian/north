@@ -7,16 +7,19 @@ import { toast } from "sonner";
 import { demoState } from "@/lib/demo-data";
 import { createEmptyWorkspaceState, createPersonalizedWorkspace } from "@/lib/onboarding";
 import { dayKey, initializeNorth, type NorthState } from "@/lib/north";
+import { createLearningRoadmapState, normalizeLearningRoadmapState } from "@/lib/learning-roadmap";
 import { getFirebase } from "@/lib/firebase/client";
 import type { Certification, CoachAction, CoachMessage, CoachingOnboarding, DailyCheckin, FocusSession, InitialSetupInput, InterviewAttempt, JobApplication, JobPosting, Lab, Note, PortfolioProject, Profile, ProgressArchive, Report, ResourceRating, Review, Task, VocabularyItem, WorkspaceState } from "@/lib/types";
 
 const STORAGE_KEY = "cybercoach:v1";
+const userStorageKey = (uid: string) => `${STORAGE_KEY}:user:${uid}`;
 const LEGACY_STORAGE_KEY = "cyber-career-os:v1";
 const WORKSPACE_ID = "cybercoach";
 const LEGACY_WORKSPACE_ID = "career-os";
 
 interface WorkspaceContextValue extends WorkspaceState {
   updateNorth: (update: (state: NorthState) => NorthState) => void;
+  updateLearningRoadmap: (update: (state: import("@/lib/learning-roadmap").LearningRoadmapState) => import("@/lib/learning-roadmap").LearningRoadmapState) => void;
   ready: boolean;
   syncMode: "local" | "firebase";
   authStatus: "loading" | "signed_out" | "signed_in" | "local";
@@ -77,6 +80,7 @@ function normalizeState(saved?: Partial<WorkspaceState> | null): WorkspaceState 
   return {
     ...demoState,
     ...saved,
+    learningRoadmap: normalizeLearningRoadmapState(saved.learningRoadmap),
     certifications: Array.isArray(saved.certifications) ? saved.certifications : [],
     coachMessages: Array.isArray(saved.coachMessages) ? saved.coachMessages : [],
     coachSessionArchives: Array.isArray(saved.coachSessionArchives) ? saved.coachSessionArchives : [],
@@ -197,16 +201,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
               snapshot = await getDoc(ref);
             }
           }
-          if (!active) return;
+          if (!active || userIdRef.current !== user.uid) return;
           if (snapshot.exists()) {
             const data = snapshot.data();
             if (data && data.state) {
               const normalized = normalizeState(data.state as Partial<WorkspaceState>);
               setState(normalized);
-              try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); } catch {}
+              try { window.localStorage.setItem(userStorageKey(user.uid), JSON.stringify(normalized)); } catch {}
             } else {
               let candidateState: WorkspaceState | null = null;
-              const stored = window.localStorage.getItem(STORAGE_KEY);
+              const stored = window.localStorage.getItem(userStorageKey(user.uid));
               if (stored) {
                 try {
                   const parsed = JSON.parse(stored);
@@ -222,12 +226,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (error) {
           console.error("Firebase workspace hydration error:", error);
-          const stored = window.localStorage.getItem(STORAGE_KEY);
+          const stored = window.localStorage.getItem(userStorageKey(user.uid));
           if (stored) {
             try { setState(normalizeState(JSON.parse(stored))); } catch {}
           }
         } finally {
-          if (active) setReady(true);
+          if (active && userIdRef.current === user.uid) setReady(true);
         }
       });
     };
@@ -237,22 +241,25 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
+    const uid = firebase ? (authStatus === "signed_in" ? userIdRef.current : null) : null;
+    if (firebase && !uid) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      window.localStorage.setItem(uid ? userStorageKey(uid) : STORAGE_KEY, JSON.stringify(state));
     } catch {}
 
-    if (!firebase || !userIdRef.current) return;
+    if (!firebase || !uid) return;
 
     const timeout = window.setTimeout(() => {
-      if (firebase && userIdRef.current) {
-        setDoc(doc(firebase.db, "users", userIdRef.current, "workspaces", WORKSPACE_ID), { state: JSON.parse(JSON.stringify(state)), updatedAt: new Date().toISOString() }, { merge: true }).catch(() => toast.error("Firebase eşitlemesi başarısız oldu. Mevcut ekranın değişmedi."));
+      if (userIdRef.current === uid) {
+        setDoc(doc(firebase.db, "users", uid, "workspaces", WORKSPACE_ID), { state: JSON.parse(JSON.stringify(state)), updatedAt: new Date().toISOString() }, { merge: true }).catch(() => toast.error("Firebase eşitlemesi başarısız oldu. Mevcut ekranın değişmedi."));
       }
     }, 500);
     return () => window.clearTimeout(timeout);
-  }, [firebase, ready, state]);
+  }, [authStatus, firebase, ready, state]);
 
   const value = useMemo<WorkspaceContextValue>(() => ({
     updateNorth: (update) => mutate(current => ({ ...current, north: update(current.north ?? initializeNorth(current)) })),
+    updateLearningRoadmap: (update) => mutate(current => ({ ...current, learningRoadmap: update(current.learningRoadmap ?? createLearningRoadmapState()) })),
     ...state,
     ready,
     syncMode,
@@ -301,7 +308,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const nextState = createPersonalizedWorkspace(input);
       setState(nextState);
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+        window.localStorage.setItem(firebase && userIdRef.current ? userStorageKey(userIdRef.current) : STORAGE_KEY, JSON.stringify(nextState));
       } catch {}
       if (firebase && userIdRef.current) {
         try {
@@ -331,6 +338,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       return {
         ...demoState,
         profile,
+        learningRoadmap: current.learningRoadmap,
         tasks: current.tasks.map((task) => ({ ...task, status: "pending", isDailyMission: false, completedAt: undefined, reflection: undefined })),
         focusSessions: [],
         labs: [],

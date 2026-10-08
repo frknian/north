@@ -206,12 +206,12 @@ export function NorthProgress({ initialTab }: NorthProgressProps) {
   };
 
   return (
-    <div className="page-content space-y-6 pb-32 md:pb-20">
+    <div className="page-content progress-stitch space-y-6 pb-32 md:pb-20">
       {/* 1. TOP HEADER & MAIN TAB SWITCHER (İLERLEME & DEĞERLENDİRME BİRLEŞİK) */}
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            {mainTab === "progress" ? "İlerleme & Analiz" : "Değerlendirme & Ritüel"}
+            {mainTab === "progress" ? "Gelişim & istatistikler" : "Değerlendirme & ritüel"}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             {mainTab === "progress"

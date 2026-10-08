@@ -598,7 +598,7 @@ export function NorthAI({
   // FULL PAGE VIEW: PLANORTH PERSONAL COACHING STUDIO
   // -------------------------------------------------------------
   return (
-    <div className="w-full h-full max-w-7xl mx-auto p-2 sm:p-3.5 flex flex-col gap-2.5 overflow-hidden">
+    <div className="coach-stitch w-full h-full max-w-7xl mx-auto p-2 sm:p-3.5 flex flex-col gap-2.5 overflow-hidden">
       {/* MOBILE TOP SEGMENT BAR (< 1024px) */}
       <div className="flex lg:hidden items-center p-1 rounded-xl bg-muted/60 border border-border shrink-0">
         <button

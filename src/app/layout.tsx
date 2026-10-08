@@ -53,7 +53,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Planorth" },
 };
 
-export const viewport: Viewport = { themeColor: "#121315", width: "device-width", initialScale: 1, viewportFit:"cover" };
+export const viewport: Viewport = { themeColor: "#090D16", width: "device-width", initialScale: 1, viewportFit:"cover" };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const nonce = (await headers()).get("x-nonce") ?? undefined;

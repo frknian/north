@@ -530,6 +530,7 @@ export interface Certification { id: string; title: string; targetDate: string; 
 
 export interface WorkspaceState {
   north?: import("./north").NorthState;
+  learningRoadmap?: import("./learning-roadmap").LearningRoadmapState;
   certifications: Certification[];
   profile: Profile;
   weeklyPlan: WeeklyPlan;

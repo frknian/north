@@ -90,7 +90,7 @@ export function CompanionModal({
 
   const [previewLevel, setPreviewLevel] = useState<number>(actualLevel);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
-  const simTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const simTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

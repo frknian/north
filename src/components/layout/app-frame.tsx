@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Award, BarChart3, BookOpen, Briefcase, CalendarDays, CircleHelp, ClipboardList, FlaskConical, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { NorthChatPopover } from "@/components/north/north-chat-popover";
@@ -16,25 +15,30 @@ import { isCurrentTabLocked, FOCUS_LOCK_KEY, BROADCAST_CHANNEL_NAME, type Active
 import { FocusLockBarrier } from "@/components/features/focus-lock-barrier";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SanalKutuphaneBadge } from "@/components/north/sanal-kutuphane";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
   { href: "/coach", label: "Koç", icon: Sparkles },
   { href: "/week", label: "Plan", icon: ClipboardList },
+  { href: "/roadmap", label: "Yol Haritam", icon: ClipboardList },
   { href: "/areas", label: "Alanlar", icon: Layers3 },
+  { href: "/knowledge", label: "Kütüphane", icon: BookOpen },
   { href: "/resources", label: "Kaynaklar", icon: BookOpen },
   { href: "/labs", label: "Lablar", icon: FlaskConical },
   { href: "/evidence", label: "Portföy", icon: Briefcase },
   { href: "/progress", label: "İlerleme", icon: BarChart3 },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
 ];
+const featuredNavigation = ["/", "/roadmap", "/coach", "/progress", "/knowledge"];
 const areaRoutes = ["/skills", "/resources", "/career", "/knowledge", "/certifications", "/plan"];
 const titles: Record<string, string> = {
   "/": "Bugün",
   "/coach": "Planorth Koç",
   "/north-ai": "Planorth Koç",
   "/week": "Haftalık Plan",
+  "/roadmap": "Yol Haritam",
   "/areas": "Hedef Alanları",
   "/calendar": "Takvim & Zaman Blokları",
   "/progress": "İlerleme & Değerlendirme",
@@ -178,7 +182,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
     <a className="skip-link" href="#north-content">İçeriğe geç</a>
     <header className={cn("north-topbar",scrolled&&"is-scrolled")}>
       <div className="north-topbar-inner">
-        <Link href="/" aria-label="Planorth — Bugün" className="north-brand"><NorthLogo size={34} priority/><span className="font-planorth text-base tracking-[0.04em]">PLANORTH</span></Link>
+        <Link href="/" aria-label="Planorth — Bugün" className="north-brand"><NorthLogo size={34} priority/><span className="font-planorth text-base tracking-tight">Planorth</span></Link>
         <TopNavigation pathname={pathname}/>
         <div className="north-tools">
           <SanalKutuphaneBadge />
@@ -208,7 +212,7 @@ function TopNavigation({ pathname }: { pathname: string }) {
   const current = activeTab(pathname);
   return (
     <nav className="north-desktop-tabs" aria-label="Ana navigasyon">
-      {navigation.map((n) => {
+      {featuredNavigation.map((href) => navigation.find((item) => item.href === href)!).map((n) => {
         const isActive = current === n.href;
         return (
           <Link
@@ -217,10 +221,16 @@ function TopNavigation({ pathname }: { pathname: string }) {
             className={cn("north-top-tab", isActive && "is-active")}
             aria-current={isActive ? "page" : undefined}
           >
-            {n.label}
+            {n.href === "/" ? "Ana Panel" : n.href === "/coach" ? "Planorth Koç" : n.href === "/progress" ? "Gelişim & İstatistik" : n.href === "/knowledge" ? "Kütüphane" : n.label}
           </Link>
         );
       })}
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn("north-top-tab", !featuredNavigation.includes(current) && current && "is-active")}>Diğer sayfalar <MoreHorizontal size={15} /></DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-56 border border-border/70 bg-popover/95 backdrop-blur-xl">
+          {navigation.filter((n) => !featuredNavigation.includes(n.href)).map((n) => <DropdownMenuItem key={n.href} asChild><Link href={n.href} className="flex items-center gap-2.5 px-3 py-2"><n.icon size={15} />{n.label}</Link></DropdownMenuItem>)}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </nav>
   );
 }
@@ -236,9 +246,9 @@ function MobileNavigation({ pathname }: { pathname: string }) {
 
   const mobilePrimary = [
     { href: "/", label: "Bugün", icon: Home },
-    { href: "/areas", label: "Alanlar", icon: Layers3 },
-    { href: "/week", label: "Plan", icon: ClipboardList },
-    { href: "/resources", label: "Kaynaklar", icon: BookOpen },
+    { href: "/roadmap", label: "Yol Haritam", icon: ClipboardList },
+    { href: "/coach", label: "Koç", icon: Sparkles },
+    { href: "/knowledge", label: "Kütüphane", icon: BookOpen },
   ];
   const isSheetActive = !mobilePrimary.some((item) => current === item.href);
 
@@ -302,6 +312,7 @@ function MobileNavigation({ pathname }: { pathname: string }) {
               <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase mb-2">Çalışma Alanları &amp; Takip</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
+                  { href: "/roadmap", label: "Yol Haritam", icon: ClipboardList, desc: "Kendi planını oluştur" },
                   { href: "/calendar", label: "Takvim & Zaman", icon: CalendarDays, desc: "Aylık taksim & bloklar" },
                   { href: "/progress", label: "İlerleme & Rapor", icon: BarChart3, desc: "Radar ve değerlendirme" },
                   { href: "/coach", label: "Planorth AI Koç", icon: Sparkles, desc: "Birebir rehberlik" },

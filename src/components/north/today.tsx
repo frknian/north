@@ -81,6 +81,12 @@ export function NorthToday() {
           </div>
         </header>
 
+        <div className="today-stitch-overview" aria-label="Bugünkü çalışma özeti">
+          <div className="surface"><span>BUGÜN TAMAMLANAN</span><strong>{completed}</strong><small>Gerçek görev kayıtların</small></div>
+          <div className="surface"><span>SIRADAKİ GÖREVLER</span><strong>{sequence.length}</strong><small>Bugünkü planından</small></div>
+          <div className="surface"><span>PLANLANAN ODAK</span><strong>{plannedMinutes} <em>dk</em></strong><small>Kalan görev süresi</small></div>
+        </div>
+
         {/* AKILLI UYARI VEYA GÜNLÜK İLHAM (TEK, TEMİZ ŞERİT) */}
         {adaptation ? (
           <section className="north-adaptation" aria-live="polite">

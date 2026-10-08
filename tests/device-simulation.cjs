@@ -410,9 +410,9 @@ function auditDeviceCSSAndLayout(deviceType) {
     assert.ok(cssContent.includes('.north-desktop-tabs { display:none; }'), 'Desktop tabs hidden on phone');
     findings.push('Desktop tabs hidden under 768px');
 
-    // 5. Login side showcases hidden on mobile
-    assert.ok(loginContent.includes('hidden lg:flex flex-col gap-5 w-[330px]'), 'Login showcases properly hidden on mobile');
-    findings.push('Auth card centered and showcases hidden on mobile screens');
+    // 5. The Stitch introduction is desktop-only; the auth card stays usable on mobile.
+    assert.ok(loginContent.includes('hidden lg:flex login-stitch-intro'), 'Login introduction properly hidden on mobile');
+    findings.push('Auth card centered and introduction hidden on mobile screens');
 
     // 6. Focus screen scrollable on mobile
     assert.ok(focusContent.includes('overflow-y-auto lg:overflow-hidden'), 'Focus cockpit allows vertical scrolling on mobile');
@@ -442,12 +442,12 @@ function auditDeviceCSSAndLayout(deviceType) {
     assert.ok(focusContent.includes('lg:h-screen') && focusContent.includes('lg:overflow-hidden'), 'Focus cockpit fills 100vh without page scroll on desktop');
     findings.push('Focus cockpit locks to exact 100vh with 4 parallel columns');
 
-    // 3. Login showcases visible on desktop (>=1024px)
-    assert.ok(loginContent.includes('hidden lg:flex'), 'Login left and right showcases visible on desktop');
-    findings.push('Login left (English C1/Zen) & right (Chess/Scores) bento showcases visible');
+    // 3. The Stitch introduction is visible on desktop (>=1024px).
+    assert.ok(loginContent.includes('hidden lg:flex login-stitch-intro'), 'Login introduction visible on desktop');
+    findings.push('Login introduction and auth card visible side by side');
 
     // 4. Desktop side-by-side tabs & search shortcut
-    assert.ok(appFrameContent.includes('north-desktop-tabs') && appFrameContent.includes('navigation.map'), 'Side-by-side desktop navigation tabs present');
+    assert.ok(appFrameContent.includes('north-desktop-tabs') && appFrameContent.includes('featuredNavigation.map'), 'Side-by-side desktop navigation tabs present');
     assert.ok(appFrameContent.includes('WorkspaceSearch'), 'Workspace search with hotkey active on desktop');
     findings.push('Full desktop side-by-side navigation tabs and search shortcut');
   }
