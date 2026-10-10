@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -36,6 +36,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AreaModules } from "./area-modules";
+import { AreaRoadmapTab, RoadmapAreaBadge, RoadmapAreaOverview } from "./area-roadmap";
 import { AreaSprintHub } from "./area-sprint-hub";
 import { DomainCoachingCockpit } from "./domain-coaching-cockpit";
 import { useWorkspace } from "@/components/features/workspace-provider";
@@ -84,7 +85,7 @@ const icons = ["◎", "∑", "⌘", "▤", "♞", "◇", "✦", "🇬🇧", "�
 const priorityLabels: Record<number, string> = { 3: "Yüksek", 2: "Orta", 1: "Düşük", 0: "Bakım" };
 
 export function NorthAreas({ id }: { id?: string }) {
-  const { state, update, ready } = useNorth();
+  const { state, update, ready, workspace } = useNorth();
   const [draft, setDraft] = useState<Area | null>(null);
   const [managing, setManaging] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
@@ -121,6 +122,16 @@ export function NorthAreas({ id }: { id?: string }) {
         area.id === areaId ? { ...area, status, archived: status === "archived" } : area
       ),
     }));
+  }
+
+  function removeArea(area: Area) {
+    const hasRecords = state.tasks.some((task) => task.areaId === area.id) || state.activities.some((activity) => activity.areaId === area.id) || state.events.some((event) => event.areaId === area.id) || (state.sprints ?? []).some((sprint) => sprint.areaId === area.id);
+    if (hasRecords) {
+      if (window.confirm(`“${area.name}” alanında çalışma kayıtları var. Kayıtları koruyup alanı aktif listeden kaldıralım mı?`)) workspace.removeNorthArea(area.id);
+      return;
+    }
+    if (!window.confirm(`“${area.name}” alanı kaldırılsın mı? Yol haritasındaki görevler hesabında kalır.`)) return;
+    workspace.removeNorthArea(area.id);
   }
 
   if (!ready) return <div className="page-content" aria-busy="true">Alanlar yükleniyor…</div>;
@@ -205,11 +216,6 @@ export function NorthAreas({ id }: { id?: string }) {
           <div className="rounded-2xl border bg-card/60 divide-y divide-border/40 overflow-hidden shadow-xs">
             {state.areas.map((area, index) => {
               const status = areaStatus(area);
-              const hasRecords =
-                state.tasks.some((task) => task.areaId === area.id) ||
-                state.activities.some((activity) => activity.areaId === area.id) ||
-                state.events.some((event) => event.areaId === area.id);
-
               return (
                 <div key={area.id} className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
                   <div className="flex items-center gap-3">
@@ -275,19 +281,13 @@ export function NorthAreas({ id }: { id?: string }) {
                       {status === "archived" ? "Geri Al" : "Arşivle"}
                     </Button>
                     <Button
-                      size="icon-xs"
+                      size="xs"
                       variant="ghost"
-                      disabled={hasRecords}
-                      title={hasRecords ? "Kayıt içeren alan silinemez; arşivleyebilirsin." : "Alanı sil"}
+                      title="Alanı kaldır"
                       className="text-muted-foreground hover:text-destructive"
-                      onClick={() =>
-                        update((workspace) => ({
-                          ...workspace,
-                          areas: workspace.areas.filter((item) => item.id !== area.id),
-                        }))
-                      }
+                      onClick={() => removeArea(area)}
                     >
-                      <Trash2 className="size-3.5" />
+                      <Trash2 className="size-3.5 mr-1" /> Alanı kaldır
                     </Button>
                   </div>
                 </div>
@@ -301,9 +301,10 @@ export function NorthAreas({ id }: { id?: string }) {
             <AreaEditor draft={draft} setDraft={setDraft} onSave={saveArea} onCancel={() => setDraft(null)} />
           )}
 
+          <RoadmapAreaOverview areas={state.areas} />
           <div className="grid gap-4 md:grid-cols-2">
             {visibleAreas.map((area) => (
-              <AreaCard key={area.id} area={area} />
+              <AreaCard key={area.id} area={area} areas={state.areas} onRemove={() => removeArea(area)} />
             ))}
           </div>
 
@@ -322,7 +323,7 @@ export function NorthAreas({ id }: { id?: string }) {
   );
 }
 
-function AreaCard({ area }: { area: Area }) {
+function AreaCard({ area, areas, onRemove }: { area: Area; areas: Area[]; onRemove: () => void }) {
   const { state } = useNorth();
   const minutes = state.activities
     .filter((activity) => activity.areaId === area.id && activity.date >= weekKey() && activity.date <= dayKey())
@@ -379,6 +380,8 @@ function AreaCard({ area }: { area: Area }) {
           </p>
         </div>
 
+        <RoadmapAreaBadge area={area} areas={areas} />
+
         <div className="mt-4 space-y-1.5">
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
             <div
@@ -393,10 +396,11 @@ function AreaCard({ area }: { area: Area }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-border/40 pt-3 text-xs">
+      <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-3 text-xs">
         <p className="truncate text-muted-foreground text-[11px] max-w-[200px]">
           {nextTask ? `Sıradaki: ${nextTask.title}` : "Sıradaki adımı belirle"}
         </p>
+        <Button size="xs" variant="ghost" title="Alanı kaldır" onClick={onRemove} className="shrink-0 text-muted-foreground hover:text-destructive"><Trash2 className="size-3 mr-1" /> Kaldır</Button>
         <Button size="xs" variant={nextTask ? "default" : "outline"} asChild className="rounded-xl text-[11px]">
           <Link href={nextTask ? `/focus/${nextTask.id}` : `/areas/${area.id}`}>
             {nextTask ? (
@@ -714,6 +718,13 @@ function AreaWorkspace({
   const { state, update } = useNorth();
   const workspace = useWorkspace();
 
+  useEffect(() => {
+    const selectHash = () => { if (window.location.hash === "#roadmap") setTab("roadmap"); };
+    selectHash();
+    window.addEventListener("hashchange", selectHash);
+    return () => window.removeEventListener("hashchange", selectHash);
+  }, [setTab]);
+
   // Task Hub States
   const [taskFilter, setTaskFilter] = useState<"all" | "pending" | "done">("all");
   const [quickTitle, setQuickTitle] = useState("");
@@ -843,8 +854,9 @@ function AreaWorkspace({
 
   const tabList = [
     ["tasks", "1. Eylemler & Rutinler"],
-    ["coach", "2. Koçluk & Konu Analizi"],
-    ["records", "3. Sonuçlar & Kanıtlar"],
+    ["roadmap", "2. Yol Haritası"],
+    ["coach", "3. Koçluk & Konu Analizi"],
+    ["records", "4. Sonuçlar & Kanıtlar"],
   ];
 
   return (
@@ -1037,6 +1049,8 @@ function AreaWorkspace({
           </button>
         ))}
       </div>
+
+      {tab === "roadmap" && <AreaRoadmapTab key={workspace.learningRoadmap?.plan?.id ?? "empty"} area={area} areas={state.areas} />}
 
       {/* ----------------------------------------------------------- */}
       {/* TAB 1: TASKS (YAPACAĞIM VE YAPTIĞIM GÖREVLER)                */}

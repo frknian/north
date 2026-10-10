@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Feather, Moon, Play, Sparkles, Sun, Zap, BookOpen, Target, GraduationCap, Search } from "lucide-react";
+import { ArrowRight, Feather, GitBranch, Moon, Play, Sparkles, Sun, Zap, BookOpen, Target, GraduationCap, Search } from "lucide-react";
 import { dailySelection, dayKey, getActiveSprint, rolloverUnfinishedTasks } from "@/lib/north";
+import { getScheduledWeek, roadmapStatus } from "@/lib/learning-roadmap";
 import { useNorth, Companion } from "./shared";
 import { Button } from "@/components/ui/button";
 import { RestCelebrationCard } from "./progress-charts";
@@ -13,7 +14,7 @@ import { FocusLauncherDialog } from "./focus-launcher-dialog";
 import { SprintLauncherDialog } from "./area-sprint-hub";
 
 export function NorthToday() {
-  const { state, update, ready } = useNorth();
+  const { state, update, ready, workspace } = useNorth();
   const [morningOpen, setMorningOpen] = useState(false);
   const [eveningOpen, setEveningOpen] = useState(false);
   const [focusLauncherOpen, setFocusLauncherOpen] = useState(false);
@@ -31,7 +32,7 @@ export function NorthToday() {
   const dateLabel = new Date(`${today}T12:00:00`).toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
   const direction = currentArea
     ? `Bugünün ana önceliği ${currentArea.name}. ${next[0] ? `${areas.find(area => area.id === next[0].areaId)?.name ?? "Sonraki görev"} ikinci sırada.` : "Tek bir anlamlı adım yeterli."}`
-    : "North, sıradaki anlamlı adımını bulmaya hazır.";
+    : "Planorth, sıradaki anlamlı adımını bulmaya hazır.";
 
   const wisdom = getTodayWisdom();
 
@@ -43,6 +44,12 @@ export function NorthToday() {
   const sprintDoneCount = activeSprint ? activeSprint.modules.filter(m => m.status === "done").length : 0;
   const sprintTotalCount = activeSprint ? activeSprint.modules.length : 0;
   const isCurrentTaskInSprint = current && (current.sprintId === activeSprint?.id || Boolean(current.sprintModuleId));
+  const roadmap = workspace.learningRoadmap;
+  const roadmapPlan = roadmap?.plan;
+  const roadmapWeek = roadmapPlan ? Math.max(1, Math.min(roadmapPlan.weeks.length, Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${roadmapPlan.startDate}T00:00:00Z`)) / 604800000) + 1)) : 0;
+  const roadmapWeekTasks = roadmapPlan && roadmap ? roadmapPlan.weeks.flatMap((week) => week.tasks).filter((task) => getScheduledWeek(roadmap, task) === roadmapWeek) : [];
+  const roadmapDone = roadmapWeekTasks.filter((task) => roadmap && roadmapStatus(roadmap, task.id) === "tamamlandı").length;
+  const firstName = workspace.profile.fullName?.trim().split(/\s+/)[0];
 
   if (!ready) return <div className="page-content" aria-busy="true">Planorth hazırlanıyor…</div>;
 
@@ -51,7 +58,7 @@ export function NorthToday() {
       <header className="north-today-header flex flex-col md:flex-row md:items-start md:justify-between gap-2.5 md:gap-6 mb-1 sm:mb-2">
           <div className="w-full md:w-auto">
             <p className="north-eyebrow mb-1 text-[11px] font-bold text-primary tracking-wider uppercase">{dateLabel}</p>
-            <h1 className="text-2xl sm:text-3xl md:text-[34px] font-extrabold tracking-tight text-foreground">Bugün ne yapacaksın?</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-[34px] font-extrabold tracking-tight text-foreground">{firstName ? `Hoş geldin, ${firstName}` : "Bugünün odağı"}</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 max-w-xl">{direction}</p>
           </div>
           <div className="flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between w-full md:w-auto gap-2 pt-1 border-t md:border-t-0 border-border/60">
@@ -145,6 +152,8 @@ export function NorthToday() {
           </div>
         )}
 
+        <div className="today-cockpit-grid">
+          <div className="today-main-stack">
         {/* ŞİMDİ ODAK KARTI (DAHA BÜYÜK, DAHA MODERN VE GENİŞ) */}
         {current ? (
           <section className="north-now-card rounded-3xl border border-primary/25 bg-card/90 p-6 sm:p-7 md:p-8 shadow-md relative overflow-hidden backdrop-blur-md transition-all hover:border-primary/35">
@@ -282,11 +291,22 @@ export function NorthToday() {
             </div>
           </section>
         )}
+          </div>
+          <aside className="today-side-stack" aria-label="Bugünün yardımcı panelleri">
+            <section className="surface today-zen-panel">
+              <div className="today-side-heading"><span className="today-side-icon"><Zap size={19} /></span><div><p className="north-eyebrow">ZEN ODAK KOKPİTİ</p><h2>Bir oturum başlat</h2></div></div>
+              <p>Hazır bir görevin olmasa da çalışma süreni ve çıktını kaydedebilirsin.</p>
+              <div className="today-zen-actions"><Button onClick={() => { setFocusLauncherMode("free"); setFocusLauncherOpen(true); }}><Play size={15} /> Serbest odak</Button><Button variant="outline" onClick={() => { setFocusLauncherMode("reading"); setFocusLauncherOpen(true); }}><BookOpen size={15} /> Okuma</Button></div>
+            </section>
+            <section className="surface today-roadmap-panel">
+              <div className="today-side-heading"><span className="today-side-icon"><GitBranch size={19} /></span><div><p className="north-eyebrow">YOL HARİTASI</p><h2>{roadmapPlan ? `${roadmapWeek}. hafta` : "Planını bağla"}</h2></div></div>
+              {roadmapPlan ? <><p>{roadmapPlan.weeks[roadmapWeek - 1]?.title}</p><div className="today-roadmap-progress"><span>{roadmapDone} / {roadmapWeekTasks.length} görev</span><b>{roadmapWeekTasks.length ? Math.round(roadmapDone / roadmapWeekTasks.length * 100) : 0}%</b></div><div className="today-roadmap-bar"><span style={{ width: `${roadmapWeekTasks.length ? Math.round(roadmapDone / roadmapWeekTasks.length * 100) : 0}%` }} /></div><Link href="/areas" className="today-panel-link">Alanlardaki görevleri gör <ArrowRight size={14} /></Link></> : <><p>Öğrenme planını Alanlar içinde takip et.</p><Link href="/roadmap" className="today-panel-link">Yol haritasını aç <ArrowRight size={14} /></Link></>}
+            </section>
         {/* GÜNLÜK MİKRO ALIŞKANLIKLAR (YUKARI KAYDIRILDI) */}
         <MicroHabitsWidget compact={true} />
 
         {/* HIZLI KISAYOLLAR: ALT KONU / SINAV KAMPI BAŞLAT & KAYNAK VE KİTAP ARA */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5 w-full max-w-full overflow-hidden">
+        <div className="today-quick-links grid grid-cols-1 gap-2.5 pt-0.5 w-full max-w-full overflow-hidden">
           <button
             type="button"
             onClick={() => setSprintLauncherOpen(true)}
@@ -319,6 +339,8 @@ export function NorthToday() {
             </div>
             <ArrowRight className="size-3.5 text-primary shrink-0 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
           </Link>
+        </div>
+          </aside>
         </div>
 
         {/* GÜNLÜK TAMAMLANMA VE SIRA DURUMU */}

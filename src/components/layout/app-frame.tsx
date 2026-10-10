@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Award, BarChart3, BookOpen, Briefcase, CalendarDays, CircleHelp, ClipboardList, FlaskConical, Home, Layers3, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Award, BarChart3, BookOpen, Briefcase, CalendarDays, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, FlaskConical, Home, Layers3, Library, Map as MapIcon, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { NorthChatPopover } from "@/components/north/north-chat-popover";
 import { GuideTourModal } from "@/components/features/guide-tour-modal";
 import { WorkspaceSearch } from "@/components/features/workspace-search";
@@ -15,23 +15,30 @@ import { isCurrentTabLocked, FOCUS_LOCK_KEY, BROADCAST_CHANNEL_NAME, type Active
 import { FocusLockBarrier } from "@/components/features/focus-lock-barrier";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SanalKutuphaneBadge } from "@/components/north/sanal-kutuphane";
 
 const navigation = [
   { href: "/", label: "Bugün", icon: Home },
   { href: "/coach", label: "Koç", icon: Sparkles },
   { href: "/week", label: "Plan", icon: ClipboardList },
-  { href: "/roadmap", label: "Yol Haritam", icon: ClipboardList },
+  { href: "/roadmap", label: "Yol Haritam", icon: MapIcon },
   { href: "/areas", label: "Alanlar", icon: Layers3 },
-  { href: "/knowledge", label: "Kütüphane", icon: BookOpen },
+  { href: "/knowledge", label: "Kütüphane", icon: Library },
   { href: "/resources", label: "Kaynaklar", icon: BookOpen },
   { href: "/labs", label: "Lablar", icon: FlaskConical },
   { href: "/evidence", label: "Portföy", icon: Briefcase },
   { href: "/progress", label: "İlerleme", icon: BarChart3 },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
 ];
-const featuredNavigation = ["/", "/roadmap", "/coach", "/progress", "/knowledge"];
+const navGroups = [
+  { label: "Çalışma", items: ["/", "/coach", "/week", "/roadmap"] },
+  { label: "Öğrenme", items: ["/areas", "/knowledge", "/resources", "/labs", "/evidence"] },
+  { label: "Takip", items: ["/progress", "/calendar"] },
+];
+const sidebarKey = "north_sidebar_collapsed";
+const sidebarEvent = "north-sidebar-change";
+function subscribeSidebar(callback: () => void) { window.addEventListener(sidebarEvent, callback); window.addEventListener("storage", callback); return () => { window.removeEventListener(sidebarEvent, callback); window.removeEventListener("storage", callback); }; }
+function readSidebar() { try { return localStorage.getItem(sidebarKey) === "1"; } catch { return false; } }
 const areaRoutes = ["/skills", "/resources", "/career", "/knowledge", "/certifications", "/plan"];
 const titles: Record<string, string> = {
   "/": "Bugün",
@@ -68,12 +75,13 @@ function activeTab(path: string) {
   return "";
 }
 export function AppFrame({children}:{children:React.ReactNode}) {
-  const pathname=usePathname(); const router=useRouter(); const workspace=useWorkspace(); const {syncMode,north}=workspace;  const [scrolled,setScrolled]=useState(false);
+  const pathname=usePathname(); const router=useRouter(); const workspace=useWorkspace(); const {syncMode,north}=workspace;  const [scrolled,setScrolled]=useState(false); const collapsed=useSyncExternalStore(subscribeSidebar,readSidebar,()=>false);
   const [loadingTooLong, setLoadingTooLong] = useState(false);
   const area=pathname.startsWith("/areas/")?north?.areas.find(a=>a.id===pathname.split("/")[2]):undefined;
   const primaryArea=north?.areas.find(a=>a.id==="primary-goal")??north?.areas.find(a=>a.id==="cyber");
   const pageTitle=area?.name??titles[pathname]??(pathname.startsWith("/focus/")?"Odak":pathname.startsWith("/areas/")?"Alan": "Planorth");
   useEffect(()=>{document.title=pageTitle==="Planorth"?"Planorth":pageTitle+" — Planorth";},[pageTitle]);
+  const toggleCollapsed = () => { try { localStorage.setItem(sidebarKey, collapsed ? "0" : "1"); } catch {} window.dispatchEvent(new Event(sidebarEvent)); };
   useEffect(() => {
     const timer = window.setTimeout(() => setLoadingTooLong(true), 4500);
     return () => window.clearTimeout(timer);
@@ -178,60 +186,80 @@ export function AppFrame({children}:{children:React.ReactNode}) {
       </main>
     );
   }
-  return <div className="north-shell min-h-dvh max-w-full overflow-x-hidden">
+  return <div className={cn("north-shell ns-shell min-h-dvh max-w-full", collapsed && "is-collapsed")}>
     <a className="skip-link" href="#north-content">İçeriğe geç</a>
-    <header className={cn("north-topbar",scrolled&&"is-scrolled")}>
-      <div className="north-topbar-inner">
-        <Link href="/" aria-label="Planorth — Bugün" className="north-brand"><NorthLogo size={34} priority/><span className="font-planorth text-base tracking-tight">Planorth</span></Link>
-        <TopNavigation pathname={pathname}/>
-        <div className="north-tools">
+    <Sidebar pathname={pathname} collapsed={collapsed} onToggle={toggleCollapsed} syncMode={syncMode}/>
+    <div className="ns-stage">
+      <header className={cn("ns-header",scrolled&&"is-scrolled")}>
+        <Link href="/" aria-label="Planorth — Bugün" className="ns-header-brand"><NorthLogo size={30} priority/><span className="font-planorth">Planorth</span></Link>
+        <div className="ns-header-title"><span>{pageTitle}</span></div>
+        <div className="ns-tools">
           <SanalKutuphaneBadge />
-          <WorkspaceSearch/>
+          <WorkspaceSearch variant="pill"/>
           <ThemeToggle/>
-          <Link href="/data" className="north-profile hidden sm:grid" aria-label="Verilerim ve güvenlik" aria-current={pathname==="/data"?"page":undefined}><ShieldCheck size={17}/><span className="sr-only">Verilerim ve güvenlik</span></Link>
-          <Link href="/profile" className="north-profile hidden sm:grid" aria-label="Profil ve ayarlar" aria-current={pathname==="/profile"?"page":undefined}><UserRound size={17}/><span className="sr-only">Profil ve ayarlar</span><span className={cn("north-sync",syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/></Link>
+          <Link href="/profile" className="ns-avatar sm:hidden" aria-label="Profil ve ayarlar"><UserRound size={16}/></Link>
         </div>
-      </div>
-    </header>
-    <main
-      id="north-content"
-      className={cn(
-        "north-main max-w-full overflow-x-hidden",
-        pathname === "/coach" && "!p-0 overflow-hidden h-[calc(100dvh-64px)] max-md:h-[calc(100dvh-124px)]",
-        pathname === "/" && "md:py-2 md:pb-2"
-      )}
-      tabIndex={-1}
-    >
-      {areaRoutes.some(p=>pathname===p||pathname.startsWith(p+"/"))&&<div className="north-context"><Link href={primaryArea ? `/areas/${primaryArea.id}` : "/areas"}>Alanlar / {primaryArea?.name??"Ana hedef"}</Link><span>/ {titles[pathname]??"Ayrıntı"}</span></div>}
-      <div key={pathname} className={cn("north-route max-w-full overflow-x-hidden", pathname === "/coach" && "h-full overflow-hidden !p-0")}>{children}</div>
-    </main>
+      </header>
+      <main
+        id="north-content"
+        className={cn(
+          "north-main max-w-full overflow-x-hidden",
+          pathname === "/coach" && "!p-0 overflow-hidden h-[calc(100dvh-64px)] max-md:h-[calc(100dvh-124px)]",
+        )}
+        tabIndex={-1}
+      >
+        {areaRoutes.some(p=>pathname===p||pathname.startsWith(p+"/"))&&<div className="north-context"><Link href={primaryArea ? `/areas/${primaryArea.id}` : "/areas"}>Alanlar / {primaryArea?.name??"Ana hedef"}</Link><span>/ {titles[pathname]??"Ayrıntı"}</span></div>}
+        <div key={pathname} className={cn("north-route max-w-full overflow-x-hidden", pathname === "/coach" && "h-full overflow-hidden !p-0")}>{children}</div>
+      </main>
+    </div>
     <NorthChatPopover/><MobileNavigation pathname={pathname}/><GuideTourModal/>
   </div>;
 }
-function TopNavigation({ pathname }: { pathname: string }) {
+function Sidebar({ pathname, collapsed, onToggle, syncMode }: { pathname: string; collapsed: boolean; onToggle: () => void; syncMode: string }) {
   const current = activeTab(pathname);
+  const utility = [
+    { href: "/profile", label: "Profil ve ayarlar", icon: UserRound },
+    { href: "/data", label: "Verilerim", icon: ShieldCheck },
+    { href: "/profile?tab=guide", label: "Kılavuz", icon: CircleHelp },
+  ];
   return (
-    <nav className="north-desktop-tabs" aria-label="Ana navigasyon">
-      {featuredNavigation.map((href) => navigation.find((item) => item.href === href)!).map((n) => {
-        const isActive = current === n.href;
-        return (
-          <Link
-            key={n.href}
-            href={n.href}
-            className={cn("north-top-tab", isActive && "is-active")}
-            aria-current={isActive ? "page" : undefined}
-          >
-            {n.href === "/" ? "Ana Panel" : n.href === "/coach" ? "Planorth Koç" : n.href === "/progress" ? "Gelişim & İstatistik" : n.href === "/knowledge" ? "Kütüphane" : n.label}
-          </Link>
-        );
-      })}
-      <DropdownMenu>
-        <DropdownMenuTrigger className={cn("north-top-tab", !featuredNavigation.includes(current) && current && "is-active")}>Diğer sayfalar <MoreHorizontal size={15} /></DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-56 border border-border/70 bg-popover/95 backdrop-blur-xl">
-          {navigation.filter((n) => !featuredNavigation.includes(n.href)).map((n) => <DropdownMenuItem key={n.href} asChild><Link href={n.href} className="flex items-center gap-2.5 px-3 py-2"><n.icon size={15} />{n.label}</Link></DropdownMenuItem>)}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </nav>
+    <aside className="ns-sidebar" aria-label="Kenar çubuğu">
+      <div className="ns-sidebar-top">
+        <Link href="/" aria-label="Planorth — Bugün" className="ns-brand"><NorthLogo size={32} priority/><span className="ns-label font-planorth">Planorth</span></Link>
+        <button type="button" className="ns-collapse" onClick={onToggle} aria-label={collapsed ? "Kenar çubuğunu genişlet" : "Kenar çubuğunu daralt"} title={collapsed ? "Genişlet" : "Daralt"}>
+          {collapsed ? <ChevronsRight size={16}/> : <ChevronsLeft size={16}/>}
+        </button>
+      </div>
+      <nav className="ns-nav" aria-label="Ana navigasyon">
+        {navGroups.map((group) => (
+          <div className="ns-group" key={group.label}>
+            <p className="ns-group-label">{group.label}</p>
+            {group.items.map((href) => {
+              const n = navigation.find((item) => item.href === href)!;
+              const isActive = current === n.href;
+              return (
+                <Link key={n.href} href={n.href} className={cn("ns-link", isActive && "is-active")} aria-current={isActive ? "page" : undefined} title={n.label}>
+                  <n.icon size={18} strokeWidth={isActive ? 2.4 : 2}/>
+                  <span className="ns-label">{n.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+      <div className="ns-sidebar-bottom">
+        {utility.map((n) => {
+          const isActive = pathname === n.href.split("?")[0] && !n.href.includes("?");
+          return (
+            <Link key={n.href} href={n.href} className={cn("ns-link is-quiet", isActive && "is-active")} aria-current={isActive ? "page" : undefined} title={n.label}>
+              <n.icon size={17}/>
+              <span className="ns-label">{n.label}</span>
+              {n.href === "/profile" && <span className={cn("ns-sync", syncMode==="firebase"&&"connected")} title={syncMode==="firebase"?"Bulut çalışma alanı":"Yerel çalışma alanı"}/>}
+            </Link>
+          );
+        })}
+      </div>
+    </aside>
   );
 }
 
@@ -306,76 +334,29 @@ function MobileNavigation({ pathname }: { pathname: string }) {
             </SheetTitle>
           </SheetHeader>
 
-          {/* KATEGORİZE EDİLMİŞ MENÜ KARTLARI */}
-          <div className="space-y-4 py-3">
-            <div>
-              <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase mb-2">Çalışma Alanları &amp; Takip</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { href: "/roadmap", label: "Yol Haritam", icon: ClipboardList, desc: "Kendi planını oluştur" },
-                  { href: "/calendar", label: "Takvim & Zaman", icon: CalendarDays, desc: "Aylık taksim & bloklar" },
-                  { href: "/progress", label: "İlerleme & Rapor", icon: BarChart3, desc: "Radar ve değerlendirme" },
-                  { href: "/coach", label: "Planorth AI Koç", icon: Sparkles, desc: "Birebir rehberlik" },
-                  { href: "/evidence", label: "Portföy & Kanıt", icon: Briefcase, desc: "Kazanımlar ve projeler" },
-                ].map((item) => {
-                  const isActive = current === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className={cn(
-                        "flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all active:scale-[0.98]",
-                        isActive
-                          ? "bg-primary/10 text-primary border-primary/30 font-semibold"
-                          : "bg-muted/30 hover:bg-muted text-foreground border-border/60"
-                      )}
-                    >
-                      <div className={cn("p-1.5 rounded-lg shrink-0", isActive ? "bg-primary text-primary-foreground" : "bg-background text-primary border border-border/60")}>
-                        <item.icon size={16} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold truncate leading-tight">{item.label}</p>
-                        <p className="text-[9px] text-muted-foreground truncate leading-tight mt-0.5">{item.desc}</p>
-                      </div>
-                    </Link>
-                  );
-                })}
+          <div className="space-y-5 py-4">
+            {[...navGroups, { label: "Hedefler", items: ["/certifications"] }].map((group) => (
+              <div key={group.label}>
+                <p className="ns-group-label mb-2">{group.label}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {group.items.map((href) => {
+                    const item = navigation.find((n) => n.href === href) ?? { href: "/certifications", label: "Sertifikalar", icon: Award };
+                    const isActive = current === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setOpen(false)}
+                        className={cn("ns-sheet-link", isActive && "is-active")}
+                      >
+                        <item.icon size={18} />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase mb-2">Öğrenme &amp; Başarı</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { href: "/certifications", label: "Sertifikalar", icon: Award, desc: "Hedef ve sınavlar" },
-                  { href: "/labs", label: "Sanal Lablar", icon: FlaskConical, desc: "Pratik senaryolar" },
-                ].map((item) => {
-                  const isActive = current === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className={cn(
-                        "flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all active:scale-[0.98]",
-                        isActive
-                          ? "bg-primary/10 text-primary border-primary/30 font-semibold"
-                          : "bg-muted/30 hover:bg-muted text-foreground border-border/60"
-                      )}
-                    >
-                      <div className={cn("p-1.5 rounded-lg shrink-0", isActive ? "bg-primary text-primary-foreground" : "bg-background text-indigo-500 border border-border/60")}>
-                        <item.icon size={16} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold truncate leading-tight">{item.label}</p>
-                        <p className="text-[9px] text-muted-foreground truncate leading-tight mt-0.5">{item.desc}</p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* ALT TERCİHLER VE TEMA BARI */}

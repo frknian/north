@@ -7,6 +7,7 @@ import { Sun, Moon, Check, Sparkles, CheckCircle2, Circle } from "lucide-react";
 import { dayKey, rolloverUnfinishedTasks, type NorthState } from "@/lib/north";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/components/features/workspace-provider";
 
 interface Habit {
   id: string;
@@ -17,28 +18,30 @@ interface Habit {
 }
 
 const DEFAULT_HABITS: Habit[] = [
-  { id: "read", title: "20 Sayfa Kitap Oku", icon: "📖", streak: 3 },
-  { id: "water", title: "2 Litre Su İç", icon: "💧", streak: 5 },
-  { id: "walk", title: "15 Dk Yürüyüş / Esneme", icon: "🚶", streak: 2 },
+  { id: "read", title: "20 Sayfa Kitap Oku", icon: "📖", streak: 0 },
+  { id: "water", title: "2 Litre Su İç", icon: "💧", streak: 0 },
+  { id: "walk", title: "15 Dk Yürüyüş / Esneme", icon: "🚶", streak: 0 },
 ];
 
 const HABITS_KEY = "north:daily_micro_habits";
 
 export function MicroHabitsWidget({ compact = false }: { compact?: boolean }) {
+  const workspace = useWorkspace();
+  const habitsKey = workspace.userEmail ? `${HABITS_KEY}:${encodeURIComponent(workspace.userEmail.toLocaleLowerCase("tr-TR"))}` : HABITS_KEY;
   const today = dayKey();
   const [habits, setHabits] = useState<Habit[]>(DEFAULT_HABITS);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const stored = localStorage.getItem(HABITS_KEY);
+        const stored = localStorage.getItem(habitsKey);
         if (stored) {
           setHabits(JSON.parse(stored));
-        }
+        } else setHabits(DEFAULT_HABITS);
       } catch {}
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [habitsKey]);
 
   const toggleHabit = (id: string) => {
     const next = habits.map((h) => {
@@ -54,7 +57,7 @@ export function MicroHabitsWidget({ compact = false }: { compact?: boolean }) {
     });
     setHabits(next);
     try {
-      localStorage.setItem(HABITS_KEY, JSON.stringify(next));
+      localStorage.setItem(habitsKey, JSON.stringify(next));
     } catch {}
   };
 

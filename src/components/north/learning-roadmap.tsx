@@ -1,9 +1,12 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { Download, ExternalLink, GitBranch, Plus, Search, Upload } from "lucide-react";
+import Link from "next/link";
+import { Download, ExternalLink, GitBranch, Play, Plus, Search, Upload } from "lucide-react";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { Button } from "@/components/ui/button";
+import { initializeNorth } from "@/lib/north";
+import { activateRoadmapWeek } from "@/lib/roadmap-scheduling";
 import {
   createLearningRoadmapState,
   createRoadmapPlan,
@@ -65,7 +68,11 @@ export function LearningRoadmap() {
   const plan = state.plan;
   const update = workspace.updateLearningRoadmap;
   const fileRef = useRef<HTMLInputElement>(null);
-  const [selectedWeek, setSelectedWeek] = useState(1);
+  const [selectedWeek, setSelectedWeek] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const requested = Number(new URLSearchParams(window.location.search).get("week"));
+    return Number.isInteger(requested) && requested > 0 ? requested : 1;
+  });
   const [query, setQuery] = useState("");
   const [areaFilter, setAreaFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -194,11 +201,19 @@ export function LearningRoadmap() {
     notify(`${pending.length} eksik görev sonraki haftaya taşındı.`);
   }
 
+  function startSelectedWeek() {
+    const preview = activateRoadmapWeek(state, workspace.north ?? initializeNorth(workspace), activeWeek, today);
+    if (preview.created) {
+      workspace.activateRoadmapWeek(activeWeek);
+      notify(`${preview.scheduled} görev günlere yayıldı${preview.pooled ? `, ${preview.pooled} görev haftalık havuza eklendi` : ""}.`);
+    } else notify(preview.unmapped.length ? `Önce Alanlar'da eşleştir: ${preview.unmapped.join(", ")}` : "Bu haftanın uygun görevleri zaten planda veya tamamlandı.");
+  }
+
   return <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 pb-12 pt-5 sm:px-6 lg:px-8">
     {fileInput}
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div><p className="text-[11px] font-semibold uppercase tracking-[.18em] text-primary">Bilişsel yol haritası · kişisel gelişim</p><h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{plan.title}</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">{plan.description || `${plan.weeks.length} haftalık kişisel çalışma planın`}</p><p className="mt-1 text-xs text-muted-foreground">{workspace.syncMode === "firebase" ? "Plan, kendi Planorth hesabında eşitleniyor." : "Plan bu cihazda saklanıyor."}</p></div>
-      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={exportFile}><Download size={15} />Yedekle</Button><Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><Upload size={15} />İçe aktar</Button><Button size="sm" variant="outline" onClick={replacePlan}>Yeni plan</Button></div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" onClick={startSelectedWeek}><Play size={15} />Hafta {activeWeek}: başlat ve haftaya yay</Button><Button size="sm" variant="outline" asChild><Link href="/areas">Alanlara bağla</Link></Button><Button size="sm" variant="outline" onClick={exportFile}><Download size={15} />Yedekle</Button><Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><Upload size={15} />İçe aktar</Button><Button size="sm" variant="outline" onClick={replacePlan}>Yeni plan</Button></div>
     </header>
     <section className="grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Yol haritası özeti">
       <Metric label="Toplam ilerleme" value={`${percentage(tasks, state)}%`} sub={`${done} / ${tasks.length} görev`} />

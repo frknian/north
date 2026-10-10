@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { demoState } from "@/lib/demo-data";
 import { createEmptyWorkspaceState, createPersonalizedWorkspace } from "@/lib/onboarding";
 import { dayKey, initializeNorth, type NorthState } from "@/lib/north";
-import { createLearningRoadmapState, normalizeLearningRoadmapState } from "@/lib/learning-roadmap";
+import { createLearningRoadmapState, normalizeLearningRoadmapState, resolveRoadmapAreaId, roadmapStatus } from "@/lib/learning-roadmap";
+import { activateRoadmapWeek, istanbulToday } from "@/lib/roadmap-scheduling";
+import { syncRoadmapAreas } from "@/lib/roadmap-areas";
 import { getFirebase } from "@/lib/firebase/client";
 import type { Certification, CoachAction, CoachMessage, CoachingOnboarding, DailyCheckin, FocusSession, InitialSetupInput, InterviewAttempt, JobApplication, JobPosting, Lab, Note, PortfolioProject, Profile, ProgressArchive, Report, ResourceRating, Review, Task, VocabularyItem, WorkspaceState } from "@/lib/types";
 
@@ -20,6 +22,8 @@ const LEGACY_WORKSPACE_ID = "career-os";
 interface WorkspaceContextValue extends WorkspaceState {
   updateNorth: (update: (state: NorthState) => NorthState) => void;
   updateLearningRoadmap: (update: (state: import("@/lib/learning-roadmap").LearningRoadmapState) => import("@/lib/learning-roadmap").LearningRoadmapState) => void;
+  activateRoadmapWeek: (week: number, areaId?: string) => void;
+  removeNorthArea: (areaId: string) => void;
   ready: boolean;
   syncMode: "local" | "firebase";
   authStatus: "loading" | "signed_out" | "signed_in" | "local";
@@ -77,7 +81,7 @@ const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 function normalizeState(saved?: Partial<WorkspaceState> | null): WorkspaceState {
   if (!saved || typeof saved !== "object") return createEmptyWorkspaceState();
-  return {
+  const normalized: WorkspaceState = {
     ...demoState,
     ...saved,
     learningRoadmap: normalizeLearningRoadmapState(saved.learningRoadmap),
@@ -107,6 +111,11 @@ function normalizeState(saved?: Partial<WorkspaceState> | null): WorkspaceState 
     customMetricEntries: Array.isArray(saved.customMetricEntries) ? saved.customMetricEntries : [],
     companionSettings: saved.companionSettings ?? { name: "Yol Arkadaşı", color: "blue" },
   };
+  if (normalized.learningRoadmap?.plan) {
+    const linked = syncRoadmapAreas(normalized.learningRoadmap, normalized.north ?? initializeNorth(normalized));
+    return { ...normalized, north: linked.north, learningRoadmap: linked.roadmap };
+  }
+  return normalized;
 }
 
 function applyActions(state: WorkspaceState, actions: CoachAction[]): WorkspaceState {
@@ -139,6 +148,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const firebase = useMemo(() => getFirebase(), []);
   const mutate = useCallback((fn: (current: WorkspaceState) => WorkspaceState) => setState(current => {
     let next = fn(current);
+    if (!next.north && next.learningRoadmap?.plan) next = { ...next, north: initializeNorth(next) };
     if (!next.north) return next;
     if (next.north !== current.north) {
       next = { ...next, tasks: next.tasks.map(task => {
@@ -160,6 +170,40 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     if (next.focusSessions !== current.focusSessions) {
       const migrated = initializeNorth(next);
       next = { ...next, north: { ...next.north!, activities: [...next.north!.activities, ...migrated.activities.filter(a => !next.north!.activities.some(n => n.id === a.id))] } };
+    }
+    const northState = next.north;
+    if (!northState) return next;
+    if (next.north !== current.north && next.learningRoadmap === current.learningRoadmap && next.learningRoadmap?.plan) {
+      const planId = next.learningRoadmap.plan.id;
+      const before = new Map(current.north?.tasks.map((task) => [task.id, task]));
+      const records = { ...next.learningRoadmap.records };
+      let changed = false;
+      for (const task of northState.tasks) {
+        if (task.roadmapPlanId !== planId || !task.roadmapTaskId) continue;
+        const previous = before.get(task.id);
+        if (!previous || previous.status === task.status) continue;
+        const status = task.status === "done" ? "tamamlandı" : task.status === "partial" ? "devam ediyor" : task.status === "pending" ? "yapılmadı" : null;
+        if (!status || roadmapStatus(next.learningRoadmap, task.roadmapTaskId) === status) continue;
+        const activity = northState.activities.toReversed().find((item) => item.taskId === task.id && item.outcome === "done");
+        records[task.roadmapTaskId] = { ...records[task.roadmapTaskId], status, ...(status === "tamamlandı" ? { date: activity?.date ?? istanbulToday(), spentMinutes: activity?.minutes ?? records[task.roadmapTaskId]?.spentMinutes ?? 0 } : {}) };
+        changed = true;
+      }
+      if (changed) next = { ...next, learningRoadmap: { ...next.learningRoadmap, records } };
+    } else if (next.learningRoadmap !== current.learningRoadmap && next.north === current.north && next.learningRoadmap?.plan) {
+      const oldRoadmap = current.learningRoadmap ?? createLearningRoadmapState();
+      const planId = next.learningRoadmap.plan.id;
+      const tasks = northState.tasks.map((task) => {
+        if (task.roadmapPlanId !== planId || !task.roadmapTaskId) return task;
+        const previous = roadmapStatus(oldRoadmap, task.roadmapTaskId);
+        const status = roadmapStatus(next.learningRoadmap!, task.roadmapTaskId);
+        if (previous === status) return task;
+        return { ...task, status: status === "tamamlandı" ? "done" as const : status === "devam ediyor" ? "partial" as const : status === "engellendi" ? "skipped" as const : "pending" as const, completedAt: status === "tamamlandı" ? new Date().toISOString() : undefined };
+      });
+      if (tasks.some((task, index) => task !== northState.tasks[index])) next = { ...next, north: { ...northState, tasks } };
+    }
+    if (next.learningRoadmap?.plan) {
+      const linked = syncRoadmapAreas(next.learningRoadmap, next.north ?? northState);
+      if (linked.roadmap !== next.learningRoadmap || linked.north !== next.north) next = { ...next, learningRoadmap: linked.roadmap, north: linked.north };
     }
     return next;
   }), []);
@@ -260,6 +304,26 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<WorkspaceContextValue>(() => ({
     updateNorth: (update) => mutate(current => ({ ...current, north: update(current.north ?? initializeNorth(current)) })),
     updateLearningRoadmap: (update) => mutate(current => ({ ...current, learningRoadmap: update(current.learningRoadmap ?? createLearningRoadmapState()) })),
+    activateRoadmapWeek: (week, areaId) => mutate(current => {
+      const roadmap = current.learningRoadmap ?? createLearningRoadmapState();
+      const north = current.north ?? initializeNorth(current);
+      const result = activateRoadmapWeek(roadmap, north, week, istanbulToday(), areaId);
+      return result.created ? { ...current, north: result.north } : current;
+    }),
+    removeNorthArea: (areaId) => mutate(current => {
+      const north = current.north ?? initializeNorth(current);
+      if (!north.areas.some((area) => area.id === areaId)) return current;
+      const hasRecords = north.tasks.some((task) => task.areaId === areaId) || north.activities.some((activity) => activity.areaId === areaId) || north.events.some((event) => event.areaId === areaId) || (north.sprints ?? []).some((sprint) => sprint.areaId === areaId);
+      const roadmap = current.learningRoadmap;
+      const areaLinks = { ...roadmap?.areaLinks };
+      if (roadmap?.plan) for (const label of new Set(roadmap.plan.weeks.flatMap((week) => week.tasks.map((task) => task.area.trim()).filter(Boolean)))) {
+        if (resolveRoadmapAreaId(label, north.areas, areaLinks) === areaId) areaLinks[label] = "-";
+      }
+      const areas = hasRecords
+        ? north.areas.map((area) => area.id === areaId ? { ...area, status: "archived" as const, archived: true } : area)
+        : north.areas.filter((area) => area.id !== areaId);
+      return { ...current, north: { ...north, areas }, learningRoadmap: roadmap ? { ...roadmap, areaLinks } : roadmap };
+    }),
     ...state,
     ready,
     syncMode,

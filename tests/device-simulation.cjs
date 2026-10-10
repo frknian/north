@@ -446,10 +446,10 @@ function auditDeviceCSSAndLayout(deviceType) {
     assert.ok(loginContent.includes('hidden lg:flex login-stitch-intro'), 'Login introduction visible on desktop');
     findings.push('Login introduction and auth card visible side by side');
 
-    // 4. Desktop side-by-side tabs & search shortcut
-    assert.ok(appFrameContent.includes('north-desktop-tabs') && appFrameContent.includes('featuredNavigation.map'), 'Side-by-side desktop navigation tabs present');
+    // 4. Desktop sidebar navigation & search shortcut
+    assert.ok(appFrameContent.includes('ns-sidebar') && appFrameContent.includes('navGroups.map'), 'Desktop sidebar navigation present');
     assert.ok(appFrameContent.includes('WorkspaceSearch'), 'Workspace search with hotkey active on desktop');
-    findings.push('Full desktop side-by-side navigation tabs and search shortcut');
+    findings.push('Full desktop sidebar navigation and search shortcut');
   }
 
   return findings;

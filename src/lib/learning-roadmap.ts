@@ -42,10 +42,11 @@ export type LearningRoadmapState = {
   plan: RoadmapPlan | null;
   records: Record<string, RoadmapRecord>;
   scheduledWeeks: Record<string, number>;
+  areaLinks: Record<string, string>;
 };
 
 export function createLearningRoadmapState(): LearningRoadmapState {
-  return { plan: null, records: {}, scheduledWeeks: {} };
+  return { plan: null, records: {}, scheduledWeeks: {}, areaLinks: {} };
 }
 
 export function normalizeLearningRoadmapState(value: unknown): LearningRoadmapState {
@@ -55,6 +56,9 @@ export function normalizeLearningRoadmapState(value: unknown): LearningRoadmapSt
     plan: isRoadmapPlan(saved.plan) ? saved.plan : null,
     records: saved.records && typeof saved.records === "object" && !Array.isArray(saved.records) ? saved.records : {},
     scheduledWeeks: saved.scheduledWeeks && typeof saved.scheduledWeeks === "object" && !Array.isArray(saved.scheduledWeeks) ? saved.scheduledWeeks : {},
+    areaLinks: saved.areaLinks && typeof saved.areaLinks === "object" && !Array.isArray(saved.areaLinks)
+      ? Object.fromEntries(Object.entries(saved.areaLinks).filter(([label, id]) => label && typeof id === "string" && id))
+      : {},
   };
 }
 
@@ -105,6 +109,7 @@ export function isRoadmapBackup(value: unknown): value is { schema: 2; state: Le
   if (backup.schema !== 2 || !backup.state || !isRoadmapPlan(backup.state.plan)) return false;
   if (!backup.state.records || typeof backup.state.records !== "object" || Array.isArray(backup.state.records)) return false;
   if (!backup.state.scheduledWeeks || typeof backup.state.scheduledWeeks !== "object" || Array.isArray(backup.state.scheduledWeeks)) return false;
+  if (backup.state.areaLinks !== undefined && (!backup.state.areaLinks || typeof backup.state.areaLinks !== "object" || Array.isArray(backup.state.areaLinks) || Object.entries(backup.state.areaLinks).some(([label, id]) => !label || typeof id !== "string"))) return false;
   const ids = new Set(backup.state.plan.weeks.flatMap((week) => week.tasks.map((task) => task.id)));
   if (Object.entries(backup.state.records).some(([id, record]) => !ids.has(id) || !record || !["yapılmadı", "devam ediyor", "tamamlandı", "engellendi"].includes(record.status) || (record.spentMinutes !== undefined && (typeof record.spentMinutes !== "number" || !Number.isFinite(record.spentMinutes) || record.spentMinutes < 0)))) return false;
   return Object.entries(backup.state.scheduledWeeks).every(([id, week]) => ids.has(id) && Number.isInteger(week) && week >= 1 && week <= backup.state!.plan!.weeks.length);
@@ -116,4 +121,20 @@ export function getScheduledWeek(state: LearningRoadmapState, task: RoadmapTask)
 
 export function roadmapStatus(state: LearningRoadmapState, id: string): RoadmapStatus {
   return state.records[id]?.status ?? "yapılmadı";
+}
+
+export function resolveRoadmapAreaId(label: string, areas: { id: string; name: string }[], areaLinks: Record<string, string> = {}): string | null {
+  const linked = areaLinks[label];
+  if (linked === "-") return null;
+  if (linked && areas.some((area) => area.id === linked)) return linked;
+  const normalize = (value: string) => value.toLocaleLowerCase("tr-TR").replaceAll("ı", "i").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const target = normalize(label);
+  if (!target) return null;
+  const exact = areas.filter((area) => normalize(area.name) === target);
+  if (exact.length === 1) return exact[0].id;
+  const partial = areas.filter((area) => {
+    const name = normalize(area.name);
+    return Math.min(name.length, target.length) >= 4 && (name.includes(target) || target.includes(name));
+  });
+  return partial.length === 1 ? partial[0].id : null;
 }

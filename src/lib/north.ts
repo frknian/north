@@ -23,6 +23,8 @@ export interface NorthTask {
   rescheduledCount?: number;
   sprintId?: string;
   sprintModuleId?: string;
+  roadmapPlanId?: string;
+  roadmapTaskId?: string;
 }
 export interface AreaSprintModule {
   id: string;
@@ -842,7 +844,7 @@ export function allocation(state: NorthState, area: Area) {
 export function dailySelection(state: NorthState, today=dayKey()) {
   const energy = state.energy.date === today ? state.energy.level : "normal";
   const week = weekKey(today);
-  const candidates = state.tasks.filter(t => ["pending","partial"].includes(t.status) && state.areas.some(a=>a.id===t.areaId&&isAreaActive(a)&&a.goal.trim()) && (!t.date ? t.week === week : t.date === today));
+  const candidates = state.tasks.filter(t => ["pending","partial"].includes(t.status) && state.areas.some(a=>a.id===t.areaId&&isAreaActive(a)&&(a.goal.trim() || t.roadmapTaskId)) && (!t.date ? t.week === week : t.date === today));
   const score = (t: NorthTask) => {
     const a=state.areas.find(a=>a.id===t.areaId)!;
     const spent=state.activities.filter(s=>s.areaId===a.id&&s.date>=week&&s.date<=today).reduce((n,s)=>n+s.minutes,0);
@@ -1291,4 +1293,3 @@ export function updateSprintModuleStatus(
     tasks: updatedTasks,
   };
 }
-

@@ -697,11 +697,11 @@ export function NorthAI({
                     </option>
                   ))}
                 </select>
-              ) : (
+              ) : selectedArea ? (
                 <Badge variant="outline" className="text-xs font-semibold px-2 py-0.5 shrink-0">
                   {selectedArea.icon} {selectedArea.name}
                 </Badge>
-              )}
+              ) : null}
             </div>
 
             {/* 2. Personal Mood / Energy Check-in */}
