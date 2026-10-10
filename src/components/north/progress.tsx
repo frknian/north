@@ -338,7 +338,7 @@ export function NorthProgress({ initialTab }: NorthProgressProps) {
           </div>
 
           {/* AREA CONSISTENCY & ALLOCATION */}
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-5 xl:grid-cols-2 items-start">
             <div className="rounded-2xl border bg-card/60 p-5 shadow-xs space-y-4">
               <h2 className="text-sm font-semibold text-foreground">Alan İlerlemeleri &amp; Seriler</h2>
               <div className="space-y-3">

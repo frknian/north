@@ -39,7 +39,7 @@ const sidebarKey = "north_sidebar_collapsed";
 const sidebarEvent = "north-sidebar-change";
 function subscribeSidebar(callback: () => void) { window.addEventListener(sidebarEvent, callback); window.addEventListener("storage", callback); return () => { window.removeEventListener(sidebarEvent, callback); window.removeEventListener("storage", callback); }; }
 function readSidebar() { try { return localStorage.getItem(sidebarKey) === "1"; } catch { return false; } }
-const areaRoutes = ["/skills", "/resources", "/career", "/knowledge", "/certifications", "/plan"];
+const areaRoutes = ["/skills", "/career", "/certifications", "/plan"];
 const titles: Record<string, string> = {
   "/": "Bugün",
   "/coach": "Planorth Koç",

@@ -450,7 +450,7 @@ export function NorthCalendar() {
   return (
     <div className="page-content space-y-5 pb-32 md:pb-10">
       {/* HEADER */}
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-4">
+      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-border/60 pb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Badge variant="outline" className="text-[10px] font-bold tracking-wider uppercase text-primary">
@@ -591,9 +591,9 @@ export function NorthCalendar() {
       )}
 
       {/* AYLIK TAKSİM: 2-COLUMN SPLIT PARTITION LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         {/* LEFT PARTITION: 7-COLUMN CALENDAR (col-span-8) */}
-        <div className="lg:col-span-8 space-y-2">
+        <div className="xl:col-span-8 space-y-2">
           {/* Weekday Labels */}
           <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-bold text-muted-foreground py-1 px-1">
             <span>Pzt</span>
@@ -802,7 +802,7 @@ export function NorthCalendar() {
         </div>
 
         {/* RIGHT PARTITION: SEÇİLİ GÜNÜN TAKSİMİ (col-span-4) */}
-        <div className="lg:col-span-4 space-y-3.5 rounded-2xl border border-border bg-card p-4 shadow-xs">
+        <div className="xl:col-span-4 xl:sticky xl:top-20 space-y-3.5 rounded-2xl border border-border bg-card p-4 shadow-xs">
           {/* Partition Header */}
           <div className="flex items-start justify-between gap-2 border-b border-border/60 pb-3">
             <div>

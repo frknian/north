@@ -1028,11 +1028,8 @@ function AreaWorkspace({
         </div>
       </section>
 
-      {/* HEDEF ALT KONU & SINAV KAMPI (TOPIC SPRINT & EXAM HUB) */}
-      <AreaSprintHub area={area} />
-
       {/* PILL TABS */}
-      <div className="flex flex-wrap gap-1 rounded-2xl border bg-muted/40 p-1 text-xs max-w-fit">
+      <div className="area-tabs flex flex-wrap gap-1 rounded-2xl border bg-muted/40 p-1 text-xs max-w-fit">
         {tabList.map(([key, label]) => (
           <button
             key={key}
@@ -1049,6 +1046,13 @@ function AreaWorkspace({
           </button>
         ))}
       </div>
+
+      {tab === "tasks" && (
+        <>
+      {/* HEDEF ALT KONU & SINAV KAMPI (TOPIC SPRINT & EXAM HUB) */}
+      <AreaSprintHub area={area} />
+        </>
+      )}
 
       {tab === "roadmap" && <AreaRoadmapTab key={workspace.learningRoadmap?.plan?.id ?? "empty"} area={area} areas={state.areas} />}
 

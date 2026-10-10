@@ -415,7 +415,7 @@ function auditDeviceCSSAndLayout(deviceType) {
     findings.push('Auth card centered and introduction hidden on mobile screens');
 
     // 6. Focus screen scrollable on mobile
-    assert.ok(focusContent.includes('overflow-y-auto lg:overflow-hidden'), 'Focus cockpit allows vertical scrolling on mobile');
+    assert.ok(focusContent.includes('overflow-y-auto xl:overflow-hidden'), 'Focus cockpit allows vertical scrolling on mobile');
     findings.push('Focus screen permits vertical scrolling on mobile viewports');
   } else if (deviceType === 'tablet') {
     // 1. Tablet topbar height & padding
@@ -439,7 +439,7 @@ function auditDeviceCSSAndLayout(deviceType) {
     findings.push('Week day flow renders 7 full columns on desktop');
 
     // 2. 4-column side-by-side cockpit
-    assert.ok(focusContent.includes('lg:h-screen') && focusContent.includes('lg:overflow-hidden'), 'Focus cockpit fills 100vh without page scroll on desktop');
+    assert.ok(focusContent.includes('xl:h-screen') && focusContent.includes('xl:overflow-hidden'), 'Focus cockpit fills 100vh without page scroll on desktop');
     findings.push('Focus cockpit locks to exact 100vh with 4 parallel columns');
 
     // 3. The Stitch introduction is visible on desktop (>=1024px).

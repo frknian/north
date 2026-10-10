@@ -183,7 +183,7 @@ export default function LabsPage() {
       </header>
 
       {/* KPI STATS */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="stat-row grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border bg-card/60 p-4 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-medium text-muted-foreground">Tamamlanan Lablar</span>

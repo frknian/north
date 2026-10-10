@@ -88,11 +88,17 @@ export function NorthToday() {
           </div>
         </header>
 
-        <div className="today-stitch-overview" aria-label="Bugünkü çalışma özeti">
-          <div className="surface"><span>BUGÜN TAMAMLANAN</span><strong>{completed}</strong><small>Gerçek görev kayıtların</small></div>
-          <div className="surface"><span>SIRADAKİ GÖREVLER</span><strong>{sequence.length}</strong><small>Bugünkü planından</small></div>
-          <div className="surface"><span>PLANLANAN ODAK</span><strong>{plannedMinutes} <em>dk</em></strong><small>Kalan görev süresi</small></div>
-        </div>
+        <section className="today-progress surface" aria-label="Bugünkü çalışma özeti">
+          <div className="today-progress-main">
+            <div className="today-progress-head"><span>Günün ilerlemesi</span><b>{completed} / {Math.max(completed + sequence.length, 1)} görev</b></div>
+            <div className="today-progress-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(completed / Math.max(completed + sequence.length, 1) * 100)}><span style={{ width: `${Math.round(completed / Math.max(completed + sequence.length, 1) * 100)}%` }} /></div>
+          </div>
+          <dl className="today-progress-stats">
+            <div><dt>Tamamlanan</dt><dd>{completed}</dd></div>
+            <div><dt>Sırada</dt><dd>{sequence.length}</dd></div>
+            <div><dt>Kalan odak</dt><dd>{plannedMinutes}<small>dk</small></dd></div>
+          </dl>
+        </section>
 
         {/* AKILLI UYARI VEYA GÜNLÜK İLHAM (TEK, TEMİZ ŞERİT) */}
         {adaptation ? (
@@ -105,19 +111,7 @@ export function NorthToday() {
               <Button size="sm" variant="ghost" onClick={() => update(currentState => ({ ...currentState, dailyAdaptation: undefined }))}>Planı koru</Button>
             </div>
           </section>
-        ) : (
-          <div className="rounded-2xl border border-border/50 bg-card/40 px-3.5 py-2 text-xs flex items-center justify-between gap-2 shadow-2xs backdrop-blur-xs">
-            <div className="flex items-center gap-2 text-muted-foreground min-w-0">
-              <Feather className="size-3.5 text-primary shrink-0" />
-              <p className="italic text-foreground truncate text-xs">
-                &ldquo;{wisdom.quote}&rdquo; <span className="text-muted-foreground font-normal">— {wisdom.author}</span>
-              </p>
-            </div>
-            <Button asChild size="xs" variant="ghost" className="shrink-0 text-[11px] h-7 px-2">
-              <Link href="/coach">Koça Danış</Link>
-            </Button>
-          </div>
-        )}
+        ) : null}
 
         {/* AKTİF ALT KONU / SINAV KAMPI GÖSTERGESİ */}
         {activeSprint && (
@@ -293,11 +287,11 @@ export function NorthToday() {
         )}
           </div>
           <aside className="today-side-stack" aria-label="Bugünün yardımcı panelleri">
-            <section className="surface today-zen-panel">
+            {!current && (            <section className="surface today-zen-panel">
               <div className="today-side-heading"><span className="today-side-icon"><Zap size={19} /></span><div><p className="north-eyebrow">ZEN ODAK KOKPİTİ</p><h2>Bir oturum başlat</h2></div></div>
               <p>Hazır bir görevin olmasa da çalışma süreni ve çıktını kaydedebilirsin.</p>
               <div className="today-zen-actions"><Button onClick={() => { setFocusLauncherMode("free"); setFocusLauncherOpen(true); }}><Play size={15} /> Serbest odak</Button><Button variant="outline" onClick={() => { setFocusLauncherMode("reading"); setFocusLauncherOpen(true); }}><BookOpen size={15} /> Okuma</Button></div>
-            </section>
+            </section>)}
             <section className="surface today-roadmap-panel">
               <div className="today-side-heading"><span className="today-side-icon"><GitBranch size={19} /></span><div><p className="north-eyebrow">YOL HARİTASI</p><h2>{roadmapPlan ? `${roadmapWeek}. hafta` : "Planını bağla"}</h2></div></div>
               {roadmapPlan ? <><p>{roadmapPlan.weeks[roadmapWeek - 1]?.title}</p><div className="today-roadmap-progress"><span>{roadmapDone} / {roadmapWeekTasks.length} görev</span><b>{roadmapWeekTasks.length ? Math.round(roadmapDone / roadmapWeekTasks.length * 100) : 0}%</b></div><div className="today-roadmap-bar"><span style={{ width: `${roadmapWeekTasks.length ? Math.round(roadmapDone / roadmapWeekTasks.length * 100) : 0}%` }} /></div><Link href="/areas" className="today-panel-link">Alanlardaki görevleri gör <ArrowRight size={14} /></Link></> : <><p>Öğrenme planını Alanlar içinde takip et.</p><Link href="/roadmap" className="today-panel-link">Yol haritasını aç <ArrowRight size={14} /></Link></>}
@@ -343,12 +337,12 @@ export function NorthToday() {
           </aside>
         </div>
 
-        {/* GÜNLÜK TAMAMLANMA VE SIRA DURUMU */}
-        <div className="flex items-center justify-center sm:justify-start gap-3 pt-0.5 px-1 text-[11px] text-muted-foreground">
-          <span><b className="text-foreground font-semibold">{completed}</b> / {Math.max(completed + sequence.length, 1)} tamamlandı</span>
-          <span>•</span>
-          <span><b className="text-foreground font-semibold">{plannedMinutes}</b> dk sırada</span>
-        </div>
+        <figure className="today-quote">
+          <Feather className="size-4" />
+          <blockquote>&ldquo;{wisdom.quote}&rdquo;</blockquote>
+          <figcaption>{wisdom.author}</figcaption>
+          <Link href="/coach">Koça danış <ArrowRight size={13} /></Link>
+        </figure>
 
       {/* RITUAL MODALS */}
       <MorningCompassModal
