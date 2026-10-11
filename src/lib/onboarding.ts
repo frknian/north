@@ -313,7 +313,7 @@ function starterTasks(input: InitialSetupInput): Task[] {
     },
     {
       title: `${lang.name} için ilk seviye kanıtını ekle`,
-      description: "Tamamladığın sesli okuma kaydını, seviye test karnesini veya kısa paragrafını North kanıtlarına ekle.",
+      description: "Tamamladığın sesli okuma kaydını, seviye test karnesini veya kısa paragrafını Planorth kanıtlarına ekle.",
       category: "Kanıt ve portföy",
       duration: 30,
       outputRequirement: "Bağlantısı veya içeriği doğrulanabilir dil kanıtı.",
@@ -338,7 +338,7 @@ function starterTasks(input: InitialSetupInput): Task[] {
       outputRequirement: "Kullanılan ortam, adımlar, sonuç ve öğrenilenleri içeren kısa çalışma günlüğü.",
     },
     {
-      title: "İlk kanıtını North'a ekle",
+      title: "İlk kanıtını Planorth'a ekle",
       description: "Tamamladığın çalışmayı tekrar edilebilir bir not, rapor veya depo çıktısına dönüştür.",
       category: "Kanıt ve portföy",
       duration: 45,
@@ -352,7 +352,7 @@ function starterTasks(input: InitialSetupInput): Task[] {
     difficulty: "easy" as const,
     objectives: ["Hedefin sınırları içinde çalış", "Kendi kararlarını not et", "Somut çıktı üret"],
     successCriteria: [template.outputRequirement, "Çalışmanın sonunda kısa bir öz değerlendirme yaz"],
-    recommendedResources: lang ? lang.resources.map((r) => `${r.title} — ${r.url}`) : ["North kaynak kütüphanesi", "Resmî dokümantasyon"],
+    recommendedResources: lang ? lang.resources.map((r) => `${r.title} — ${r.url}`) : ["Planorth kaynak kütüphanesi", "Resmî dokümantasyon"],
     aiHelpLimit: 2 as const,
     status: "pending" as const,
     isDailyMission: index === 0,

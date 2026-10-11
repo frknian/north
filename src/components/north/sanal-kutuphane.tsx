@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Users, Clock, Play } from "lucide-react";
 import {
@@ -36,7 +36,8 @@ export function SanalKutuphaneBadge({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const count = getLibraryCount();
+  // Same value as before; the server snapshot keeps hydration consistent.
+  const count = useSyncExternalStore(() => () => {}, getLibraryCount, () => 64);
 
   return (
     <>

@@ -283,7 +283,7 @@ export function RestCelebrationCard({
             </h3>
             <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
               Bugün {completedCount} görevi bitirdin ve toplam {totalMinutes} dakika derin çalışma yaptın.
-              North&apos;un felsefesinde dinlenmek en az çalışmak kadar değerlidir; zihnini toparla, yarın için her şey hazır.
+              Planorth&apos;un felsefesinde dinlenmek en az çalışmak kadar değerlidir; zihnini toparla, yarın için her şey hazır.
             </p>
           </div>
         </div>

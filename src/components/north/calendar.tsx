@@ -46,6 +46,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { buildIcs } from "@/lib/ics";
 import { cn } from "@/lib/utils";
 
 export interface CalendarDaySetting {
@@ -98,6 +99,17 @@ export const CALENDAR_DAYS_OF_WEEK = [
 
 export function NorthCalendar() {
   const { state, update, workspace } = useNorth();
+
+  function exportCalendar() {
+    const ics = buildIcs({ tasks: state.tasks, events: state.events });
+    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "planorth-takvim.ics";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Takvim dosyası indirildi. Google, Apple veya Outlook takvimine içe aktarabilirsin.");
+  }
   const [date, setDate] = useState(dayKey());
   const [view, setView] = useState<"day" | "week" | "month">("month");
   const [eventDraft, setEventDraft] = useState<NorthEvent | null>(null);
@@ -467,6 +479,15 @@ export function NorthCalendar() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportCalendar}
+            className="rounded-xl text-xs"
+            title="Planlı görevlerini ve bloklarını .ics dosyası olarak indir"
+          >
+            <CalendarPlus className="size-3.5 mr-1.5 text-primary" /> Takvime aktar (.ics)
+          </Button>
           <Button
             size="sm"
             onClick={() => setDistributeModalOpen(true)}

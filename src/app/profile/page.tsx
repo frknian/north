@@ -30,6 +30,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { UserGuide } from "@/components/features/user-guide";
+import { AccountPanel } from "@/components/features/account-panel";
+import { ReminderSettings } from "@/components/features/reminder-settings";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +51,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== "undefined") {
       const tabParam = new URLSearchParams(window.location.search).get("tab");
-      if (tabParam && ["profile", "memory", "notes", "terms", "guide"].includes(tabParam)) {
+      if (tabParam && ["profile", "account", "memory", "notes", "terms", "guide"].includes(tabParam)) {
         return tabParam;
       }
     }
@@ -145,16 +147,19 @@ export default function ProfilePage() {
   };
 
   return <>
-    <PageHeader eyebrow="Sistem ayarları" title="Profil ve koçluk tercihleri" description="Yaşam durumunu, öğrenme tercihlerini ve North AI hafızasını yönet." />
+    <PageHeader eyebrow="Sistem ayarları" title="Profil ve koçluk tercihleri" description="Yaşam durumunu, öğrenme tercihlerini ve Planorth Koç hafızasını yönet." />
     <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-5 grid h-auto w-full grid-cols-2 sm:grid-cols-5">
+        <TabsList className="mb-5 grid h-auto w-full grid-cols-3 sm:grid-cols-6">
           <TabsTrigger value="profile"><UserRound />Profil</TabsTrigger>
+          <TabsTrigger value="account"><ShieldCheck />Hesap</TabsTrigger>
           <TabsTrigger value="memory"><Brain />AI Hafızası & Sohbet</TabsTrigger>
           <TabsTrigger value="notes"><BookOpenText />Notlar</TabsTrigger>
           <TabsTrigger value="terms"><Languages />Terimler</TabsTrigger>
           <TabsTrigger value="guide"><CircleHelp />Kılavuz</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="account"><AccountPanel /><ReminderSettings /></TabsContent>
 
         <TabsContent value="profile">
           <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
@@ -308,7 +313,7 @@ export default function ProfilePage() {
                 <div className="rounded-xl border bg-muted/20 p-4 space-y-4">
                   <div>
                     <h3 className="text-sm font-semibold">Kaynak ve Bütçe Tercihleri</h3>
-                    <p className="text-xs text-muted-foreground">North sana bu tercihlere göre kaynak ve görev önerir.</p>
+                    <p className="text-xs text-muted-foreground">Planorth sana bu tercihlere göre kaynak ve görev önerir.</p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <Field label="Kaynak Dili">
@@ -375,7 +380,7 @@ export default function ProfilePage() {
 
             <div className="space-y-5">
               <Card>
-                <CardHeader><div className="flex items-center gap-3"><NorthLogo size={36} /><div><CardTitle>Yön özeti</CardTitle><CardDescription>North’un planlama sırasında kullandığı bağlam.</CardDescription></div></div></CardHeader>
+                <CardHeader><div className="flex items-center gap-3"><NorthLogo size={36} /><div><CardTitle>Yön özeti</CardTitle><CardDescription>Planorth’un planlama sırasında kullandığı bağlam.</CardDescription></div></div></CardHeader>
                 <CardContent className="space-y-4">
                   <Direction
                     label="Yaş &amp; Durum"
@@ -388,7 +393,7 @@ export default function ProfilePage() {
                   <Direction label="Kategori" value={workspace.profile.track || "Belirtilmedi"} />
                   <Direction label="Ana odak" value={workspace.profile.primaryFocus || "Belirtilmedi"} />
                   <Direction label="Kaynak tercihi" value={prefs.cost === "free_only" ? "Ücretsiz kaynaklar" : "Esnek bütçe"} />
-                  <Button className="w-full" asChild><Link href="/north-ai"><Bot />North ile planla</Link></Button>
+                  <Button className="w-full" asChild><Link href="/north-ai"><Bot />Planorth ile planla</Link></Button>
                   <Button variant="outline" className="w-full" asChild><Link href="/areas"><Target />Hedef alanlarını aç</Link></Button>
                 </CardContent>
               </Card>
@@ -435,7 +440,7 @@ export default function ProfilePage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <RotateCcw className="size-5 text-primary" />
-                    <CardTitle className="text-base">North AI Sohbet ve Oturum Ayarı</CardTitle>
+                    <CardTitle className="text-base">Planorth Koç Sohbet ve Oturum Ayarı</CardTitle>
                   </div>
                   <Badge variant={workspace.coaching.preferences.clearChatOnClose !== false ? "default" : "secondary"}>
                     {workspace.coaching.preferences.clearChatOnClose !== false
@@ -444,7 +449,7 @@ export default function ProfilePage() {
                   </Badge>
                 </div>
                 <CardDescription>
-                  North AI ekranını kapattığında veya başka sayfaya geçtiğinde eski konuşmanın nasıl yönetileceğini belirle.
+                  Planorth Koç ekranını kapattığında veya başka sayfaya geçtiğinde eski konuşmanın nasıl yönetileceğini belirle.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -455,8 +460,8 @@ export default function ProfilePage() {
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
                       {workspace.coaching.preferences.clearChatOnClose !== false
-                        ? "Aktif: North AI her açılışta temiz başlar. Önceki tüm konuşmaların kaybolmaması için aşağıdaki 'Geçmiş Sohbetler' arşivine otomatik kaydedilir."
-                        : "Pasif: North AI ekranı kapatılsa bile eski konuşmalar ekranda kalır."}
+                        ? "Aktif: Planorth Koç her açılışta temiz başlar. Önceki tüm konuşmaların kaybolmaması için aşağıdaki 'Geçmiş Sohbetler' arşivine otomatik kaydedilir."
+                        : "Pasif: Planorth Koç ekranı kapatılsa bile eski konuşmalar ekranda kalır."}
                     </p>
                   </div>
                   <Button
@@ -469,7 +474,7 @@ export default function ProfilePage() {
                       workspace.updateCoachingPreferences({ clearChatOnClose: next });
                       toast.success(
                         next
-                          ? "North AI kapatıldığında ekranın temizlenmesi ve Ayarlar'a kaydedilmesi aktif edildi."
+                          ? "Planorth Koç kapatıldığında ekranın temizlenmesi ve Ayarlar'a kaydedilmesi aktif edildi."
                           : "Eski konuşmaların ekranda tutulması seçildi."
                       );
                     }}
@@ -491,7 +496,7 @@ export default function ProfilePage() {
                     <div>
                       <CardTitle className="text-base">Kaydedilen Geçmiş Sohbetler</CardTitle>
                       <CardDescription>
-                        North AI ile yaptığın tüm önceki görüşmeler burada güvenle saklanır.
+                        Planorth Koç ile yaptığın tüm önceki görüşmeler burada güvenle saklanır.
                       </CardDescription>
                     </div>
                   </div>
@@ -584,7 +589,7 @@ export default function ProfilePage() {
                               >
                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
                                   <span className="font-semibold text-foreground">
-                                    {msg.role === "user" ? "Sen" : "North AI"}
+                                    {msg.role === "user" ? "Sen" : "Planorth Koç"}
                                   </span>
                                   <span>
                                     {new Date(msg.createdAt).toLocaleTimeString("tr-TR", {
@@ -606,7 +611,7 @@ export default function ProfilePage() {
                 ) : (
                   <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
                     <History className="mx-auto mb-2 size-5 text-muted-foreground" />
-                    Henüz kaydedilmiş bir geçmiş sohbet yok. North AI ekranını kapattığında konuşmaların otomatik olarak buraya arşivlenir.
+                    Henüz kaydedilmiş bir geçmiş sohbet yok. Planorth Koç ekranını kapattığında konuşmaların otomatik olarak buraya arşivlenir.
                   </div>
                 )}
               </CardContent>
@@ -618,7 +623,7 @@ export default function ProfilePage() {
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <Brain className="size-5 text-primary" />
-                    <CardTitle>North AI Geri Bildirim Hafızası</CardTitle>
+                    <CardTitle>Planorth Koç Geri Bildirim Hafızası</CardTitle>
                   </div>
                   <CardDescription>
                     Çalışmalarında &quot;bu kaynak zor&quot;, &quot;akşam çalışamıyorum&quot;, &quot;video istemiyorum&quot; gibi belirttiğin sinyaller burada kurallara dönüşür. İstediklerini açabilir, düzenleyebilir veya silebilirsin.
@@ -662,7 +667,7 @@ export default function ProfilePage() {
                     {(!workspace.feedbackMemory || workspace.feedbackMemory.length === 0) && (
                       <div className="rounded-xl border border-dashed p-6 text-center text-xs text-muted-foreground">
                         <Sparkles className="mx-auto mb-2 size-5 text-muted-foreground" />
-                        Henüz kayıtlı bir AI geri bildirim kuralı yok. North ile konuştukça veya aşağıdan kendin ekledikçe burada listelenir.
+                        Henüz kayıtlı bir AI geri bildirim kuralı yok. Planorth ile konuştukça veya aşağıdan kendin ekledikçe burada listelenir.
                       </div>
                     )}
                   </div>
@@ -673,7 +678,7 @@ export default function ProfilePage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Kendi Kuralını Ekle</CardTitle>
-                  <CardDescription>North AI plan yaparken bu kuralları daima dikkate alır.</CardDescription>
+                  <CardDescription>Planorth Koç plan yaparken bu kuralları daima dikkate alır.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Field label="Kategori">
@@ -696,7 +701,7 @@ export default function ProfilePage() {
                       placeholder="Örn: Akşam saat 21:00 sonrası odaklanamıyorum"
                     />
                   </Field>
-                  <Field label="North AI Kuralı">
+                  <Field label="Planorth Koç Kuralı">
                     <Input
                       value={memoryDraft.rule}
                       onChange={(e) => setMemoryDraft({ ...memoryDraft, rule: e.target.value })}

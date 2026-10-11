@@ -30,7 +30,7 @@ export function CertificateModal({
   const verifiedProofs = (workspace.domainProofs?.length ?? 0) + (workspace.labs?.filter((l) => l.status === "completed").length ?? 0);
   const issueDate = new Date().toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
 
-  const markdownSummary = `# 📜 North Gelişim Raporu & Portföy Özeti
+  const markdownSummary = `# 📜 Planorth Gelişim Raporu & Portföy Özeti
 **Kullanıcı:** ${name}
 **Hedef:** ${goal}
 **Tarih:** ${issueDate}
@@ -45,7 +45,7 @@ export function CertificateModal({
 ${north.areas.map((a) => `- **${a.name}:** ${a.goal || a.description || "Aktif Alan"}`).join("\n")}
 
 ---
-*Bu rapor North Bilişsel İşletim Sistemi tarafından doğrulanmış gerçek çalışma verileriyle üretilmiştir.*
+*Bu rapor Planorth Bilişsel İşletim Sistemi tarafından doğrulanmış gerçek çalışma verileriyle üretilmiştir.*
 `;
 
   const handleCopyMarkdown = () => {
@@ -114,7 +114,7 @@ ${north.areas.map((a) => `- **${a.name}:** ${a.goal || a.description || "Aktif A
 
           <div className="mt-6 flex items-center justify-between border-t border-border/50 pt-4 text-[11px] text-muted-foreground">
             <span>Düzenlenme Tarihi: {issueDate}</span>
-            <span className="font-semibold text-primary">North Evidence Engine ✓</span>
+            <span className="font-semibold text-primary">Planorth Kanıt Motoru ✓</span>
           </div>
         </div>
 

@@ -680,7 +680,7 @@ export function NorthWeek() {
               <div>
                 <span className="font-bold text-foreground">Önceki günlerden sarkan {overdueTasks.length} görev var.</span>
                 <span className="text-amber-200/80 ml-1.5 hidden sm:inline">
-                  North&apos;ta borç veya suçluluk birikmez; görevleri haftanın uygun günlerine dağıtabilirsin.
+                  Planorth&apos;ta borç veya suçluluk birikmez; görevleri haftanın uygun günlerine dağıtabilirsin.
                 </span>
               </div>
             </div>
@@ -1783,7 +1783,7 @@ export function NorthWeek() {
                   </span>
                   <span className="text-[10px] font-semibold text-muted-foreground/80">1. Aşama</span>
                 </div>
-                <p className="text-xs text-muted-foreground">11 Eylül Cuma • North ile değerlendirme oturumu</p>
+                <p className="text-xs text-muted-foreground">11 Eylül Cuma • Planorth ile değerlendirme oturumu</p>
               </div>
               <div className="pt-2 border-t border-border flex items-center justify-between text-[11px]">
                 <span className="text-amber-400/90 font-medium">⏳ 2 gün kaldı</span>

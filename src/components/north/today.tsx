@@ -103,7 +103,7 @@ export function NorthToday() {
         {/* AKILLI UYARI VEYA GÜNLÜK İLHAM (TEK, TEMİZ ŞERİT) */}
         {adaptation ? (
           <section className="north-adaptation" aria-live="polite">
-            <Sparkles size={17}/><div><p>North gününü yeniden okudu</p><span>{adaptation.message}</span></div>
+            <Sparkles size={17}/><div><p>Planorth gününü yeniden okudu</p><span>{adaptation.message}</span></div>
             <div className="north-adaptation-actions">
               {adaptation.taskId && adaptation.recommendedMinutes && (
                 <Button size="sm" onClick={() => update(currentState => ({ ...currentState, tasks: currentState.tasks.map(task => task.id === adaptation.taskId ? { ...task, minutes: adaptation.recommendedMinutes! } : task), dailyAdaptation: undefined }))}>Öneriyi uygula</Button>

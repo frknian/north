@@ -3,10 +3,12 @@ import { headers } from "next/headers";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Sora } from "next/font/google";
-import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppFrame } from "@/components/layout/app-frame";
 import { WorkspaceProvider } from "@/components/features/workspace-provider";
+import { ThemedToaster } from "@/components/layout/themed-toaster";
+import { ReminderScheduler } from "@/components/features/reminder-scheduler";
+import { ClientErrorReporter } from "@/components/features/client-error-reporter";
 import { ServiceWorkerRegistration } from "@/components/features/service-worker-registration";
 import "./globals.css";
 
@@ -53,7 +55,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Planorth" },
 };
 
-export const viewport: Viewport = { themeColor: "#090D16", width: "device-width", initialScale: 1, viewportFit:"cover" };
+export const viewport: Viewport = { themeColor: [{ media: "(prefers-color-scheme: dark)", color: "#090D16" }, { media: "(prefers-color-scheme: light)", color: "#F6F7FB" }], width: "device-width", initialScale: 1, viewportFit:"cover" };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const nonce = (await headers()).get("x-nonce") ?? undefined;
@@ -74,9 +76,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       </head>
       <body className="min-h-dvh bg-background font-sans antialiased">
         <TooltipProvider>
-          <WorkspaceProvider><AppFrame>{children}</AppFrame></WorkspaceProvider>
+          <WorkspaceProvider><AppFrame>{children}</AppFrame><ReminderScheduler /></WorkspaceProvider>
         </TooltipProvider>
-        <Toaster theme="dark" richColors position="top-center" />
+        <ThemedToaster />
+        <ClientErrorReporter />
         <ServiceWorkerRegistration />
       </body>
     </html>

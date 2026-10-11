@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const { output } = await generateText({
     model: careerModel,
     output: Output.object({ schema: reviewOutputSchema }),
-    system: `${securityBoundary}\nKısa ve kanıta dayalı bir çalışma değerlendiricisisin. Yalnızca sağlanan metrikleri kullan. Bir güçlü yön, bir darboğaz ve bir öncelik belirle. Intelligence bağlamında güvenilir desen varsa değerlendirmeye tek bir North Intelligence içgörüsü ekle; yetersiz veriyi kesin sonuç gibi sunma. Performans verisi uydurma. Yanıtını Türkçe ve birkaç kısa paragrafla ver.`,
+    system: `${securityBoundary}\nKısa ve kanıta dayalı bir çalışma değerlendiricisisin. Yalnızca sağlanan metrikleri kullan. Bir güçlü yön, bir darboğaz ve bir öncelik belirle. Intelligence bağlamında güvenilir desen varsa değerlendirmeye tek bir Planorth Analiz içgörüsü ekle; yetersiz veriyi kesin sonuç gibi sunma. Performans verisi uydurma. Yanıtını Türkçe ve birkaç kısa paragrafla ver.`,
     prompt: JSON.stringify(parsed.data),
   });
   return NextResponse.json(output);

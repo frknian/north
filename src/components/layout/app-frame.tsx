@@ -11,6 +11,7 @@ import { isFirebaseConfigured } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { NorthLogo } from "@/components/layout/north-logo";
+import { HeaderAvatar } from "@/components/layout/header-avatar";
 import { isCurrentTabLocked, FOCUS_LOCK_KEY, BROADCAST_CHANNEL_NAME, type ActiveFocusLock } from "@/lib/focus-lock";
 import { FocusLockBarrier } from "@/components/features/focus-lock-barrier";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -30,6 +31,19 @@ const navigation = [
   { href: "/progress", label: "İlerleme", icon: BarChart3 },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
 ];
+const navHints: Record<string, string> = {
+  "/": "Bugün yapman gereken tek sonraki adım",
+  "/coach": "AI koçla konuş, plan ve görev iste",
+  "/week": "Haftanın görevleri ve günlere dağılımı",
+  "/roadmap": "Uzun vadeli haftalık yol haritan",
+  "/areas": "Hedef alanların ve her alanın görevleri",
+  "/knowledge": "Notların ve aralıklı tekrar",
+  "/resources": "Kitap, kaynak ve araştırma",
+  "/labs": "Pratik ve lab günlüğü",
+  "/evidence": "Portföy ve kanıtlar",
+  "/progress": "İlerleme ve istatistikler",
+  "/calendar": "Takvim, bloklar ve .ics dışa aktarma",
+};
 const navGroups = [
   { label: "Çalışma", items: ["/", "/coach", "/week", "/roadmap"] },
   { label: "Öğrenme", items: ["/areas", "/knowledge", "/resources", "/labs", "/evidence"] },
@@ -103,8 +117,8 @@ export function AppFrame({children}:{children:React.ReactNode}) {
   }, []);
   useEffect(()=>{
     if(!isFirebaseConfigured()||!workspace.ready||workspace.authStatus==="loading")return;
-    const publicRoute=pathname.startsWith("/login")||pathname.startsWith("/auth")||pathname.startsWith("/account-reset")||pathname.startsWith("/kvkk");
-    if(workspace.authStatus==="signed_out"&&!publicRoute){router.replace("/login");return;}
+    const publicRoute=pathname.startsWith("/login")||pathname.startsWith("/auth")||pathname.startsWith("/account-reset")||pathname.startsWith("/kvkk")||pathname.startsWith("/welcome")||pathname.startsWith("/support");
+    if(workspace.authStatus==="signed_out"&&!publicRoute){router.replace(pathname==="/"?"/welcome":"/login");return;}
     if(workspace.authStatus==="signed_in"&&!workspace.coaching.onboarding&&pathname!=="/onboarding"){router.replace("/onboarding");return;}
     if(workspace.authStatus==="signed_in"&&workspace.coaching.onboarding&&pathname==="/onboarding")router.replace("/");
   },[pathname,router,workspace.authStatus,workspace.coaching.onboarding,workspace.ready]);
@@ -157,7 +171,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
     );
   }
 
-  if (pathname.startsWith("/login") || pathname.startsWith("/auth") || pathname.startsWith("/account-reset") || pathname.startsWith("/kvkk") || pathname === "/onboarding" || pathname.startsWith("/focus/")) {
+  if (pathname.startsWith("/login") || pathname.startsWith("/auth") || pathname.startsWith("/account-reset") || pathname.startsWith("/kvkk") || pathname.startsWith("/welcome") || (pathname.startsWith("/support") && workspace.authStatus !== "signed_in") || pathname === "/onboarding" || pathname.startsWith("/focus/")) {
     return <div className="north-route">{children}</div>;
   }
 
@@ -197,7 +211,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
           <SanalKutuphaneBadge />
           <WorkspaceSearch variant="pill"/>
           <ThemeToggle/>
-          <Link href="/profile" className="ns-avatar sm:hidden" aria-label="Profil ve ayarlar"><UserRound size={16}/></Link>
+          <HeaderAvatar/>
         </div>
       </header>
       <main
@@ -238,7 +252,7 @@ function Sidebar({ pathname, collapsed, onToggle, syncMode }: { pathname: string
               const n = navigation.find((item) => item.href === href)!;
               const isActive = current === n.href;
               return (
-                <Link key={n.href} href={n.href} className={cn("ns-link", isActive && "is-active")} aria-current={isActive ? "page" : undefined} title={n.label}>
+                <Link key={n.href} href={n.href} className={cn("ns-link", isActive && "is-active")} aria-current={isActive ? "page" : undefined} title={`${n.label} — ${navHints[n.href] ?? ""}`}>
                   <n.icon size={18} strokeWidth={isActive ? 2.4 : 2}/>
                   <span className="ns-label">{n.label}</span>
                 </Link>

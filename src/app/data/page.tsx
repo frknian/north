@@ -1,7 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
-import { Download, LockKeyhole, RefreshCcw, ShieldCheck, Trash2, ArrowRight } from "lucide-react";
+import { Download, Upload, LockKeyhole, RefreshCcw, ShieldCheck, Trash2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,24 @@ import { cn } from "@/lib/utils";
 
 export default function DataControlsPage() {
   const workspace = useWorkspace();
+  const restoreRef = useRef<HTMLInputElement>(null);
+  const sizeKb = Math.round(new TextEncoder().encode(JSON.stringify({ north: workspace.north, tasks: workspace.tasks, notes: workspace.notes, coachMessages: workspace.coachMessages, coaching: workspace.coaching, labs: workspace.labs, learningRoadmap: workspace.learningRoadmap, focusSessions: workspace.focusSessions, profile: workspace.profile })).length / 1024);
+  const sizePercent = Math.min(100, Math.round((sizeKb / 1000) * 100));
+
+  async function restoreData(file: File | undefined) {
+    if (!file) return;
+    try {
+      if (file.size > 5_000_000) throw new Error("Dosya çok büyük.");
+      const parsed: unknown = JSON.parse(await file.text());
+      if (!window.confirm("Yedekteki veriler mevcut çalışma alanının üzerine yazılsın mı? Bu işlem geri alınamaz; önce güncel yedeğini indirmeni öneririz.")) return;
+      if (!workspace.restoreSnapshot(parsed)) throw new Error("invalid");
+      toast.success("Yedek geri yüklendi.");
+    } catch {
+      toast.error("Geçerli bir Planorth veri yedeği (JSON) seç.");
+    } finally {
+      if (restoreRef.current) restoreRef.current.value = "";
+    }
+  }
 
   function downloadData() {
     const snapshot = {
@@ -31,14 +50,15 @@ export default function DataControlsPage() {
       jobs: workspace.jobs,
       applications: workspace.applications,
       interviews: workspace.interviews,
+      learningRoadmap: workspace.learningRoadmap,
     };
     const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `north-verilerim-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.download = `planorth-verilerim-${new Date().toISOString().slice(0, 10)}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
-    toast.success("North verilerinin tam kopyası JSON olarak indirildi.");
+    toast.success("Verilerinin tam kopyası JSON olarak indirildi.");
   }
 
   return (
@@ -71,9 +91,19 @@ export default function DataControlsPage() {
               Hedeflerin, haftalık planların, odak oturumların, kanıtların ve AI sohbet geçmişin tek bir yapılandırılmış JSON dosyası olarak cihazına aktarılır.
             </p>
           </div>
-          <Button onClick={downloadData} size="sm" className="rounded-xl text-xs self-start shadow-xs">
-            <Download className="size-3.5 mr-1.5" /> JSON Kopyayı İndir
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={downloadData} size="sm" className="rounded-xl text-xs shadow-xs">
+              <Download className="size-3.5 mr-1.5" /> JSON Kopyayı İndir
+            </Button>
+            <Button onClick={() => restoreRef.current?.click()} size="sm" variant="outline" className="rounded-xl text-xs">
+              <Upload className="size-3.5 mr-1.5" /> Yedekten Geri Yükle
+            </Button>
+            <input ref={restoreRef} type="file" accept=".json,application/json" className="hidden" onChange={(event) => void restoreData(event.target.files?.[0])} />
+          </div>
+          <div className="space-y-1.5" aria-label="Çalışma alanı boyutu">
+            <div className="flex justify-between text-[11px] text-muted-foreground"><span>Bulut alanı kullanımı</span><span>{sizeKb} KB / 1000 KB</span></div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className={cn("h-full rounded-full", sizePercent > 80 ? "bg-amber-500" : "bg-primary")} style={{ width: `${sizePercent}%` }} /></div>
+          </div>
         </div>
 
         <div className="rounded-2xl border bg-card/60 p-5 shadow-xs flex flex-col justify-between gap-4">
@@ -110,7 +140,7 @@ export default function DataControlsPage() {
             </div>
             <h2 className="text-sm font-semibold text-foreground">Gizlilik &amp; Şeffaflık</h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              North yalnızca uygulamaya eklediğin görev, hedef, check-in ve odak verilerini kullanır. Kamera, mikrofon, ekran veya cihaz etkinliğini izlemez.
+              Planorth yalnızca uygulamaya eklediğin görev, hedef, check-in ve odak verilerini kullanır. Kamera, mikrofon, ekran veya cihaz etkinliğini izlemez.
             </p>
           </div>
           <Button asChild variant="outline" size="sm" className="rounded-xl text-xs self-start">
@@ -143,7 +173,7 @@ export default function DataControlsPage() {
         <div>
           <h3 className="text-xs font-semibold text-foreground">Kontrol Her Zaman Sende</h3>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
-            North sana sadece öneriler üretir; plan değişikliklerini sen onaylamadan takvime veya hedeflerine uygulamaz.
+            Planorth sana sadece öneriler üretir; plan değişikliklerini sen onaylamadan takvime veya hedeflerine uygulamaz.
           </p>
         </div>
         <Button asChild variant="outline" size="sm" className="rounded-xl text-xs">

@@ -205,7 +205,7 @@ export function EveningWinddownModal({
                 ⚡ Tamamlanamayan {remainingToday.length} görev var.
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                North bu görevleri haftanın uygun günlerine aktarabilir; hiçbir ceza veya borç birikmez.
+                Planorth bu görevleri haftanın uygun günlerine aktarabilir; hiçbir ceza veya borç birikmez.
               </p>
             </div>
           )}

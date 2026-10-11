@@ -115,7 +115,7 @@ export function FocusLockBarrier({
               Odak Oturumu Devam Ediyor
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              North, dikkatinin dağılmasını engellemek için diğer sekmeleri kilitledi. Şu anda aktif bir odak oturumundasın:
+              Planorth, dikkatinin dağılmasını engellemek için diğer sekmeleri kilitledi. Şu anda aktif bir odak oturumundasın:
             </p>
           </div>
 

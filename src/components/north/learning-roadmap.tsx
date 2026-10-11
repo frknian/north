@@ -7,14 +7,16 @@ import { useWorkspace } from "@/components/features/workspace-provider";
 import { Button } from "@/components/ui/button";
 import { initializeNorth } from "@/lib/north";
 import { activateRoadmapWeek } from "@/lib/roadmap-scheduling";
+import { parseRoadmapContent } from "@/lib/roadmap-import";
+import { RoadmapSetup } from "./roadmap-setup";
 import {
   createLearningRoadmapState,
   createRoadmapPlan,
   getScheduledWeek,
-  isRoadmapBackup,
   normalizeLearningRoadmapState,
   roadmapStatus,
   type LearningRoadmapState,
+  type RoadmapPlan,
   type RoadmapMilestone,
   type RoadmapRecord,
   type RoadmapStatus,
@@ -86,16 +88,20 @@ export function LearningRoadmap() {
   const today = todayInIstanbul();
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2600); };
 
+  function applyPlan(next: RoadmapPlan, imported?: LearningRoadmapState) {
+    update(() => imported?.plan ? normalizeLearningRoadmapState(imported) : { ...createLearningRoadmapState(), plan: next });
+    setSelectedWeek(1);
+    notify("Yol haritası hesabına eklendi.");
+  }
   async function importFile(file: File) {
     try {
-      const value: unknown = JSON.parse(await file.text());
-      if (!isRoadmapBackup(value)) throw new Error("invalid backup");
+      if (file.size > 2_000_000) throw new Error("Dosya çok büyük (en fazla 2 MB).");
+      const result = parseRoadmapContent(await file.text(), file.name);
+      if (!result.ok) throw new Error(result.error);
       if (plan && !window.confirm("Mevcut yol haritan ve görev kayıtların içe aktarılan planla değiştirilsin mi?")) return;
-      update(() => normalizeLearningRoadmapState(value.state));
-      setSelectedWeek(1);
-      notify("Yol haritası hesabına eklendi.");
-    } catch {
-      notify("Geçerli bir Planorth yol haritası JSON dosyası seç.");
+      applyPlan(result.plan, result.state);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Dosya okunamadı.");
     } finally {
       if (fileRef.current) fileRef.current.value = "";
     }
@@ -119,9 +125,9 @@ export function LearningRoadmap() {
     setSelectedWeek(1);
   }
 
-  const fileInput = <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(event) => event.target.files?.[0] && void importFile(event.target.files[0])} />;
+  const fileInput = <input ref={fileRef} type="file" accept=".json,.csv,.tsv,.md,.markdown,.txt,application/json,text/csv,text/plain,text/markdown" className="hidden" onChange={(event) => event.target.files?.[0] && void importFile(event.target.files[0])} />;
   if (!workspace.ready) return <div className="p-8 text-sm text-muted-foreground">Yol haritan yükleniyor…</div>;
-  if (!plan) return <div className="mx-auto max-w-3xl space-y-6 pb-10">{fileInput}<RoadmapSetup onCreate={createPlan} onImport={() => fileRef.current?.click()} />{toast && <Toast>{toast}</Toast>}</div>;
+  if (!plan) return <div className="mx-auto max-w-3xl space-y-6 pb-10">{fileInput}<RoadmapSetup onApply={applyPlan} onCreateBlank={createPlan} today={today} />{toast && <Toast>{toast}</Toast>}</div>;
 
   const tasks = plan.weeks.flatMap((week) => week.tasks);
   const areas = [...new Set(tasks.map((task) => task.area))].sort((a, b) => a.localeCompare(b, "tr"));
@@ -213,7 +219,7 @@ export function LearningRoadmap() {
     {fileInput}
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div><p className="text-[11px] font-semibold uppercase tracking-[.18em] text-primary">Bilişsel yol haritası · kişisel gelişim</p><h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{plan.title}</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">{plan.description || `${plan.weeks.length} haftalık kişisel çalışma planın`}</p><p className="mt-1 text-xs text-muted-foreground">{workspace.syncMode === "firebase" ? "Plan, kendi Planorth hesabında eşitleniyor." : "Plan bu cihazda saklanıyor."}</p></div>
-      <div className="flex flex-wrap gap-2"><Button size="sm" onClick={startSelectedWeek}><Play size={15} />Hafta {activeWeek}: başlat ve haftaya yay</Button><Button size="sm" variant="outline" asChild><Link href="/areas">Alanlara bağla</Link></Button><Button size="sm" variant="outline" onClick={exportFile}><Download size={15} />Yedekle</Button><Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><Upload size={15} />İçe aktar</Button><Button size="sm" variant="outline" onClick={replacePlan}>Yeni plan</Button></div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" onClick={startSelectedWeek}><Play size={15} />Hafta {activeWeek}: başlat ve haftaya yay</Button><Button size="sm" variant="outline" asChild><Link href="/areas">Alanlara bağla</Link></Button><Button size="sm" variant="outline" onClick={exportFile}><Download size={15} />Yedekle</Button><Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><Upload size={15} />İçe aktar</Button><Button size="sm" variant="outline" onClick={replacePlan}>Yeni plan / Koç ile</Button></div>
     </header>
     <section className="grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Yol haritası özeti">
       <Metric label="Toplam ilerleme" value={`${percentage(tasks, state)}%`} sub={`${done} / ${tasks.length} görev`} />
@@ -273,13 +279,6 @@ function StageAtlas({ phases, weeks, state, activeWeek, onSelect }: { phases: { 
   </section>;
 }
 
-function RoadmapSetup({ onCreate, onImport }: { onCreate: (input: { title: string; startDate: string; weekCount: number; description: string }) => void; onImport: () => void }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState(todayInIstanbul());
-  const [weekCount, setWeekCount] = useState(12);
-  return <><header><p className="text-xs font-semibold uppercase tracking-[.18em] text-primary">Yol Haritam</p><h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Kendi yol haritanı oluştur</h1><p className="mt-2 text-sm text-muted-foreground">Planın kendi çalışma alanında saklanır. Haftaları, görevleri ve kilometre taşlarını hedeflerine göre düzenleyebilirsin.</p></header><div className="grid gap-4 rounded-2xl border bg-card p-5"><Field label="Plan adı"><input required value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Örn. Siber güvenlik temelleri" className="h-10 rounded-lg border bg-background px-3 text-sm" /></Field><Field label="Kısa açıklama"><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Bu planın amacı" className="h-10 rounded-lg border bg-background px-3 text-sm" /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Başlangıç tarihi"><input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="h-10 rounded-lg border bg-background px-3 text-sm" /></Field><Field label="Hafta sayısı (1–156)"><input type="number" min="1" max="156" value={weekCount} onChange={(event) => setWeekCount(Number(event.target.value))} className="h-10 rounded-lg border bg-background px-3 text-sm" /></Field></div><div className="flex flex-wrap gap-2"><Button disabled={!title.trim() || !startDate || weekCount < 1 || weekCount > 156} onClick={() => onCreate({ title, description, startDate, weekCount })}>Plan oluştur</Button><Button variant="outline" onClick={onImport}><Upload size={15} />JSON plan içe aktar</Button></div></div></>;
-}
 function TaskLine({ task, state, shifted, onToggle, onEdit, compact = false }: { task: RoadmapTask; state: LearningRoadmapState; shifted: boolean; onToggle: (task: RoadmapTask, status: RoadmapStatus) => void; onEdit: (task: RoadmapTask) => void; compact?: boolean }) {
   const status = roadmapStatus(state, task.id);
   return <div className={`roadmap-task flex items-start gap-2.5 rounded-xl border p-2.5 ${compact ? "bg-muted/30" : ""}`}><button type="button" aria-label={`${task.title}: tamamlandı durumunu değiştir`} onClick={() => onToggle(task, status === "tamamlandı" ? "yapılmadı" : "tamamlandı")} className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border text-[11px] ${status === "tamamlandı" ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}>{status === "tamamlandı" ? "✓" : ""}</button><button type="button" onClick={() => onEdit(task)} className="min-w-0 flex-1 text-left"><span className="block text-xs font-medium leading-5">{task.title}{shifted && <span className="ml-1 rounded bg-amber-500/10 px-1 py-0.5 text-[9px] text-amber-700">ertelendi</span>}</span><span className="mt-0.5 flex flex-wrap gap-x-2 text-[10px] text-muted-foreground"><span>{task.day}</span><span>{task.area}</span><span>{task.minutes} dk</span><span>{status}</span></span></button>{task.resource.url && <a href={task.resource.url} target="_blank" rel="noreferrer" aria-label={`${task.resource.label} kaynağını aç`} className="mt-1 text-muted-foreground hover:text-primary"><ExternalLink size={14} /></a>}</div>;

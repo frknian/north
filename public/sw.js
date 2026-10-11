@@ -30,3 +30,11 @@ self.addEventListener("fetch", event => {
    return response;
  })));
 });
+self.addEventListener("notificationclick", event => {
+ event.notification.close();
+ const target = (event.notification.data && event.notification.data.url) || "/";
+ event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(windows => {
+   const open = windows.find(client => "focus" in client);
+   return open ? open.focus() : self.clients.openWindow(target);
+ }));
+});

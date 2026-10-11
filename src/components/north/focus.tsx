@@ -498,7 +498,7 @@ export function NorthFocus({ id }: { id: string }) {
     setAiVerificationStatus("checking");
     setTimeout(() => {
       setAiVerificationStatus("verified");
-      toast.success("North AI öğrenim çıktısını onayladı!");
+      toast.success("Planorth Koç öğrenim çıktısını onayladı!");
     }, 900);
   }
 
@@ -563,7 +563,7 @@ export function NorthFocus({ id }: { id: string }) {
       pipControllerRef.current.update(
         task.title,
         `${minutesStr}:${secondsStr}`,
-        area?.name || "North Odak",
+        area?.name || "Planorth Odak",
         !timer?.running
       );
     }
@@ -589,7 +589,7 @@ export function NorthFocus({ id }: { id: string }) {
       const ok = await pipControllerRef.current.start(
         task?.title || "Odak Görevi",
         `${minutesStr}:${secondsStr}`,
-        area?.name || "North Odak"
+        area?.name || "Planorth Odak"
       );
       if (ok) setPipActive(true);
       else toast.error("Tarayıcınız Picture-in-Picture yüzen pencereyi desteklemiyor.");
@@ -1477,7 +1477,7 @@ export function NorthFocus({ id }: { id: string }) {
                   {verifiedProof.type === "output_text" && "Konu Doğrulama Sorusu Çözüldü"}
                   {verifiedProof.type === "photo" && "Fotoğraf Kanıtı Eklendi"}
                   {verifiedProof.type === "step" && "Görev Adımı Onaylandı"}
-                  {verifiedProof.type === "ai_verified" && "North AI Tarafından Teyit Edildi"}
+                  {verifiedProof.type === "ai_verified" && "Planorth Koç Tarafından Teyit Edildi"}
                   {verifiedProof.type === "scratchpad" && "Canlı Not Kanıtı Onaylandı"}
                 </span>
               )}
@@ -1718,7 +1718,7 @@ export function NorthFocus({ id }: { id: string }) {
               <div className="mt-2 flex flex-wrap gap-2">
                 {([
                   ["none", "Yardım almadım"],
-                  ["ai", "North AI"],
+                  ["ai", "Planorth Koç"],
                   ["documentation", "Resmî Doküman"],
                   ["video", "Video / Ders"],
                   ["forum", "Topluluk / Çözüm"],
@@ -1921,7 +1921,7 @@ export function NorthFocus({ id }: { id: string }) {
             </div>
             <DialogDescription className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
               Hedeflenen sürenin tamamlanmasına <strong className="text-foreground">{minutesStr}:{secondsStr}</strong> kaldı. 
-              North&apos;ta sahte süre kaydedilmez ve kilit çözülmeden çıkılamaz. Çalıştığın konudan soruyu cevapla.
+              Planorth&apos;ta sahte süre kaydedilmez ve kilit çözülmeden çıkılamaz. Çalıştığın konudan soruyu cevapla.
             </DialogDescription>
           </DialogHeader>
 
@@ -2142,7 +2142,7 @@ export function NorthFocus({ id }: { id: string }) {
           {proofMethod === "ai" && (
             <div className="mt-4 space-y-3">
               <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-3 text-xs leading-relaxed text-foreground">
-                <span className="font-semibold text-purple-600 dark:text-purple-400">North AI Hızlı Soru: </span>
+                <span className="font-semibold text-purple-600 dark:text-purple-400">Planorth Koç Hızlı Soru: </span>
                 <p className="mt-1">
                   &ldquo;{task?.title || effectiveArea.name}&rdquo; çalışırken aklında kalan en kritik 1 kural, formül veya edindiğin çıkarım ne oldu?
                 </p>
@@ -2156,7 +2156,7 @@ export function NorthFocus({ id }: { id: string }) {
               {aiVerificationStatus === "verified" ? (
                 <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
                   <CheckCircle2 className="size-4 shrink-0" />
-                  <span>North AI cevabını onayladı! Öğrenim çıktın geçerli kabul edildi.</span>
+                  <span>Planorth Koç cevabını onayladı! Öğrenim çıktın geçerli kabul edildi.</span>
                 </div>
               ) : (
                 <Button
@@ -2208,7 +2208,7 @@ export function NorthFocus({ id }: { id: string }) {
                   <span>Dürüst Vazgeçiş Freni</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Dikkat dağılması ve yorgunluk insani bir durumdur. Ancak North sahte odak süresi kaydetmez. 
+                  Dikkat dağılması ve yorgunluk insani bir durumdur. Ancak Planorth sahte odak süresi kaydetmez. 
                   Pes edersen bu seans için süre işlenmez ve çizgin etkilenmez.
                 </p>
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">

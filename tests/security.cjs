@@ -30,8 +30,9 @@ assert.match(firebase, /\^Bearer \(\[A-Za-z0-9\._-\]\{20,4096\}\)\$/);
 assert.match(firebase, /AbortSignal\.timeout\(5_000\)/);
 
 const config = read("next.config.ts");
-for (const header of ["Content-Security-Policy", "Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Permissions-Policy"]) assert.ok(config.includes(header), `${header} missing`);
-assert.match(config, /NODE_ENV === "development"/);
+for (const header of ["Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Permissions-Policy"]) assert.ok(config.includes(header), `${header} missing`);
+assert.ok(!config.includes("Content-Security-Policy"), "CSP must be defined only in src/proxy.ts");
+assert.match(read("src/proxy.ts"), /NODE_ENV === "development"/);
 assert.match(config, /source: "\/api\/:path\*"/);
 
 const proxy = read("src/proxy.ts");

@@ -53,6 +53,7 @@ interface WorkspaceContextValue extends WorkspaceState {
   updateCoachingPreferences: (patch: Partial<WorkspaceState["coaching"]["preferences"]>) => void;
   updateMilestone: (id: string, status: WorkspaceState["coaching"]["milestones"][number]["status"]) => void;
   resetProgress: (reason: ProgressArchive["reason"]) => void;
+  restoreSnapshot: (snapshot: unknown) => boolean;
   recordResourceUse: (resourceId: string, taskId: string) => void;
   rateResource: (resourceId: string, taskId: string, rating: ResourceRating) => void;
   setSourceLock: (skill: string, resourceId: string) => void;
@@ -144,6 +145,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [syncMode, setSyncMode] = useState<"local" | "firebase">("local");
   const [authStatus, setAuthStatus] = useState<"loading" | "signed_out" | "signed_in" | "local">("loading");
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const sizeWarned = useRef({ near: false, blocked: false });
   const userIdRef = useRef<string | null>(null);
   const firebase = useMemo(() => getFirebase(), []);
   const mutate = useCallback((fn: (current: WorkspaceState) => WorkspaceState) => setState(current => {
@@ -295,6 +297,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
     const timeout = window.setTimeout(() => {
       if (userIdRef.current === uid) {
+        // Firestore documents are capped at 1 MiB; warn early and never attempt a write that is certain to fail.
+        const bytes = new TextEncoder().encode(JSON.stringify(state)).length;
+        if (bytes > 1_000_000) {
+          if (!sizeWarned.current.blocked) { sizeWarned.current.blocked = true; toast.error("Çalışma alanın bulut sınırını aştı; yeni değişiklikler yalnızca bu cihazda saklanıyor. Verilerim sayfasından yedek indirip eski kayıtları temizle."); }
+          return;
+        }
+        if (bytes > 800_000 && !sizeWarned.current.near) { sizeWarned.current.near = true; toast.warning("Çalışma alanın bulut sınırına yaklaşıyor (%80+). Verilerim sayfasından yedek alıp eski kayıtları temizlemeni öneririz."); }
         setDoc(doc(firebase.db, "users", uid, "workspaces", WORKSPACE_ID), { state: JSON.parse(JSON.stringify(state)), updatedAt: new Date().toISOString() }, { merge: true }).catch(() => toast.error("Firebase eşitlemesi başarısız oldu. Mevcut ekranın değişmedi."));
       }
     }, 500);
@@ -393,6 +402,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }),
     updateCoachingPreferences: (patch) => mutate((current) => ({ ...current, coaching: { ...current.coaching, preferences: { ...current.coaching.preferences, ...patch } } })),
     updateMilestone: (id, status) => mutate((current) => ({ ...current, coaching: { ...current.coaching, milestones: current.coaching.milestones.map((milestone) => milestone.id === id ? { ...milestone, status } : milestone) } })),
+    restoreSnapshot: (snapshot) => {
+      if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return false;
+      const keys = ["profile", "north", "weeklyPlan", "tasks", "focusSessions", "labs", "skills", "reviews", "notes", "reports", "vocabulary", "coachMessages", "coaching", "portfolio", "jobs", "applications", "interviews", "learningRoadmap"] as const;
+      const source = snapshot as Record<string, unknown>;
+      const picked = Object.fromEntries(keys.filter((key) => source[key] !== undefined).map((key) => [key, source[key]]));
+      if (!("profile" in picked) && !("north" in picked) && !("tasks" in picked)) return false;
+      mutate((current) => normalizeState({ ...current, ...picked } as Partial<WorkspaceState>));
+      return true;
+    },
     resetProgress: (reason) => mutate((current) => {
       const archive: ProgressArchive = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), reason, completedTasks: current.tasks.filter((task) => task.status === "completed").length, focusMinutes: current.focusSessions.reduce((sum, session) => sum + session.durationMinutes, 0), labsCompleted: current.labs.filter((lab) => lab.status === "completed").length, coachMessages: current.coachMessages.length };
       if (reason === "full_reset") return createEmptyWorkspaceState();
@@ -458,7 +476,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     archiveCurrentCoachSession: (topic?: string) => mutate((current) => {
       if (!current.coachMessages || current.coachMessages.length === 0) return current;
       const firstUserMsg = current.coachMessages.find((m) => m.role === "user");
-      const autoTopic = topic || (firstUserMsg ? (firstUserMsg.content.length > 60 ? firstUserMsg.content.slice(0, 60) + "..." : firstUserMsg.content) : "North AI Oturumu");
+      const autoTopic = topic || (firstUserMsg ? (firstUserMsg.content.length > 60 ? firstUserMsg.content.slice(0, 60) + "..." : firstUserMsg.content) : "Planorth Koç Oturumu");
       const archive: import("@/lib/types").CoachSessionArchive = {
         id: crypto.randomUUID(),
         startedAt: current.coachMessages[0].createdAt || new Date().toISOString(),
@@ -475,7 +493,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     clearCoachMessages: () => mutate((current) => {
       if (!current.coachMessages || current.coachMessages.length === 0) return current;
       const firstUserMsg = current.coachMessages.find((m) => m.role === "user");
-      const autoTopic = firstUserMsg ? (firstUserMsg.content.length > 60 ? firstUserMsg.content.slice(0, 60) + "..." : firstUserMsg.content) : "North AI Oturumu";
+      const autoTopic = firstUserMsg ? (firstUserMsg.content.length > 60 ? firstUserMsg.content.slice(0, 60) + "..." : firstUserMsg.content) : "Planorth Koç Oturumu";
       const archive: import("@/lib/types").CoachSessionArchive = {
         id: crypto.randomUUID(),
         startedAt: current.coachMessages[0].createdAt || new Date().toISOString(),

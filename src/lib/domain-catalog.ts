@@ -857,7 +857,7 @@ export function adaptUnknownDomain(input: UnknownDomainInput): DomainDefinition 
         options: options(`${output} niteliğinde tekrarlanabilir ve doğrulanabilir somut bir çıktı`, "Sadece çalıştığını söylemek", "Başkasının notunu kopyalamak"),
         correct: "a",
         subTopic: "Kanıt Temelli Çıktı",
-        explanation: "North sisteminde gerçek gelişim doğrulanabilir kanıtlarla ölçülür.",
+        explanation: "Planorth sisteminde gerçek gelişim doğrulanabilir kanıtlarla ölçülür.",
         recommendedReview: "Tamamladığın ilk çalışmanın adımlarını ve sonucunu kanıt olarak kaydet.",
       },
       {

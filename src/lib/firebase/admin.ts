@@ -3,7 +3,7 @@ import "server-only";
 /**
  * Verifies a Firebase ID token through Google Identity Toolkit.
  *
- * North currently uses client-managed Firestore access and does not need the
+ * Planorth currently uses client-managed Firestore access and does not need the
  * Firebase Admin SDK. Keeping verification on this official endpoint also
  * avoids loading an unused Admin dependency in every serverless AI function.
  */

@@ -738,7 +738,7 @@ export default function OnboardingPage() {
                 Uyarlanabilir başlangıç değerlendirmesi
               </CardTitle>
               <CardDescription>
-                Bu sorular kesin bir yeterlilik iddiası değil; North’un ilk görevlerini ve zorluk seviyeni doğru ayarlaması için bir <strong>başlangıç sinyalidir</strong>.
+                Bu sorular kesin bir yeterlilik iddiası değil; Planorth’un ilk görevlerini ve zorluk seviyeni doğru ayarlaması için bir <strong>başlangıç sinyalidir</strong>.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-7" onCopy={handleCopyAssessmentQuestion}>
@@ -1041,7 +1041,7 @@ export default function OnboardingPage() {
                           </div>
                         ))}
                         {!form.universityCourses.length && (
-                          <p className="text-xs text-muted-foreground">Ders ekle; North bu zamanları boş bırakır ve takvimde gösterir.</p>
+                          <p className="text-xs text-muted-foreground">Ders ekle; Planorth bu zamanları boş bırakır ve takvimde gösterir.</p>
                         )}
                       </div>
                     </div>
@@ -1110,18 +1110,19 @@ export default function OnboardingPage() {
           </Card>
         )}
 
+        {step === 0 && <p className="mt-4 text-center text-xs text-muted-foreground">Acelen varsa “Hızlı başlat” ile varsayılan ayarlarla hemen başla; seviye testi, süre ve kaynak tercihlerini sonra Profil’den düzenleyebilirsin.</p>}
         <div className="mt-6 flex items-center justify-between gap-3">
           <Button variant="ghost" disabled={step === 0 || submitting} onClick={() => setStep((current) => current - 1)}>
             <ArrowLeft />Geri
           </Button>
           <div className="flex gap-2">
             {step === 0 && (
-              <Button variant="outline" disabled={form.fullName.trim().length < 2 || !form.interests.length || submitting} onClick={quickStart}>
-                {submitting ? "Başlatılıyor..." : "Hızlı başlat"}
+              <Button disabled={form.fullName.trim().length < 2 || !form.interests.length || submitting} onClick={quickStart}>
+                {submitting ? "Başlatılıyor..." : "Hızlı başlat (1 dk)"}
               </Button>
             )}
             {step < 3 ? (
-              <Button disabled={!canContinue || submitting} onClick={() => setStep((current) => current + 1)}>
+              <Button variant={step === 0 ? "outline" : "default"} disabled={!canContinue || submitting} onClick={() => setStep((current) => current + 1)}>
                 {step === 1 && answered < questions.length ? "Değerlendirmeyi sonra yap" : "Devam et"}
                 <ArrowRight />
               </Button>

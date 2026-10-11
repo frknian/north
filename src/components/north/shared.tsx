@@ -441,7 +441,7 @@ export function Companion({ state, compact = false }: { state: NorthState; compa
         type="button"
         onClick={() => setOpen(true)}
         className={compact ? "north-companion is-compact cursor-pointer transition-transform hover:scale-105 active:scale-95 text-left" : "north-companion cursor-pointer transition-transform hover:scale-102 active:scale-98 text-left"}
-        aria-label={`North yol arkadaşın: ${displayName}, seviye ${actualLevel}`}
+        aria-label={`Planorth yol arkadaşın: ${displayName}, seviye ${actualLevel}`}
         title="Yol arkadaşını özelleştir, kıyafet giydir ve büyüme simülasyonunu gör"
       >
         <CompanionAvatar

@@ -10,7 +10,7 @@ export const DAILY_WISDOM: WisdomQuote[] = [
   { quote: "Kendini başkalarının ulaştığı yerle değil; dünkü kendi çaban ve odağınla kıyasla.", author: "Epiktetos" },
   { quote: "Mükemmel planı bekleme. Bugün atabileceğin en küçük anlamlı adımla başla.", author: "James Clear" },
   { quote: "Sabır pasif bir bekleyiş değil; uzun vadeli hedefine duyduğun sarsılmaz bağlılıktır.", author: "Stoacı Prensip" },
-  { quote: "Gürültüyü kapat, zihnini sakinleştir. Sıradaki görevin senin tek gerçekliğin olsun.", author: "North Felsefesi" },
+  { quote: "Gürültüyü kapat, zihnini sakinleştir. Sıradaki görevin senin tek gerçekliğin olsun.", author: "Planorth Felsefesi" },
   { quote: "Zorluklar seni engellemek için değil; odak gücünü ve iradeni bilemek için karşına çıkar.", author: "Marcus Aurelius" },
   { quote: "Bir günde yapabileceklerini abartır, bir yılda tutarlılıkla başarabileceklerini ise küçümsersin.", author: "Bill Gates" },
   { quote: "Başlamak için harika olmana gerek yok, ama harika olmak için bugün başlamalısın.", author: "Zig Ziglar" },

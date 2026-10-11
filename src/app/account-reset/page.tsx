@@ -59,7 +59,7 @@ export default function AccountResetPage() {
       await deleteUser(user);
       window.localStorage.removeItem("cybercoach:v1");
       window.localStorage.removeItem("cyber-career-os:v1");
-      toast.success("North hesabın ve çalışma verilerin silindi. Şimdi aynı e-postayla yeniden kayıt olabilirsin.");
+      toast.success("Planorth hesabın ve çalışma verilerin silindi. Şimdi aynı e-postayla yeniden kayıt olabilirsin.");
       router.replace("/login");
     } catch (error) {
       const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
@@ -78,8 +78,8 @@ export default function AccountResetPage() {
 
   return <main className="grid min-h-dvh place-items-center px-4 py-10"><div className="w-full max-w-md">
     <div className="mb-6 flex items-center justify-center gap-3"><NorthLogo size={40} priority/><div><p className="font-planorth text-base tracking-[0.04em]">PLANORTH</p><p className="text-xs text-muted-foreground">Tam yeni başlangıç</p></div></div>
-    <Card className="border-destructive/30"><CardHeader><CardTitle>Hesabı sil</CardTitle><CardDescription>Giriş yaptığın North hesabını ve çalışma verilerini kalıcı olarak siler.</CardDescription></CardHeader><CardContent className="space-y-4">
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs leading-5 text-muted-foreground">Bu işlem geri alınamaz. Görevler, odak süreleri, beceriler, kanıtlar, notlar ve koç konuşmaları silinir. Google hesabın silinmez; yalnızca North hesabın kaldırılır.</div>
+    <Card className="border-destructive/30"><CardHeader><CardTitle>Hesabı sil</CardTitle><CardDescription>Giriş yaptığın Planorth hesabını ve çalışma verilerini kalıcı olarak siler.</CardDescription></CardHeader><CardContent className="space-y-4">
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs leading-5 text-muted-foreground">Bu işlem geri alınamaz. Görevler, odak süreleri, beceriler, kanıtlar, notlar ve koç konuşmaları silinir. Google hesabın silinmez; yalnızca Planorth hesabın kaldırılır.</div>
       {!authReady ? <p className="text-sm text-muted-foreground">Hesap bilgileri kontrol ediliyor…</p> : !email ? <div className="space-y-3 rounded-lg border bg-muted/30 p-4"><p className="text-sm text-muted-foreground">Hesap silmek için önce silmek istediğin hesapla giriş yapmalısın.</p><Button className="w-full" asChild><Link href="/login">Giriş yap</Link></Button></div> : <>
       <Field label="Giriş yapılmış hesap"><Input type="email" value={email} readOnly aria-readonly="true" /></Field>
       <Field label="Onaylamak için SİL yaz"><Input value={confirmation} onChange={(event) => setConfirmation(event.target.value.toLocaleUpperCase("tr-TR"))} /></Field>

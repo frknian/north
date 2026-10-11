@@ -563,7 +563,7 @@ export function NorthProgress({ initialTab }: NorthProgressProps) {
                   Henüz kaydedilmiş {reviewPeriod === "weekly" ? "haftalık" : "aylık"} değerlendirme yok
                 </p>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Yukarıdaki butona tıklayarak North AI&apos;ın bu dönemdeki tüm çalışmalarını, seanslarını ve lablarını analiz etmesini sağla.
+                  Yukarıdaki butona tıklayarak Planorth Koç&apos;ın bu dönemdeki tüm çalışmalarını, seanslarını ve lablarını analiz etmesini sağla.
                 </p>
               </div>
             )}

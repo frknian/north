@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (parsed.protocol !== "https:" || parsed.hostname !== "github.com" || parsed.username || parsed.password || !/^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/?$/.test(parsed.pathname)) throw new Error();
     path = parsed.pathname.replace(/\/$/, "").replace(/\.git$/, "");
   } catch { return Response.json({ error: "https://github.com/kullanici/repo biçiminde bir adres gir." }, { status: 400 }); }
-  const options = { headers: { Accept: "application/vnd.github+json", "User-Agent": "North" }, next: { revalidate: 300 }, signal: AbortSignal.timeout(10000) };
+  const options = { headers: { Accept: "application/vnd.github+json", "User-Agent": "Planorth" }, next: { revalidate: 300 }, signal: AbortSignal.timeout(10000) };
   try {
     const repo = await fetch(`https://api.github.com/repos${path}`, options);
     if (!repo.ok) return Response.json({ error: repo.status === 404 ? "Repo bulunamadı. Yalnızca herkese açık repolar destekleniyor." : "GitHub isteği karşılanamadı; daha sonra tekrar dene." }, { status: repo.status === 404 ? 404 : 502 });

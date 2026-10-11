@@ -27,6 +27,36 @@ function consumeRate(key: string, now: number, perMinute: number, perDay: number
   return { limited, retryAfter };
 }
 
+
+const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+/** Shared counters across serverless instances when Upstash Redis is configured; otherwise per-instance memory. */
+async function consumeShared(key: string, now: number, perMinute: number, perDay: number) {
+  if (!upstashUrl || !upstashToken) return consumeRate(key, now, perMinute, perDay);
+  const minute = Math.floor(now / 60_000);
+  const day = new Date(now).toISOString().slice(0, 10);
+  const minuteKey = `rl:${key}:m:${minute}`;
+  const dayKey = `rl:${key}:d:${day}`;
+  try {
+    const response = await fetch(`${upstashUrl}/pipeline`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${upstashToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify([["INCR", minuteKey], ["EXPIRE", minuteKey, 120], ["INCR", dayKey], ["EXPIRE", dayKey, 172_800]]),
+      cache: "no-store",
+      signal: AbortSignal.timeout(1500),
+    });
+    if (!response.ok) throw new Error("rate store unavailable");
+    const result = await response.json() as Array<{ result?: number }>;
+    const minuteCount = Number(result[0]?.result ?? 0);
+    const dayCount = Number(result[2]?.result ?? 0);
+    const limited = minuteCount > perMinute || dayCount > perDay;
+    return { limited, retryAfter: minuteCount > perMinute ? 60 - Math.floor(now / 1000) % 60 : 86_400 };
+  } catch {
+    return consumeRate(key, now, perMinute, perDay);
+  }
+}
+
 export async function secureApiRequest(
   request: Request,
   scope: string,
@@ -44,9 +74,9 @@ export async function secureApiRequest(
   const now = Date.now();
   const perMinute = limits.unlimited ? 120 : (limits.perMinute ?? 8);
   const perDay = limits.unlimited ? 10_000 : (limits.perDay ?? 50);
-  const scopedRate = consumeRate(`${user.uid}:${scope}`, now, perMinute, perDay);
+  const scopedRate = await consumeShared(`${user.uid}:${scope}`, now, perMinute, perDay);
   const isExemptAi = Boolean(limits.unlimited || scope === "ai:north" || scope === "ai:source-search" || limits.optionalAuth);
-  const globalAiRate = (scope.startsWith("ai:") && !isExemptAi) ? consumeRate(`${user.uid}:ai:global`, now, 12, 80) : null;
+  const globalAiRate = (scope.startsWith("ai:") && !isExemptAi) ? await consumeShared(`${user.uid}:ai:global`, now, 12, 80) : null;
   const limited = scopedRate.limited ? scopedRate : globalAiRate?.limited ? globalAiRate : null;
   if (limited) {
     return { ok: false, response: apiError("İstek sınırına ulaştın. Bir süre sonra tekrar dene.", 429, { "Retry-After": String(limited.retryAfter) }) };

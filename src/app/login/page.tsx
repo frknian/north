@@ -698,7 +698,7 @@ export default function LoginPage() {
             <section className="space-y-1">
               <h4 className="font-bold text-foreground text-xs">1. İşlenen veriler</h4>
               <p>
-                North; hesap oluştururken e-posta adresi, Firebase kullanıcı kimliği ve oturum sağlayıcısını işler. Uygulamayı kullandığında hedeflerin, değerlendirme yanıtların ve sonuçların, çalışma planların, görevlerin, odak kayıtların, beceri ve kanıtların, notların ve koç görüşmelerin hesabına bağlı olarak saklanabilir.
+                Planorth; hesap oluştururken e-posta adresi, Firebase kullanıcı kimliği ve oturum sağlayıcısını işler. Uygulamayı kullandığında hedeflerin, değerlendirme yanıtların ve sonuçların, çalışma planların, görevlerin, odak kayıtların, beceri ve kanıtların, notların ve koç görüşmelerin hesabına bağlı olarak saklanabilir.
               </p>
             </section>
 
@@ -712,7 +712,7 @@ export default function LoginPage() {
             <section className="space-y-1">
               <h4 className="font-bold text-foreground text-xs">3. Verilerin aktarılması</h4>
               <p>
-                Kimlik doğrulama ve veri saklama için Google Firebase, uygulamanın barındırılması için Vercel ve yalnızca AI özelliklerini kullandığında yanıt üretimi için OpenAI hizmetlerinden yararlanılır. Bu sağlayıcıların sunucuları Türkiye dışında bulunabileceğinden veriler yurt dışına aktarılabilir. North, burada açıklanan amaç dışında veri satışı yapmaz.
+                Kimlik doğrulama ve veri saklama için Google Firebase, uygulamanın barındırılması için Vercel ve yalnızca AI özelliklerini kullandığında yanıt üretimi için OpenAI hizmetlerinden yararlanılır. Bu sağlayıcıların sunucuları Türkiye dışında bulunabileceğinden veriler yurt dışına aktarılabilir. Planorth, burada açıklanan amaç dışında veri satışı yapmaz.
               </p>
             </section>
 

@@ -470,7 +470,7 @@ export function distributeTasksAcrossMonth(
   }
 
   const isCurrentMonth = today.startsWith(monthKey);
-  let candidateDays = allMonthDays.filter((d) => {
+  const candidateDays = allMonthDays.filter((d) => {
     if (isCurrentMonth && startFromToday && d < today) {
       return false;
     }
@@ -713,7 +713,7 @@ export function rolloverUnfinishedTasks(state: NorthState, today = dayKey()): Ro
         date: targetDay,
         week: weekKey(targetDay),
         rescheduledCount: (task.rescheduledCount ?? 0) + 1,
-        why: `${task.why ? `${task.why} · ` : ""}Önceki gün (${fromDate}) tamamlanamadığı için North tarafından bu haftanın (${targetDay}) gününe aktarıldı (borçsuz esnek plan).`.trim(),
+        why: `${task.why ? `${task.why} · ` : ""}Önceki gün (${fromDate}) tamamlanamadığı için Planorth tarafından bu haftanın (${targetDay}) gününe aktarıldı (borçsuz esnek plan).`.trim(),
       };
     }
     return task;
@@ -949,7 +949,7 @@ export function generatePeriodPlan(targetWeeks: number, primaryGoal: string): im
   let d2 = Math.max(d1 + 1, Math.round(totalDays * 0.4));
   let d3 = Math.max(d2 + 1, Math.round(totalDays * 0.6));
   let d4 = Math.max(d3 + 1, Math.round(totalDays * 0.8));
-  let d5 = totalDays;
+  const d5 = totalDays;
 
   if (d4 >= d5) {
     d4 = Math.max(d3 + 1, d5 - 1);

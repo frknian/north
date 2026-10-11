@@ -2473,7 +2473,7 @@ export function ResourcesHub() {
               </DialogTitle>
             </div>
             <DialogDescription className="text-xs">
-              North AI tarafından çıkarılmış yönetici özeti ve NotebookLM soruları.
+              Planorth Koç tarafından çıkarılmış yönetici özeti ve NotebookLM soruları.
             </DialogDescription>
           </DialogHeader>
 

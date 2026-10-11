@@ -15,7 +15,7 @@ export class PipTimerController {
     );
   }
 
-  public async start(title: string, initialTimeStr: string, areaName = "North Odak"): Promise<boolean> {
+  public async start(title: string, initialTimeStr: string, areaName = "Planorth Odak"): Promise<boolean> {
     if (!this.isSupported()) return false;
 
     try {
@@ -49,7 +49,7 @@ export class PipTimerController {
     }
   }
 
-  public update(title: string, timeStr: string, areaName = "North Odak", isPaused = false) {
+  public update(title: string, timeStr: string, areaName = "Planorth Odak", isPaused = false) {
     if (!this.active || !this.ctx || !this.canvas) return;
     this.draw(title, timeStr, areaName, isPaused);
   }
@@ -96,7 +96,7 @@ export class PipTimerController {
     // Subtext
     this.ctx.fillStyle = "#64748b";
     this.ctx.font = "12px system-ui, -apple-system, sans-serif";
-    this.ctx.fillText("North Odak Modu", 24, 178);
+    this.ctx.fillText("Planorth Odak Modu", 24, 178);
   }
 
   public async close() {
