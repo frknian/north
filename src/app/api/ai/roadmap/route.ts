@@ -2,6 +2,7 @@ import { generateText, Output } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { careerModel, hasAiConfiguration, securityBoundary } from "@/lib/ai/model";
+import { AI_LIMITS } from "@/lib/ai/limits";
 import { readLimitedJson, secureApiRequest } from "@/lib/server/api-security";
 
 const inputSchema = z.object({
@@ -39,7 +40,7 @@ const outputSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const access = await secureApiRequest(request, "ai:roadmap", { perMinute: 3, perDay: 12 });
+  const access = await secureApiRequest(request, "ai:roadmap", { perMinute: 3, perDay: AI_LIMITS.roadmap });
   if (!access.ok) return access.response;
   const body = await readLimitedJson(request, 100_000);
   if (!body.ok) return body.response;

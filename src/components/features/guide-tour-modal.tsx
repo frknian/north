@@ -14,7 +14,6 @@ import {
   CircleHelp,
   ClipboardList,
   Compass,
-  ExternalLink,
   Flame,
   FlaskConical,
   GraduationCap,
@@ -25,7 +24,6 @@ import {
   Search,
   Sparkles,
   Target,
-  Volume2,
   X,
   Zap,
 } from "lucide-react";
@@ -34,10 +32,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { NorthLogo } from "@/components/layout/north-logo";
-import { NorthCoachSymbol } from "@/components/north/north-coach-symbol";
 import { cn } from "@/lib/utils";
 
-export const TOUR_STORAGE_KEY = "planorth_tour_completed_v2";
+export const TOUR_STORAGE_KEY = "planorth_tour_completed_v3";
 
 export interface TourStep {
   id: string;
@@ -55,249 +52,189 @@ export interface TourStep {
 export const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
-    badge: "BAŞLANGIÇ & FELSEFE",
+    badge: "BAŞLANGIÇ",
     title: "Planorth'a Hoş Geldin!",
     subtitle: "Daha az karar. Daha derin odak. Sıfır suçluluk hissi.",
     icon: Sparkles,
     accentColor: "from-blue-500/20 to-indigo-500/20 border-blue-500/30 text-blue-500",
     features: [
-      {
-        title: "Tek Anlamlı Adım Kuralı",
-        desc: "Klasik yapılacaklar listeleri her gün ertelenen onlarca görevle suçluluk yaratır. Planorth sana her an sadece yapman gereken sıradaki TEK görevi gösterir.",
-        icon: Target,
-      },
-      {
-        title: "Borçsuz ve Suçluluksuz Akış",
-        desc: "Yetişmeyen görevler borç olmaz; yapay zeka ile otomatik küçültülür, ertelenir veya haftalık havuza alınır.",
-        icon: Compass,
-      },
-      {
-        title: "Kanıta Dayalı Gelişim",
-        desc: "Soyut hedefler yerine çözülen lablar, okunan kitaplar, tamamlanan projeler ve doğrulanabilir kanıtlar tutulur.",
-        icon: CheckCircle2,
-      },
+      { title: "Tek anlamlı adım", desc: "Planorth her an yalnızca yapman gereken sıradaki işi gösterir; onlarca maddelik listeler yok.", icon: Target },
+      { title: "Borçsuz akış", desc: "Yetişmeyen görevler suçluluk olmaz; küçültülür, ertelenir ya da haftalık havuza alınır.", icon: Compass },
+      { title: "Gerçek ilerleme", desc: "Yalnızca tamamladığın işler sayılır: odak süresi, bitirilen görevler, kanıtlar ve seri.", icon: CheckCircle2 },
     ],
-    tip: "Bu 1 dakikalık hızlı rehberde tüm sekmelerin çalışma mantığını keşfedeceksin.",
+    tip: "Bu kısa tur yaklaşık 2 dakika sürer. İstediğin zaman Ayarlar → Kılavuz'dan yeniden açabilirsin.",
+  },
+  {
+    id: "navigation",
+    badge: "GEZİNME",
+    title: "Kenar çubuğu, arama ve ayarlar",
+    subtitle: "Her şey sol menüde gruplanmış durumda.",
+    icon: Layers3,
+    accentColor: "from-slate-500/20 to-zinc-500/20 border-slate-500/30 text-slate-400",
+    features: [
+      { title: "Üç grup", desc: "Çalışma (Bugün, Koç, Plan, Yol Haritam), Öğrenme (Alanlar, Kütüphane, Kaynaklar, Lablar, Portföy) ve Takip (İlerleme, Takvim, Arkadaşlar, Birlikte Odak).", icon: Layers3 },
+      { title: "Ara veya git (⌘K)", desc: "Üstteki arama kutusu görev, kaynak, not ve ekranlara anında götürür. Telefonda alt çubuktaki Menü tüm sayfaları açar.", icon: Search },
+      { title: "Ayarlar", desc: "Profil, hesap ve güvenlik, bildirimler, yapay zekâ hafızası, kullanım hakların, veri yedeği ve uygulamayı yükleme tek yerde.", icon: CircleHelp },
+    ],
+    tip: "Sol menüyü ‹‹ düğmesiyle daraltabilirsin; dar ekranlarda otomatik ikon çubuğuna dönüşür.",
   },
   {
     id: "today",
-    badge: "1. SEKME: BUGÜN",
-    title: "Bugün Ekranı: Günlük Odak Merkezin",
+    badge: "BUGÜN",
+    title: "Bugün ekranı: tek ekranda günün özeti",
     subtitle: "Güne niyetle başla, tek göreve odaklan, günü borçsuz kapat.",
     icon: Home,
     accentColor: "from-emerald-500/20 to-teal-500/20 border-emerald-500/30 text-emerald-500",
     features: [
-      {
-        title: "Büyük 'ŞİMDİ' Odak Kartı",
-        desc: "Kararsız kalma; o an üzerinde çalışman gereken görev, hedef ve süre büyük bir kart olarak karşına çıkar.",
-        icon: Zap,
-      },
-      {
-        title: "Sabah Pusulası & Günü Kapat",
-        desc: "Sabah 2 dakikada günün ana önceliğini mühürle; akşam günün muhasebesini yapıp ertelenenleri borç hissetmeden sonraki güne devret.",
-        icon: Compass,
-      },
-      {
-        title: "Günlük Mikro Alışkanlıklar & Kısayollar",
-        desc: "Günlük su, okuma veya kısa tekrar zincirlerini tek tıkla işaretle. Hızlı kısayollardan sınav kampı veya kaynak arama başlat.",
-        icon: Flame,
-      },
+      { title: "Büyük “Şimdi” kartı", desc: "Üzerinde çalışman gereken görev, hedef ve süre karşına çıkar. “Odaklanmaya başla” ile oturumu aç.", icon: Zap },
+      { title: "Günün ilerlemesi", desc: "Tamamlanan, sıradaki ve kalan odak süren tek bir şeritte. Masaüstünde kaydırma gerekmez.", icon: BarChart3 },
+      { title: "Sabah Pusulası ve Günü Kapat", desc: "Sabah önceliğini seç, akşam ertelenenleri suçluluk hissetmeden sonraki güne devret.", icon: Flame },
     ],
-    tip: "Masaüstünde tek ekranda scrollsüz duracak şekilde tasarlanmıştır; mobilde ise tam ergonomiktir.",
+    tip: "Telefonda ilk ekranda selamlama, ilerleme ve “Şimdi” kartı görünür; kısayollar aşağıda.",
     actionRoute: "/",
-    actionLabel: "Bugün Ekranına Git",
+    actionLabel: "Bugün ekranına git",
   },
   {
-    id: "areas",
-    badge: "2. SEKME: ALANLAR & SINAV KAMPI",
-    title: "Hedef Alanları & Alt Konu/Sınav Kampları",
-    subtitle: "Ders notlarını, PDF'leri yükle; sistem analiz edip görevlendirsin.",
-    icon: Layers3,
-    accentColor: "from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-500",
+    id: "roadmap",
+    badge: "YOL HARİTAM",
+    title: "Koç yol haritanı yazsın",
+    subtitle: "Sıfırdan plan yazmana gerek yok.",
+    icon: Sparkles,
+    accentColor: "from-violet-500/20 to-indigo-500/20 border-violet-500/30 text-violet-500",
     features: [
-      {
-        title: "Kişisel Hedef Alanları",
-        desc: "Siber Güvenlik, Dil, Yazılım, Tıp, Matematik veya Kariyer gibi tüm alanlarını tek merkezden yönet.",
-        icon: Layers3,
-      },
-      {
-        title: "Alt Konu & Sınav Kampı Başlat",
-        desc: "Üniversite vize/final haftası veya iş hayatında yeni bir teknoloji mi var? Bitiş tarihini seç, alt konuyu belirle.",
-        icon: GraduationCap,
-      },
-      {
-        title: "PDF ve Ders Notu Yükleme Entegrasyonu",
-        desc: "Elindeki PDF veya ders notlarını yükle; sistem belgeyi anlayıp modüllere böler, takvime sınav etkinliği ekler ve seni hazırlar.",
-        icon: BookOpen,
-      },
+      { title: "Koç ile oluştur", desc: "Hedefini, seviyeni, süreni ve hedef tarihini yaz; Planorth Koç haftalık planı hazırlasın. Beğenmezsen değişiklik iste.", icon: Sparkles },
+      { title: "Dosya, metin veya başka yapay zekâ", desc: "JSON, CSV, Markdown ya da düz metin yükle; ChatGPT veya Gemini'nin çıktısını yapıştır, Planorth okuyup plana çevirsin.", icon: ClipboardList },
+      { title: "Haftayı başlat ve yay", desc: "Seçtiğin haftanın görevleri günlere dengeli dağıtılır; Alanlar ile eşleştirerek tek yerden takip edersin.", icon: Play },
     ],
-    tip: "Aktif bir kamp başlattığında Bugün ekranının en üstünde geri sayım ve modül ilerleme şeridi belirir.",
-    actionRoute: "/areas",
-    actionLabel: "Alanlar Sekmesini Aç",
+    tip: "Koç ile plan oluşturma hakkın günlük sınırlıdır; kalan hakkını ekranda ve Ayarlar → Kullanım hakların'da görürsün.",
+    actionRoute: "/roadmap",
+    actionLabel: "Yol haritama git",
   },
   {
     id: "week",
-    badge: "3. SEKME: HAFTALIK PLAN",
-    title: "Plan: Esnek ve Borçsuz Akış",
-    subtitle: "Kapasiteni aşmayan, suçluluk hissettirmeyen haftalık planlama.",
-    icon: ClipboardList,
-    accentColor: "from-amber-500/20 to-orange-500/20 border-amber-500/30 text-amber-500",
+    badge: "PLAN VE TAKVİM",
+    title: "Haftalık plan ve takvim",
+    subtitle: "Görevlerin hangi gün, ne kadar süreyle yapılacağını gör.",
+    icon: CalendarDays,
+    accentColor: "from-orange-500/20 to-amber-500/20 border-orange-500/30 text-orange-500",
     features: [
-      {
-        title: "Görev Küçültme (Shrink) & Erteleme (Postpone)",
-        desc: "Gözünde büyüyen bir görevi tek tıkla yarı yarıya küçültebilir veya borç hissetmeden başka güne aktarabilirsin.",
-        icon: Zap,
-      },
-      {
-        title: "Haftalık Görev Havuzu (Pool)",
-        desc: "Belirli bir güne bağlı kalmak istemediğin işleri havuza at; vaktin olunca çek.",
-        icon: ClipboardList,
-      },
-      {
-        title: "Takvime Akıllı Otomatik Dağıt",
-        desc: "Havuzdaki görevleri 'Yalnızca Hafta Sonu', 'Hafta İçi Akşamları' gibi tercihlerine göre takvimindeki boşluklara dağıt.",
-        icon: CalendarDays,
-      },
+      { title: "Gün gün akış", desc: "Haftalık kapasiteni, tamamlanma oranını ve her günün yükünü gör; görevleri günlere sürükle ya da otomatik dağıt.", icon: ClipboardList },
+      { title: "Takvim ve zaman blokları", desc: "Ders, vardiya ve sınavlarını ekle; Planorth görevleri bu bloklara çarpmayacak şekilde yerleştirir.", icon: CalendarDays },
+      { title: "Takvime aktar ve hatırlatıcı", desc: ".ics ile planını Google, Apple veya Outlook takvimine ekle. Ayarlar → Bildirimler'den günlük hatırlatıcı kur.", icon: Flame },
     ],
-    tip: "Haftalık planını yaparken gün başına kapasite sınırını aşmamaya dikkat et; sistem seni korur.",
+    tip: "Dinlenme günlerini seçebilirsin; o gündeki görevler diğer günlere aktarılır.",
     actionRoute: "/week",
-    actionLabel: "Haftalık Planı Aç",
+    actionLabel: "Planı aç",
   },
   {
-    id: "resources",
-    badge: "4. SEKME: KAYNAKLAR",
-    title: "Kaynaklar & Araştırma Merkezi",
-    subtitle: "Web, Google PDF, NotebookLM, Kitaplık ve PDF sayfa pinleme.",
-    icon: BookOpen,
-    accentColor: "from-cyan-500/20 to-blue-500/20 border-cyan-500/30 text-cyan-500",
+    id: "areas",
+    badge: "ALANLAR",
+    title: "Hedef alanları, sınav takvimi ve seviye testi",
+    subtitle: "Her hedefin kendi çalışma alanı olsun.",
+    icon: GraduationCap,
+    accentColor: "from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-500",
     features: [
-      {
-        title: "Kitaplık & Google Onaylı PDF Arama",
-        desc: "Kitap isminin yanındaki arama çubuğuyla veya sistem içi Google PDF motoruyla açık kitap ve kaynakları doğrudan bul.",
-        icon: Search,
-      },
-      {
-        title: "Kişisel Sayfa Aralıkları & Pinli Belgeler",
-        desc: "Kitapların sayfa aralıklarını (örn: Sayfa 45-62) pinle ve yönet. Burası tamamen senin kişisel çalışma alanındır.",
-        icon: BookOpen,
-      },
-      {
-        title: "NotebookLM Paketi & AI Özeti",
-        desc: "Seçili kaynaklardan anında yapay zeka özeti al; tek tıkla NotebookLM için Markdown kaynak paketi kopyala.",
-        icon: Sparkles,
-      },
+      { title: "Sınav takvimi", desc: "Sınav tarihini gir; kalan haftalar aşamalara bölünür, dersler zayıflığına göre süre alır, denemeler planlanır ve görevler takvimine eklenir.", icon: GraduationCap },
+      { title: "Seviye testi", desc: "Cevaplarına göre zorluğu ayarlayan 12 soruluk test; sonunda konu bazlı güçlü ve zayıf yönlerin çıkar, zayıf konular için tek tıkla görev eklenir.", icon: Target },
+      { title: "Alt konu ve sınav kampı", desc: "Vize, final ya da yeni bir teknoloji için bitiş tarihli kamp başlat; ders notu veya PDF'inden modüller çıkarılır.", icon: BookOpen },
     ],
-    tip: "Bulduğun kitap ve kaynakları Odak Kokpitindeki yan panelde çalışırken anında açabilirsin.",
-    actionRoute: "/resources",
-    actionLabel: "Kaynaklar Merkezini Aç",
+    tip: "Sınav takvimi ve seviye testi, ilgili alanın detay sayfasındadır.",
+    actionRoute: "/areas",
+    actionLabel: "Alanları aç",
   },
   {
     id: "focus",
-    badge: "5. ÖZELLİK: ODAK KOKPİTİ",
-    title: "Odak Kokpiti & Dikkat Koruma",
-    subtitle: "Zen modu, ortam ses mikseri, kaynak paneli ve sekme kilidi.",
-    icon: Play,
+    badge: "ODAK OTURUMU",
+    title: "Odak oturumu: tek ekranda çalışma masan",
+    subtitle: "Zamanlayıcı, adımlar, notlar ve kaynaklar bir arada.",
+    icon: Zap,
     accentColor: "from-rose-500/20 to-red-500/20 border-rose-500/30 text-rose-500",
     features: [
-      {
-        title: "Zen & Kilitli Odak Modu",
-        desc: "Sayacı başlattığında tüm dikkat dağıtıcılar gizlenir. Çoklu sekme kilidi diğer sekmelere geçişini önler.",
-        icon: Play,
-      },
-      {
-        title: "Ortam Ses Mikseri",
-        desc: "Yağmur, fırtına, kafe, şömine, dalga ve beyaz gürültü seslerini dilediğin seviyede karıştırarak dinle.",
-        icon: Volume2,
-      },
-      {
-        title: "Yan Kaynak Dock'u (Entegre Okuma)",
-        desc: "Sekme değiştirmeden görevinle ilgili web bağlantılarını, PDF sayfalarını veya notlarını sağ panelde incele.",
-        icon: BookOpen,
-      },
+      { title: "Zamanlayıcı ve adımlar", desc: "Görevin somut adımlarını işaretle, süreyi esnet, gerekirse küçült.", icon: Zap },
+      { title: "Notlar, kaynaklar ve ses", desc: "Canlı not defteri, kaynak masası, ortam sesi ve müzik mikseri; dikkatin dağılırsa “aklındakini dök”.", icon: Headphones },
+      { title: "Çıktını kaydet", desc: "Oturum sonunda ne yaptığını yaz; kanıt olarak ilerlemene ve portföyüne eklenir.", icon: CheckCircle2 },
     ],
-    tip: "Görevin yoksa bile Bugün ekranından 'Serbest Odak' veya 'Kitap Okuma Odağı' başlatabilirsin.",
-  },
-  {
-    id: "progress",
-    badge: "6. SEKME: İLERLEME & DEĞERLENDİRME",
-    title: "İlerleme, Radar Analizi & Ritüeller",
-    subtitle: "Gerçek odak süreleri, radar grafiği ve pazar değerlendirmesi.",
-    icon: BarChart3,
-    accentColor: "from-indigo-500/20 to-violet-500/20 border-indigo-500/30 text-indigo-500",
-    features: [
-      {
-        title: "5 Eksenli Radar Analizi",
-        desc: "Tutarlılık, Derin Odak, Pratik Çıktı, Çeşitlilik ve Plan Disiplini eksenlerinde gerçek gelişimini gör.",
-        icon: BarChart3,
-      },
-      {
-        title: "Haftalık Pazar Kapatma Ritüeli",
-        desc: "Her pazar haftanın analizini yap; nerede tıkandığını, neyi başardığını ve haftanın ana dersini kaydet.",
-        icon: Compass,
-      },
-      {
-        title: "Büyüyen Yol Arkadaşı (Companion)",
-        desc: "Tamamladığın görevler ve hedeflerle seviye atlayan, seni motive eden sanal yol arkadaşın.",
-        icon: Sparkles,
-      },
-    ],
-    tip: "İlerleme ekranı Değerlendirmeler ile birleştirilmiştir; tek sayfada hem analiz hem ritüel sunar.",
-    actionRoute: "/progress",
-    actionLabel: "İlerleme Sekmesini Aç",
-  },
-  {
-    id: "tools",
-    badge: "7. EK ARAÇLAR: TAKVİM, LAB & KANIT",
-    title: "Takvim, Sanal Lablar ve Portföy",
-    subtitle: "Zaman blokları koruması, pratik problem günlüğü ve somut çıktılar.",
-    icon: CalendarDays,
-    accentColor: "from-teal-500/20 to-emerald-500/20 border-teal-500/30 text-teal-500",
-    features: [
-      {
-        title: "Takvim & Zaman Blokları (/calendar)",
-        desc: "Ders ve çalışma saatlerini blokla; sistem aşırı yüklenmeni önleyecek şekilde günlerini korur.",
-        icon: CalendarDays,
-      },
-      {
-        title: "Portföy & Kanıtlar (/evidence)",
-        desc: "Ürettiğin kodları, sunumları, sertifikaları ve belgeleri somut kanıt havuzunda topla.",
-        icon: Briefcase,
-      },
-      {
-        title: "Pratik Lab Günlüğü & Sertifikalar (/labs, /certifications)",
-        desc: "Takıldığın teknik problemleri, çözümleri ve sertifika sınav konularını adım adım takip et.",
-        icon: FlaskConical,
-      },
-    ],
-    tip: "Bu araçlara masaüstünde üst bardan, mobilde ise sağ alttaki 'Menü' sekmesinden tek dokunuşla ulaşabilirsin.",
+    tip: "Serbest odak ve kitap okuma oturumlarını görev olmadan da başlatabilirsin.",
   },
   {
     id: "coach",
-    badge: "8. YOL ARKADAŞIN: PLANORTH KOÇ",
-    title: "Planorth AI Koç: Stratejik Rehberin",
-    subtitle: "Sıradan bir chatbot değil; planını koruyan, hafızalı kişisel mentor.",
+    badge: "PLANORTH KOÇ",
+    title: "Koç ile konuş, planını birlikte düzenleyin",
+    subtitle: "Takıldığında, motivasyonun düştüğünde ya da planı değiştirmek istediğinde.",
     icon: Sparkles,
-    accentColor: "from-blue-600/20 to-indigo-600/20 border-blue-500/40 text-blue-600 dark:text-blue-400",
+    accentColor: "from-cyan-500/20 to-blue-500/20 border-cyan-500/30 text-cyan-500",
     features: [
-      {
-        title: "Hafıza & Geri Bildirim Kuralları",
-        desc: "Koç senin çalışma alışkanlıklarını hatırlar. Örneğin: 'Gece saatlerine zor soru koyma' dediğinde bunu kural olarak kaydeder.",
-        icon: Sparkles,
-      },
-      {
-        title: "Her An Yanında (Kayan Koç Butonu)",
-        desc: "Hangi sayfada olursan ol sağ alttaki simgeye dokunarak anında Koç'a danışabilir, planını güncelletebilirsin.",
-        icon: Headphones,
-      },
-      {
-        title: "Profil & Yazılı Kılavuz",
-        desc: "Bu kullanım kılavuzuna dilediğin an 'Profil > Kılavuz' sekmesinden yazılı olarak da ulaşabilirsin.",
-        icon: CircleHelp,
-      },
+      { title: "Kişisel koçluk", desc: "Enerji seviyene ve hedefine göre bugün için en kritik tek işi önerir, görevleri küçültür veya ertelemeni önerir.", icon: Sparkles },
+      { title: "Planı değiştir, geri al", desc: "Koçun önerdiği görev değişikliklerini onaylarsın; yaptığın değişiklikleri geri alabilirsin.", icon: Compass },
+      { title: "Hakların açık", desc: "Yapay zekâ araçlarının günlük kalan hakkı Ayarlar → Kullanım hakların'da görünür.", icon: BarChart3 },
     ],
-    tip: "Artık hazırsın! Planorth ile sıradaki anlamlı adımını atmaya başlayabilirsin.",
-    actionRoute: "/",
-    actionLabel: "Planorth'u Kullanmaya Başla",
+    tip: "Koç kişisel hafızana göre çalışır; hafızayı Ayarlar → Koç hafızası ve sohbet'ten yönetebilirsin.",
+    actionRoute: "/coach",
+    actionLabel: "Koça git",
+  },
+  {
+    id: "library",
+    badge: "KÜTÜPHANE VE KAYNAKLAR",
+    title: "Notların, kitapların ve kaynakların",
+    subtitle: "Öğrendiğini kaydet, doğru zamanda tekrar et.",
+    icon: BookOpen,
+    accentColor: "from-teal-500/20 to-emerald-500/20 border-teal-500/30 text-teal-500",
+    features: [
+      { title: "Kütüphane", desc: "Notlarını kaydet; aralıklı tekrar sistemi unutma eğrisine göre ne zaman tekrar edeceğini söyler.", icon: BookOpen },
+      { title: "Kaynaklar ve okuma rafı", desc: "Kitap, PDF ve web kaynaklarını ara, kaydet, okuma ilerlemeni takip et.", icon: Search },
+      { title: "Lablar ve portföy", desc: "Pratik çalışmalarını ve çıktılarını kaydet; doğrulanabilir kanıtlar portföyünde birikir.", icon: FlaskConical },
+    ],
+    tip: "⌘K aramasıyla notlarında ve kaynaklarında anında arama yapabilirsin.",
+    actionRoute: "/knowledge",
+    actionLabel: "Kütüphaneyi aç",
+  },
+  {
+    id: "progress",
+    badge: "İLERLEME",
+    title: "Gelişimini dürüstçe gör",
+    subtitle: "Süreler ve çıktılar gerçek kayıtlarından gelir.",
+    icon: BarChart3,
+    accentColor: "from-sky-500/20 to-cyan-500/20 border-sky-500/30 text-sky-500",
+    features: [
+      { title: "İstatistikler", desc: "Haftalık ve aylık odak süren, tamamlanan görevler, aktif gün ve tutarlılık skorun.", icon: BarChart3 },
+      { title: "Davranışsal öğrenme", desc: "Planorth hangi saatlerde ve hangi sürelerle daha verimli çalıştığını öğrenir ve öneriler sunar.", icon: Compass },
+      { title: "Başarı karnesi", desc: "Seviye testi sonuçların, rozetlerin ve portföy çıktıların tek yerde.", icon: Briefcase },
+    ],
+    tip: "Seri, bir gün en az bir görev bitirdiğinde ilerler.",
+    actionRoute: "/progress",
+    actionLabel: "İlerlemeyi gör",
+  },
+  {
+    id: "together",
+    badge: "ARKADAŞLAR VE BİRLİKTE ODAK",
+    title: "Yalnız değilsin: arkadaşlarınla birlikte çalış",
+    subtitle: "Tamamen isteğe bağlı, istediğin an kapatırsın.",
+    icon: Flame,
+    accentColor: "from-pink-500/20 to-rose-500/20 border-pink-500/30 text-pink-500",
+    features: [
+      { title: "Arkadaşlar ve sıralama", desc: "Davet koduyla arkadaş ekle; bu haftaki odak sürenizi ve serilerinizi karşılaştırın. Yalnızca takma adın ve istatistiklerin paylaşılır.", icon: Flame },
+      { title: "Birlikte odak", desc: "Oda kur, 6 haneli kodu paylaş; herkes katılınca aynı zamanlayıcıyı birlikte başlatın. Oturum bitince çalışma kaydına eklenir.", icon: Zap },
+      { title: "Gizlilik sende", desc: "E-postan, hedeflerin ve notların asla paylaşılmaz. Paylaşımı kapatınca verilerin silinir.", icon: CheckCircle2 },
+    ],
+    tip: "Ortak odak ve arkadaş özellikleri için bulut hesabıyla giriş yapmış olman gerekir.",
+    actionRoute: "/together",
+    actionLabel: "Birlikte odağa git",
+  },
+  {
+    id: "settings",
+    badge: "AYARLAR VE UYGULAMA",
+    title: "Hesabını, verilerini ve bildirimlerini yönet",
+    subtitle: "Planorth'u cebine kur, verilerin hep sende kalsın.",
+    icon: CircleHelp,
+    accentColor: "from-indigo-500/20 to-violet-500/20 border-indigo-500/30 text-indigo-500",
+    features: [
+      { title: "Hesap ve güvenlik", desc: "Şifre ve e-posta değiştir, çıkış yap, hesabını sil. Verilerini JSON olarak indirebilir, yedekten geri yükleyebilirsin.", icon: CheckCircle2 },
+      { title: "Bildirimler ve kullanım hakların", desc: "Günlük hatırlatıcı kur; yapay zekâ araçlarında bugün kaç hakkın kaldığını gör.", icon: Flame },
+      { title: "Uygulamayı yükle ve destek", desc: "Planorth'u ana ekrana ekleyip uygulama gibi aç. Sorun ya da önerin için Destek sayfası her zaman açık.", icon: Play },
+    ],
+    tip: "Hazırsın! Önce Yol Haritam'dan Koç ile ilk planını oluştur ya da Bugün ekranından ilk odak oturumunu başlat.",
+    actionRoute: "/profile",
+    actionLabel: "Planorth'u kullanmaya başla",
   },
 ];
 
@@ -430,6 +367,12 @@ export function GuideTourModal({
               );
             })}
           </div>
+
+          {stepData.actionRoute && stepData.actionLabel && (
+            <Link href={stepData.actionRoute} onClick={handleFinish} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
+              {stepData.actionLabel} <ArrowRight className="size-3.5" />
+            </Link>
+          )}
 
           {/* PRO TIP CALLOUT */}
           {stepData.tip && (

@@ -4,6 +4,7 @@ import { useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } fr
 import { Check, ClipboardCopy, FileUp, Loader2, PenLine, RefreshCw, Sparkles, Upload, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authenticatedAiFetch } from "@/lib/ai/client";
+import { AiQuotaHint, notifyAiUsed } from "@/components/features/ai-quota";
 import { cn } from "@/lib/utils";
 import { externalAssistantPrompt, parseRoadmapContent } from "@/lib/roadmap-import";
 import type { LearningRoadmapState, RoadmapPlan } from "@/lib/learning-roadmap";
@@ -58,6 +59,7 @@ export function RoadmapSetup({ onApply, onCreateBlank, today }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ goal: goalText, level: level.trim() || undefined, weeks: effectiveWeeks, hoursPerWeek: hours, startDate, constraints: constraints.trim() || undefined, sourceText: extra?.sourceText?.slice(0, 24_000), feedback: extra?.feedback }),
       });
+      notifyAiUsed();
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Koç yanıt veremedi.");
       const result = parseRoadmapContent(JSON.stringify(data.plan));
@@ -120,7 +122,7 @@ export function RoadmapSetup({ onApply, onCreateBlank, today }: Props) {
               <Field label={`Haftalık süre: ${hours} saat`}><input type="range" min={1} max={30} value={hours} onChange={(e) => setHours(Number(e.target.value))} className="h-10 accent-[var(--primary)]" /></Field>
             </div>
             <Field label="Tercih ve kısıtların (isteğe bağlı)"><input value={constraints} onChange={(e) => setConstraints(e.target.value)} maxLength={800} placeholder="Örn. hafta içi akşamları, ücretsiz kaynaklar, Türkçe öncelikli" className="h-10 rounded-lg border bg-background px-3 text-sm" /></Field>
-            <div className="flex flex-wrap items-center gap-3"><Button disabled={busy || goal.trim().length < 3} onClick={() => askCoach()}>{busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}{busy ? "Koç planı hazırlıyor…" : "Planı oluştur"}</Button><span className="text-xs text-muted-foreground">Taslağı kaydetmeden önce görüp değiştirebilirsin.</span></div>
+            <div className="flex flex-wrap items-center gap-3"><Button disabled={busy || goal.trim().length < 3} onClick={() => askCoach()}>{busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}{busy ? "Koç planı hazırlıyor…" : "Planı oluştur"}</Button><span className="text-xs text-muted-foreground">Taslağı kaydetmeden önce görüp değiştirebilirsin.</span><AiQuotaHint kind="roadmap" /></div>
           </div>
         )}
 

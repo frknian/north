@@ -57,6 +57,21 @@ async function consumeShared(key: string, now: number, perMinute: number, perDay
   }
 }
 
+/** Reads today's request count for a user and scope without consuming any quota. */
+export async function peekDailyUsage(uid: string, scope: string): Promise<number> {
+  const now = Date.now();
+  const day = new Date(now).toISOString().slice(0, 10);
+  const key = `${uid}:${scope}`;
+  if (upstashUrl && upstashToken) {
+    try {
+      const response = await fetch(`${upstashUrl}/get/${encodeURIComponent(`rl:${key}:d:${day}`)}`, { headers: { Authorization: `Bearer ${upstashToken}` }, cache: "no-store", signal: AbortSignal.timeout(1500) });
+      if (response.ok) return Number(((await response.json()) as { result?: string | null }).result ?? 0) || 0;
+    } catch {}
+  }
+  const record = rates.get(key);
+  return record?.day === day ? record.dayCount : 0;
+}
+
 export async function secureApiRequest(
   request: Request,
   scope: string,

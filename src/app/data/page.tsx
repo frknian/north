@@ -51,6 +51,11 @@ export default function DataControlsPage() {
       applications: workspace.applications,
       interviews: workspace.interviews,
       learningRoadmap: workspace.learningRoadmap,
+      levelTests: workspace.levelTests,
+      domainProofs: workspace.domainProofs,
+      examProfiles: workspace.examProfiles,
+      feedbackMemory: workspace.feedbackMemory,
+      customMetricEntries: workspace.customMetricEntries,
     };
     const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" }));
     const anchor = document.createElement("a");

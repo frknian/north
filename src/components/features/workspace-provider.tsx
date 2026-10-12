@@ -66,6 +66,7 @@ interface WorkspaceContextValue extends WorkspaceState {
   updateFeedbackMemory: (id: string, patch: Partial<import("@/lib/types").FeedbackMemoryItem>) => void;
   deleteFeedbackMemory: (id: string) => void;
   addDomainProof: (proof: import("@/lib/types").DomainProof) => void;
+  addLevelTest: (result: import("@/lib/types").LevelTestResult) => void;
   deleteDomainProof: (id: string) => void;
   saveExamProfile: (profile: import("@/lib/types").ExamProfile) => void;
   addTrialExam: (examProfileId: string, trial: import("@/lib/types").TrialExam) => void;
@@ -111,6 +112,7 @@ function normalizeState(saved?: Partial<WorkspaceState> | null): WorkspaceState 
     examProfiles: Array.isArray(saved.examProfiles) ? saved.examProfiles : [],
     customMetricEntries: Array.isArray(saved.customMetricEntries) ? saved.customMetricEntries : [],
     companionSettings: saved.companionSettings ?? { name: "Yol Arkadaşı", color: "blue" },
+    levelTests: Array.isArray(saved.levelTests) ? saved.levelTests : [],
   };
   if (normalized.learningRoadmap?.plan) {
     const linked = syncRoadmapAreas(normalized.learningRoadmap, normalized.north ?? initializeNorth(normalized));
@@ -404,7 +406,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     updateMilestone: (id, status) => mutate((current) => ({ ...current, coaching: { ...current.coaching, milestones: current.coaching.milestones.map((milestone) => milestone.id === id ? { ...milestone, status } : milestone) } })),
     restoreSnapshot: (snapshot) => {
       if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return false;
-      const keys = ["profile", "north", "weeklyPlan", "tasks", "focusSessions", "labs", "skills", "reviews", "notes", "reports", "vocabulary", "coachMessages", "coaching", "portfolio", "jobs", "applications", "interviews", "learningRoadmap"] as const;
+      const keys = ["profile", "north", "weeklyPlan", "tasks", "focusSessions", "labs", "skills", "reviews", "notes", "reports", "vocabulary", "coachMessages", "coaching", "portfolio", "jobs", "applications", "interviews", "learningRoadmap", "levelTests", "domainProofs", "examProfiles", "feedbackMemory", "customMetricEntries"] as const;
       const source = snapshot as Record<string, unknown>;
       const picked = Object.fromEntries(keys.filter((key) => source[key] !== undefined).map((key) => [key, source[key]]));
       if (!("profile" in picked) && !("north" in picked) && !("tasks" in picked)) return false;
@@ -461,6 +463,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const list = (current.feedbackMemory ?? []).filter((item) => item.id !== id);
       return { ...current, feedbackMemory: list, north: current.north ? { ...current.north, feedbackMemory: list } : current.north };
     }),
+    addLevelTest: (result) => mutate((current) => ({ ...current, levelTests: [result, ...(current.levelTests ?? [])].slice(0, 50) })),
     addDomainProof: (proof) => mutate((current) => ({ ...current, domainProofs: [proof, ...(current.domainProofs ?? [])] })),
     deleteDomainProof: (id) => mutate((current) => ({ ...current, domainProofs: (current.domainProofs ?? []).filter((p) => p.id !== id) })),
     saveExamProfile: (profile) => mutate((current) => ({ ...current, examProfiles: [...(current.examProfiles ?? []).filter((p) => p.id !== profile.id), profile] })),

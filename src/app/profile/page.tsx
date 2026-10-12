@@ -7,6 +7,10 @@ import { NorthLogo } from "@/components/layout/north-logo";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import {
+  Bell,
+  Database,
+  Smartphone,
+  LifeBuoy,
   BookOpenText,
   Bot,
   Brain,
@@ -32,6 +36,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { UserGuide } from "@/components/features/user-guide";
 import { AccountPanel } from "@/components/features/account-panel";
 import { ReminderSettings } from "@/components/features/reminder-settings";
+import { AiQuotaPanel } from "@/components/features/ai-quota";
+import { InstallPanel } from "@/components/features/install-app";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useWorkspace } from "@/components/features/workspace-provider";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +57,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== "undefined") {
       const tabParam = new URLSearchParams(window.location.search).get("tab");
-      if (tabParam && ["profile", "account", "memory", "notes", "terms", "guide"].includes(tabParam)) {
+      if (tabParam && ["profile", "account", "notifications", "memory", "usage", "notes", "terms", "data", "install", "guide", "support"].includes(tabParam)) {
         return tabParam;
       }
     }
@@ -146,23 +152,66 @@ export default function ProfilePage() {
     weeklyBudget: 0,
   };
 
-  return <>
-    <PageHeader eyebrow="Sistem ayarları" title="Profil ve koçluk tercihleri" description="Yaşam durumunu, öğrenme tercihlerini ve Planorth Koç hafızasını yönet." />
-    <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-5 grid h-auto w-full grid-cols-3 sm:grid-cols-6">
-          <TabsTrigger value="profile"><UserRound />Profil</TabsTrigger>
-          <TabsTrigger value="account"><ShieldCheck />Hesap</TabsTrigger>
-          <TabsTrigger value="memory"><Brain />AI Hafızası & Sohbet</TabsTrigger>
-          <TabsTrigger value="notes"><BookOpenText />Notlar</TabsTrigger>
-          <TabsTrigger value="terms"><Languages />Terimler</TabsTrigger>
-          <TabsTrigger value="guide"><CircleHelp />Kılavuz</TabsTrigger>
-        </TabsList>
+  const sections: { group: string; items: { key: string; label: string; icon: typeof UserRound }[] }[] = [
+    { group: "Kişisel", items: [{ key: "profile", label: "Profil ve hedef", icon: UserRound }, { key: "account", label: "Hesap ve güvenlik", icon: ShieldCheck }] },
+    { group: "Tercihler", items: [{ key: "notifications", label: "Bildirimler", icon: Bell }] },
+    { group: "Yapay zekâ", items: [{ key: "memory", label: "Koç hafızası ve sohbet", icon: Brain }, { key: "usage", label: "Kullanım hakların", icon: Sparkles }] },
+    { group: "İçerik", items: [{ key: "notes", label: "Notlar", icon: BookOpenText }, { key: "terms", label: "Terimler", icon: Languages }] },
+    { group: "Veri ve yardım", items: [{ key: "data", label: "Veri ve gizlilik", icon: Database }, { key: "install", label: "Uygulamayı yükle", icon: Smartphone }, { key: "guide", label: "Kılavuz", icon: CircleHelp }, { key: "support", label: "Destek", icon: LifeBuoy }] },
+  ];
+  const selectSection = (key: string) => {
+    setActiveTab(key);
+    try { window.history.replaceState(null, "", `/profile?tab=${key}`); } catch {}
+  };
 
-        <TabsContent value="account"><AccountPanel /><ReminderSettings /></TabsContent>
+  return <>
+    <PageHeader eyebrow="Ayarlar" title="Ayarlar" description="Profilini, hesabını, bildirimlerini, yapay zekâ tercihlerini ve verilerini tek yerden yönet." />
+    <div className="settings-shell">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="settings-layout">
+        <nav className="settings-nav" aria-label="Ayar bölümleri">
+          {sections.map((section) => (
+            <div key={section.group} className="settings-nav-group">
+              <p>{section.group}</p>
+              {section.items.map((item) => (
+                <button key={item.key} type="button" onClick={() => selectSection(item.key)} className={cn("settings-nav-item", activeTab === item.key && "is-active")} aria-current={activeTab === item.key ? "page" : undefined}>
+                  <item.icon size={16} /><span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="settings-content">
+
+        <TabsContent value="account"><AccountPanel /></TabsContent>
+
+        <TabsContent value="notifications"><ReminderSettings /></TabsContent>
+
+        <TabsContent value="usage"><AiQuotaPanel /></TabsContent>
+
+        <TabsContent value="data">
+          <section className="account-card">
+            <h2>Veri ve gizlilik</h2>
+            <p>Tüm verilerini indirebilir, yedekten geri yükleyebilir, bulut kullanımını görebilir ya da hesabını silebilirsin.</p>
+            <div className="account-actions">
+              <Button variant="outline" asChild><Link href="/data"><ShieldCheck />Verilerim ve güvenlik</Link></Button>
+              <Button variant="outline" asChild><Link href="/kvkk">KVKK aydınlatma metni</Link></Button>
+              <Button variant="outline" asChild className="text-destructive"><Link href="/account-reset"><Trash2 />Hesabı sil</Link></Button>
+            </div>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="install"><InstallPanel /></TabsContent>
+
+        <TabsContent value="support">
+          <section className="account-card">
+            <h2>Destek</h2>
+            <p>Sık sorulan sorulara göz at ya da hata, öneri ve sorularını bize ilet.</p>
+            <div className="account-actions"><Button variant="outline" asChild><Link href="/support"><LifeBuoy />Destek ve iletişim</Link></Button></div>
+          </section>
+        </TabsContent>
 
         <TabsContent value="profile">
-          <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
+          <div className="grid gap-5 xl:grid-cols-[1fr_.8fr]">
             <Card>
               <CardHeader><CardTitle>Hedef ve çalışma düzeni</CardTitle><CardDescription>Yaş ve yaşam durumun yalnızca plan yoğunluğu ve dil tonu için kullanılır; ayrımcı karar üretilmez.</CardDescription></CardHeader>
               <CardContent className="space-y-5">
@@ -618,7 +667,7 @@ export default function ProfilePage() {
             </Card>
 
             {/* FEEDBACK RULES SECTION */}
-            <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
+            <div className="grid gap-5 xl:grid-cols-[1fr_.8fr]">
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
@@ -718,7 +767,7 @@ export default function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="notes">
-          <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
+          <div className="grid gap-5 xl:grid-cols-[1fr_.8fr]">
             <Card>
               <CardHeader><CardTitle>Yeni not</CardTitle><CardDescription>Öğrendiklerini, fikirlerini ve tekrar etmek istediklerini sakla.</CardDescription></CardHeader>
               <CardContent className="space-y-4">
@@ -733,7 +782,7 @@ export default function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="terms">
-          <div className="grid gap-5 lg:grid-cols-[.8fr_1fr]">
+          <div className="grid gap-5 xl:grid-cols-[.8fr_1fr]">
             <Card>
               <CardHeader><CardTitle>Kişisel terim sözlüğü</CardTitle><CardDescription>Hedefinle ilgili yeni kavramları kendi açıklaman ve örneğinle kaydet.</CardDescription></CardHeader>
               <CardContent className="space-y-4">
@@ -748,6 +797,7 @@ export default function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="guide"><UserGuide /></TabsContent>
+        </div>
       </Tabs>
     </div>
   </>;

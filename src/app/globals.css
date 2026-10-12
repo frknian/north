@@ -1083,3 +1083,105 @@ body { background-image: radial-gradient(900px 420px at 85% -10%, color-mix(in s
 .ns-avatar { overflow: hidden; }
 .ns-avatar-img { width: 100%; height: 100%; object-fit: cover; }
 .ns-avatar-initial { font-size: 14px; font-weight: 700; color: var(--primary); }
+
+/* Settings */
+.settings-shell { max-width: 1180px; margin: 0 auto; padding: 8px 28px 48px; }
+.settings-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 28px; align-items: start; }
+.settings-nav { position: sticky; top: 80px; display: grid; gap: 18px; }
+.settings-nav-group { display: grid; gap: 2px; }
+.settings-nav-group > p { padding: 0 12px 6px; font-size: 11px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); opacity: .8; }
+.settings-nav-item { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted-foreground); text-align: left; }
+.settings-nav-item:hover { background: var(--muted); color: var(--foreground); }
+.settings-nav-item.is-active { background: color-mix(in srgb, var(--primary) 13%, transparent); color: var(--primary); font-weight: 650; }
+.settings-content { min-width: 0; }
+@media (max-width: 900px) {
+  .settings-shell { padding: 4px 14px 40px; }
+  .settings-layout { grid-template-columns: 1fr; gap: 14px; }
+  .settings-nav { position: static; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+  .settings-nav::-webkit-scrollbar { display: none; }
+  .settings-nav-group { display: contents; }
+  .settings-nav-group > p { display: none; }
+  .settings-nav-item { flex: none; min-height: 38px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); white-space: nowrap; }
+}
+
+/* Exam calendar */
+.exam-cal { display: grid; gap: 16px; padding: 20px; }
+.exam-cal-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.exam-cal-head h3 { margin-top: 4px; font-size: 18px; font-weight: 700; }
+.exam-cal-date { display: flex; align-items: end; gap: 8px; }
+.exam-cal-date label { display: grid; gap: 4px; font-size: 11px; color: var(--muted-foreground); }
+.exam-cal-date input { height: 36px; border: 1px solid var(--input); border-radius: 10px; background: var(--background); padding: 0 10px; font-size: 13px; color: var(--foreground); }
+.exam-cal-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.exam-cal-stats > div { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; }
+.exam-cal-stats svg { color: var(--primary); grid-row: span 2; }
+.exam-cal-stats b { font-size: 24px; line-height: 1; letter-spacing: -.03em; }
+.exam-cal-stats span { font-size: 11px; color: var(--muted-foreground); }
+.exam-cal-note, .exam-cal-empty { padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--primary) 8%, transparent); font-size: 13px; }
+.exam-cal-phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.exam-cal-phases li { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; }
+.exam-cal-phases b { font-size: 13px; }
+.exam-cal-phases span { font-size: 11px; color: var(--primary); font-weight: 650; }
+.exam-cal-phases p { font-size: 12px; color: var(--muted-foreground); line-height: 1.5; }
+.exam-cal-weeks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.exam-cal-weeks article { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; }
+.exam-cal-weeks article.is-current { border-color: color-mix(in srgb, var(--primary) 55%, var(--border)); background: color-mix(in srgb, var(--primary) 6%, transparent); }
+.exam-cal-weeks header { display: grid; gap: 2px; }
+.exam-cal-weeks header b { font-size: 13px; }
+.exam-cal-weeks header span { font-size: 11px; color: var(--muted-foreground); }
+.exam-cal-weeks ul { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; font-size: 12px; }
+.exam-cal-weeks li { display: flex; justify-content: space-between; gap: 8px; }
+.exam-cal-weeks li span:last-child { color: var(--muted-foreground); }
+.exam-cal-trial { font-size: 12px; font-weight: 650; color: #f59e0b; }
+.exam-cal-exam { font-size: 12px; color: var(--primary); font-weight: 600; }
+.exam-cal-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.exam-cal-actions > span { font-size: 12px; color: var(--muted-foreground); }
+@media (max-width: 640px) { .exam-cal-stats { grid-template-columns: 1fr; } .exam-cal-date { width: 100%; } .exam-cal-date label { flex: 1; } }
+
+/* Friends */
+.friends-page { display: grid; gap: 16px; align-content: start; }
+.friends-top { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.friends-code { font-family: var(--font-mono); font-size: 28px; font-weight: 700; letter-spacing: .18em; color: var(--primary) !important; }
+.friends-requests, .friends-board { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.friends-requests li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; }
+.friends-requests div { display: flex; gap: 6px; }
+.friends-board li { display: grid; grid-template-columns: 32px minmax(0, 1fr) 70px 70px 54px 28px; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; }
+.friends-board li.is-me { border-color: color-mix(in srgb, var(--primary) 50%, var(--border)); background: color-mix(in srgb, var(--primary) 7%, transparent); }
+.friends-board b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friends-rank { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--muted); font-weight: 700; font-size: 12px; }
+.friends-streak { display: inline-flex; align-items: center; gap: 3px; color: #f59e0b; }
+.friends-board button { color: var(--muted-foreground); }
+@media (max-width: 767px) { .friends-top { grid-template-columns: 1fr; } .friends-board li { grid-template-columns: 28px minmax(0, 1fr) 56px 44px 26px; } .friends-board li > span:nth-of-type(3) { display: none; } }
+
+/* Install */
+.install-banner { display: flex; align-items: center; gap: 12px; max-width: 1280px; margin: 0 28px 4px; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border)); border-radius: 14px; background: color-mix(in srgb, var(--primary) 8%, var(--card)); font-size: 13px; }
+.install-banner svg:first-child { color: var(--primary); flex: none; }
+.install-banner p { flex: 1; min-width: 0; margin: 0; color: var(--muted-foreground); }
+.install-banner p b { color: var(--foreground); }
+.install-banner button:last-child { color: var(--muted-foreground); }
+.install-steps { display: grid; gap: 6px; margin: 0; padding-left: 20px; font-size: 13px; color: var(--muted-foreground); line-height: 1.6; }
+@media (max-width: 767px) { .install-banner { margin: 8px 14px 0; } .install-banner p { font-size: 12px; } }
+
+/* Together */
+.together-page { display: grid; gap: 16px; align-content: start; }
+.together-room { gap: 14px; max-width: 640px; }
+.together-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.together-head p { margin-top: 2px; }
+.together-code { display: grid; gap: 4px; justify-items: end; }
+.together-code span { font-size: 11px; color: var(--muted-foreground); }
+.together-code b { font-family: var(--font-mono); font-size: 26px; letter-spacing: .2em; color: var(--primary); }
+.together-code div { display: flex; gap: 6px; }
+.together-code button { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 9px; color: var(--muted-foreground); }
+.together-code button:hover { color: var(--foreground); border-color: var(--primary); }
+.together-clock { text-align: center; font-family: var(--font-mono); font-size: clamp(56px, 12vw, 96px); font-weight: 600; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.together-bar { height: 6px; overflow: hidden; border-radius: 99px; background: var(--muted); }
+.together-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--chart-2)); transition: width 1s linear; }
+.together-done { text-align: center; font-size: 22px; font-weight: 700; color: var(--foreground) !important; }
+.together-label { margin-bottom: 6px; font-size: 12px; color: var(--muted-foreground); }
+.together-durations { display: flex; gap: 8px; }
+.together-durations button { min-height: 40px; padding: 0 16px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 600; }
+.together-durations button.is-active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+.together-members { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.together-members li { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; }
+.together-members li > span:last-child { margin-left: auto; color: var(--muted-foreground); font-size: 12px; }
+.together-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, .18); }
+.together-members li.is-done .together-dot { background: var(--muted-foreground); box-shadow: none; }

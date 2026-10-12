@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Compass, Library, LineChart, Map as MapIcon, ShieldCheck, Sparkles, Timer } from "lucide-react";
+import { ArrowRight, CalendarDays, Compass, GraduationCap, Library, LineChart, Map as MapIcon, ShieldCheck, Smartphone, Sparkles, Timer, Users } from "lucide-react";
 import { NorthLogo } from "@/components/layout/north-logo";
 import { Button } from "@/components/ui/button";
 
@@ -12,12 +12,15 @@ export const metadata: Metadata = {
 };
 
 const features = [
-  { icon: Sparkles, title: "AI Koç", text: "Hedefini anlat; koç planını yazsın, takıldığında yönlendirsin." },
-  { icon: MapIcon, title: "Yol haritası", text: "Haftalık görevler. JSON, CSV, Markdown yükle ya da ChatGPT/Gemini çıktısını yapıştır." },
-  { icon: Timer, title: "Odak oturumları", text: "Zamanlayıcı, notlar ve kaynaklar tek ekranda; oturum sonunda çıktını kaydet." },
-  { icon: CalendarDays, title: "Takvim ve plan", text: "Görevler günlere dengeli dağılır; takvimini .ics ile dışa aktar." },
+  { icon: Sparkles, title: "AI Koç", text: "Hedefini anlat; koç planını yazsın, takıldığında yönlendirsin, görevlerini senin için düzenlesin." },
+  { icon: MapIcon, title: "Yol haritası", text: "Koçla oluştur ya da JSON, CSV, Markdown yükle; ChatGPT veya Gemini çıktısını yapıştır." },
+  { icon: Timer, title: "Odak oturumları", text: "Zamanlayıcı, notlar, kaynaklar ve ses mikseri tek ekranda; oturum sonunda çıktını kaydet." },
+  { icon: CalendarDays, title: "Takvim ve plan", text: "Görevler günlere dengeli dağılır; takvimini .ics ile dışa aktar, günlük hatırlatıcı kur." },
+  { icon: GraduationCap, title: "Sınav takvimi ve seviye testi", text: "Sınav tarihine göre haftalık plan ve deneme takvimi; zorluğu uyarlanan test ile güçlü ve zayıf konularını bul." },
   { icon: Library, title: "Kütüphane", text: "Notlarını kaydet, aralıklı tekrarla kalıcı öğren." },
   { icon: LineChart, title: "Gerçek ilerleme", text: "Yalnızca tamamladığın işler sayılır; seri ve istatistikler dürüst." },
+  { icon: Users, title: "Arkadaşlar ve birlikte odak", text: "Davet koduyla arkadaş ekle, haftalık sıralamayı gör; aynı zamanlayıcıda birlikte odaklan. Paylaşım isteğe bağlı." },
+  { icon: Smartphone, title: "Her cihazda", text: "Telefonuna uygulama gibi kur, bilgisayarda tam ekran kullan. Verilerini istediğin an indir veya sil." },
 ];
 
 const steps = [

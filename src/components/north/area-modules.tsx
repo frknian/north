@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { examTemplates, calculateNet, calculateEstimatedScore, generateReviewSchedule, getWeeklyTrendPoints } from "@/lib/exam-system";
 import { NetTrendChart } from "./progress-charts";
+import { ExamCalendarPanel } from "./exam-calendar-panel";
 import type { DomainProof, DomainProofKind, ExamSubjectScore, ExamType, TrialExam, WrongAnswerAnalysis } from "@/lib/types";
 
 export function AreaModules({ area }: { area: Area }) {
@@ -434,6 +435,8 @@ export function AreaModules({ area }: { area: Area }) {
               </CardContent>
             </Card>
           </div>
+
+          <ExamCalendarPanel area={area} profile={currentExamProfile} />
 
           {/* DENEME GİRİŞ FORMU */}
           {trialDraft && (

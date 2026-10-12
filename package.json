@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node tests/north-focus.cjs && node tests/north-guidance.cjs && node tests/north-intelligence.cjs && node tests/north-modules.cjs && node tests/north-personalization.cjs && node tests/persona-simulation.cjs && node tests/long-term-progression.cjs && node tests/security.cjs && node tests/device-simulation.cjs && node tests/domain-coaching-engine.cjs && node tests/north-calendar-distribution.cjs && node tests/north-sprints.cjs && node --test tests/learning-roadmap.test.cjs tests/roadmap-scheduling.test.cjs tests/roadmap-import.test.cjs tests/ics.test.cjs tests/reminders.test.cjs",
+    "test": "node tests/north-focus.cjs && node tests/north-guidance.cjs && node tests/north-intelligence.cjs && node tests/north-modules.cjs && node tests/north-personalization.cjs && node tests/persona-simulation.cjs && node tests/long-term-progression.cjs && node tests/security.cjs && node tests/device-simulation.cjs && node tests/domain-coaching-engine.cjs && node tests/north-calendar-distribution.cjs && node tests/north-sprints.cjs && node --test tests/learning-roadmap.test.cjs tests/roadmap-scheduling.test.cjs tests/roadmap-import.test.cjs tests/ics.test.cjs tests/reminders.test.cjs tests/exam-calendar.test.cjs tests/level-test.test.cjs tests/social.test.cjs tests/together.test.cjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

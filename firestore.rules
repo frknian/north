@@ -6,5 +6,57 @@ service cloud.firestore {
         && request.auth.uid == userId
         && workspaceId in ['cybercoach', 'career-os'];
     }
+
+    // Social: only a nickname, weekly stats and an invite code are ever published, and only when the user opts in.
+    match /publicProfiles/{profileId} {
+      allow create, update: if request.auth != null && request.auth.uid == profileId
+        && request.resource.data.keys().hasOnly(['nickname', 'code', 'weekKey', 'weeklyMinutes', 'weeklyDone', 'streak', 'updatedAt'])
+        && request.resource.data.nickname is string && request.resource.data.nickname.size() >= 2 && request.resource.data.nickname.size() <= 24
+        && request.resource.data.weeklyMinutes is number && request.resource.data.streak is number;
+      allow delete: if request.auth != null && request.auth.uid == profileId;
+      allow read: if request.auth != null && (
+        request.auth.uid == profileId
+        || exists(/databases/$(database)/documents/users/$(request.auth.uid)/friends/$(profileId))
+      );
+    }
+
+    match /inviteCodes/{code} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    match /users/{userId}/friends/{friendId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/friendRequests/{fromId} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == fromId
+        && request.resource.data.keys().hasOnly(['nickname', 'createdAt'])
+        && request.resource.data.nickname is string && request.resource.data.nickname.size() <= 24;
+    }
+
+    // Shared focus rooms: a room is reachable only by its secret 6-character code (no listing).
+    match /focusRooms/{roomId} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['hostUid', 'hostNickname', 'title', 'durationMin', 'status', 'startedAt', 'createdAt'])
+        && request.resource.data.durationMin in [25, 50, 90]
+        && request.resource.data.status == 'waiting';
+      allow update: if request.auth != null && resource.data.hostUid == request.auth.uid
+        && request.resource.data.hostUid == resource.data.hostUid
+        && request.resource.data.durationMin == resource.data.durationMin;
+      allow delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
+
+      match /members/{memberId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.auth.uid == memberId
+          && request.resource.data.keys().hasOnly(['nickname', 'joinedAt', 'state'])
+          && request.resource.data.nickname is string && request.resource.data.nickname.size() <= 24
+          && request.resource.data.state in ['focusing', 'done', 'left'];
+        allow delete: if request.auth != null && request.auth.uid == memberId;
+      }
+    }
   }
 }

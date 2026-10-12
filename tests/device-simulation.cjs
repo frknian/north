@@ -386,8 +386,8 @@ function auditDeviceCSSAndLayout(deviceType) {
   const cssContent = fs.readFileSync('src/app/globals.css', 'utf8');
   const appFrameContent = fs.readFileSync('src/components/layout/app-frame.tsx', 'utf8');
   const loginContent = fs.readFileSync('src/app/login/page.tsx', 'utf8');
-  const weekContent = fs.readFileSync('src/components/north/week.tsx', 'utf8');
-  const focusContent = fs.readFileSync('src/components/north/focus.tsx', 'utf8');
+  const weekContent = [fs.readFileSync('src/components/north/week.tsx', 'utf8'), ...fs.readdirSync('src/components/north/week-parts').map((name) => fs.readFileSync(`src/components/north/week-parts/${name}`, 'utf8'))].join('\n');
+  const focusContent = [fs.readFileSync('src/components/north/focus.tsx', 'utf8'), ...fs.readdirSync('src/components/north/focus-parts').map((name) => fs.readFileSync(`src/components/north/focus-parts/${name}`, 'utf8'))].join('\n');
 
   const findings = [];
 

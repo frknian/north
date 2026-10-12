@@ -557,6 +557,7 @@ export interface WorkspaceState {
   examProfiles?: ExamProfile[];
   customMetricEntries?: CustomMetricEntry[];
   companionSettings?: CompanionSettings;
+  levelTests?: LevelTestResult[];
 }
 
 export type CompanionColor =
@@ -634,4 +635,17 @@ export function validatePasswordStrength(password: string): PasswordValidationRe
     requirements,
     errorMessage,
   };
+}
+
+export interface LevelTestResult {
+  id: string;
+  areaId: string;
+  areaName: string;
+  takenAt: string;
+  level: "beginner" | "intermediate" | "advanced";
+  percent: number;
+  correct: number;
+  total: number;
+  byTopic: Record<string, { correct: number; total: number }>;
+  weakTopics: string[];
 }

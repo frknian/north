@@ -24,6 +24,7 @@ import {
   ListTodo,
   Minus,
   MoveRight,
+  ClipboardCheck,
   Pencil,
   Play,
   Plus,
@@ -80,6 +81,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { LevelTestDialog } from "./level-test-dialog";
 
 const icons = ["◎", "∑", "⌘", "▤", "♞", "◇", "✦", "🇬🇧", "🇩🇪", "🇫🇷", "🇯🇵", "🇸🇦", "◌", "△", "□"];
 const priorityLabels: Record<number, string> = { 3: "Yüksek", 2: "Orta", 1: "Düşük", 0: "Bakım" };
@@ -730,6 +732,7 @@ function AreaWorkspace({
   const [quickTitle, setQuickTitle] = useState("");
   const [quickMinutes, setQuickMinutes] = useState(area.preferredSessionMinutes ?? 45);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [levelTestOpen, setLevelTestOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<NorthTask | null>(null);
 
   // All tasks for this area
@@ -940,12 +943,19 @@ function AreaWorkspace({
             </Button>
           )}
 
+          <Button variant="outline" size="sm" onClick={() => setLevelTestOpen(true)} className="rounded-xl text-xs">
+            <ClipboardCheck className="size-3.5 mr-1.5" />
+            Seviye Testi
+          </Button>
+
           <Button variant="outline" size="sm" onClick={onEdit} className="rounded-xl text-xs">
             <Pencil className="size-3.5 mr-1.5" />
             Alanı Düzenle
           </Button>
         </div>
       </header>
+
+      <LevelTestDialog area={area} open={levelTestOpen} onOpenChange={setLevelTestOpen} />
 
       {draft && (
         <AreaEditor draft={draft} setDraft={setDraft} onSave={saveArea} onCancel={() => setDraft(null)} />

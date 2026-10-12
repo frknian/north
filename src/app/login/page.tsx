@@ -335,9 +335,9 @@ export default function LoginPage() {
           <h1>Zihinsel akışa geri dönün.</h1>
           <p>Hedeflerini, odak seanslarını ve öğrendiklerini aynı yerde takip et. Her adım senin gerçek kayıtlarınla şekillenir.</p>
           <div className="login-stitch-features">
-            <div><span>01</span><strong>Zen odak modu</strong><small>Dikkatini tek bir çalışmaya ver.</small></div>
-            <div><span>02</span><strong>Planorth Koç</strong><small>Planını ve kanıtlarını birlikte değerlendir.</small></div>
-            <div><span>03</span><strong>Gelişim analizi</strong><small>İlerlemeni kendi verilerinle gör.</small></div>
+            <div><span>01</span><strong>Koçla yol haritası</strong><small>Hedefini anlat, haftalık planın hazır olsun.</small></div>
+            <div><span>02</span><strong>Zen odak ve birlikte odak</strong><small>Tek göreve odaklan; istersen arkadaşlarınla aynı sayaçta.</small></div>
+            <div><span>03</span><strong>Gerçek ilerleme</strong><small>Sınav takvimi, seviye testi ve istatistiklerle gelişimini gör.</small></div>
           </div>
         </div>
 

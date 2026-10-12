@@ -2,7 +2,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Award, BarChart3, BookOpen, Briefcase, CalendarDays, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, FlaskConical, Home, Layers3, Library, Map as MapIcon, MoreHorizontal, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Award, BarChart3, BookOpen, Briefcase, CalendarDays, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, FlaskConical, Home, Layers3, Library, Map as MapIcon, MoreHorizontal, ShieldCheck, Sparkles, Timer, UserRound, Users } from "lucide-react";
 import { NorthChatPopover } from "@/components/north/north-chat-popover";
 import { GuideTourModal } from "@/components/features/guide-tour-modal";
 import { WorkspaceSearch } from "@/components/features/workspace-search";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { NorthLogo } from "@/components/layout/north-logo";
 import { HeaderAvatar } from "@/components/layout/header-avatar";
+import { InstallBanner } from "@/components/features/install-app";
 import { isCurrentTabLocked, FOCUS_LOCK_KEY, BROADCAST_CHANNEL_NAME, type ActiveFocusLock } from "@/lib/focus-lock";
 import { FocusLockBarrier } from "@/components/features/focus-lock-barrier";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -30,6 +31,8 @@ const navigation = [
   { href: "/evidence", label: "Portföy", icon: Briefcase },
   { href: "/progress", label: "İlerleme", icon: BarChart3 },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
+  { href: "/friends", label: "Arkadaşlar", icon: Users },
+  { href: "/together", label: "Birlikte Odak", icon: Timer },
 ];
 const navHints: Record<string, string> = {
   "/": "Bugün yapman gereken tek sonraki adım",
@@ -43,11 +46,13 @@ const navHints: Record<string, string> = {
   "/evidence": "Portföy ve kanıtlar",
   "/progress": "İlerleme ve istatistikler",
   "/calendar": "Takvim, bloklar ve .ics dışa aktarma",
+  "/friends": "Arkadaşlarınla haftalık odak sıralaması",
+  "/together": "Arkadaşlarınla aynı zamanlayıcıda birlikte odaklan",
 };
 const navGroups = [
   { label: "Çalışma", items: ["/", "/coach", "/week", "/roadmap"] },
   { label: "Öğrenme", items: ["/areas", "/knowledge", "/resources", "/labs", "/evidence"] },
-  { label: "Takip", items: ["/progress", "/calendar"] },
+  { label: "Takip", items: ["/progress", "/calendar", "/friends", "/together"] },
 ];
 const sidebarKey = "north_sidebar_collapsed";
 const sidebarEvent = "north-sidebar-change";
@@ -62,12 +67,14 @@ const titles: Record<string, string> = {
   "/roadmap": "Yol Haritam",
   "/areas": "Hedef Alanları",
   "/calendar": "Takvim & Zaman Blokları",
+  "/friends": "Arkadaşlar",
+  "/together": "Birlikte odak",
   "/progress": "İlerleme & Değerlendirme",
   "/reviews": "İlerleme & Değerlendirme",
   "/resources": "Kaynaklar & Araştırma Merkezi",
   "/labs": "Pratik Lab Günlüğü",
   "/evidence": "Portföy & Çıktılar",
-  "/profile": "Profil ve Ayarlar",
+  "/profile": "Ayarlar",
   "/data": "Verilerim ve Güvenlik",
   "/skills": "Beceriler",
   "/career": "Kariyer",
@@ -214,6 +221,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
           <HeaderAvatar/>
         </div>
       </header>
+      {pathname !== "/coach" && <InstallBanner />}
       <main
         id="north-content"
         className={cn(
@@ -232,7 +240,7 @@ export function AppFrame({children}:{children:React.ReactNode}) {
 function Sidebar({ pathname, collapsed, onToggle, syncMode }: { pathname: string; collapsed: boolean; onToggle: () => void; syncMode: string }) {
   const current = activeTab(pathname);
   const utility = [
-    { href: "/profile", label: "Profil ve ayarlar", icon: UserRound },
+    { href: "/profile", label: "Ayarlar", icon: UserRound },
     { href: "/data", label: "Verilerim", icon: ShieldCheck },
     { href: "/profile?tab=guide", label: "Kılavuz", icon: CircleHelp },
   ];

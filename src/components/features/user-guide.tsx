@@ -23,12 +23,16 @@ import {
   Home,
   Info,
   Layers3,
+  Map as MapIcon,
   Play,
   RotateCcw,
   Search,
   ShieldCheck,
   Sparkles,
+  Smartphone,
   Target,
+  Timer,
+  Users,
   Volume2,
   Zap,
 } from "lucide-react";
@@ -424,7 +428,7 @@ const guideTabs: GuideSection[] = [
         desc: "Koç'a söylediğin çalışma kuralları unutulmaz ve gelecekteki kararlarda uygulanır.",
         subBullets: [
           "'Pazartesi sabahları hafif oku', 'Gece 22:00'den sonraya zor iş koyma' kuralları",
-          "Profil > AI Hafızası sekmesinden kuralları istediğin an düzenle veya sil",
+          "Ayarlar > Koç hafızası ve sohbet bölümünden kuralları istediğin an düzenle veya sil",
         ],
       },
       {
@@ -452,7 +456,83 @@ const guideTabs: GuideSection[] = [
         ],
       },
     ],
-    proTip: "Koç ile konuşurken çekinme; çalışma alışkanlıkların hakkındaki tüm kurallarını Profil > AI Hafızası sekmesinden de düzenleyebilirsin.",
+    proTip: "Koç ile konuşurken çekinme; çalışma alışkanlıkların hakkındaki tüm kurallarını Ayarlar > Koç hafızası ve sohbet bölümünden de düzenleyebilirsin.",
+  },
+  {
+    tab: "Yol Haritam",
+    route: "/roadmap",
+    badge: "10. UZUN VADELİ PLAN",
+    icon: MapIcon,
+    color: "text-violet-500 bg-violet-500/10 border-violet-500/20",
+    summary: "Koçla ya da yükleyerek haftalık yol haritası oluştur, haftayı başlatıp günlere yay.",
+    details: "Sıfırdan plan yazmak zorunda değilsin. Hedefini anlatırsan Koç planı hazırlar; elinde hazır plan varsa yükleyebilir ya da başka bir yapay zekânın çıktısını yapıştırabilirsin.",
+    points: [
+      {
+        title: "Koç ile oluştur",
+        desc: "Hedef, seviye, süre, haftalık saat ve isteğe bağlı hedef tarih ver; Koç haftalık görevleri, aşamaları ve kilometre taşlarını yazar.",
+        subBullets: ["Taslağı kaydetmeden önce önizle", "“Daha az teori olsun” gibi bir değişiklik iste", "Günlük hakkın ekranda görünür (en çok 26 hafta)"],
+      },
+      {
+        title: "Dosya, metin ve başka yapay zekâ",
+        desc: "JSON, CSV, Markdown ve düz metin dosyaları ya da yapıştırdığın metin okunur; PDF, Word veya Excel içeriğini kopyalayıp yapıştırırsan “Koç düzenlesin” biçimi çözer.",
+        subBullets: ["ChatGPT/Gemini için hazır bir istem kopyalanır, yanıtı geri yapıştırırsın", "Hesabını Planorth'a bağlaman gerekmez"],
+      },
+      {
+        title: "Haftayı başlat ve Alanlara bağla",
+        desc: "Seçtiğin haftanın görevlerini günlere dengeli dağıtır; görev alanlarını Alanlar ile eşleştirerek tek yerden takip edersin.",
+      },
+    ],
+    proTip: "Yedeklemek için planını JSON olarak dışa aktar; aynı dosyayı daha sonra içe aktarabilirsin.",
+  },
+  {
+    tab: "Arkadaşlar & Birlikte Odak",
+    route: "/friends",
+    badge: "11. BİRLİKTE ÇALIŞ",
+    icon: Users,
+    color: "text-pink-500 bg-pink-500/10 border-pink-500/20",
+    summary: "Davet koduyla arkadaş ekle, haftalık sıralamayı gör ve aynı zamanlayıcıda birlikte odaklan.",
+    details: "Tüm sosyal özellikler isteğe bağlıdır ve bulut hesabı gerektirir. Paylaşım kapalıyken kimse seni göremez.",
+    points: [
+      {
+        title: "Arkadaşlar ve haftalık sıralama",
+        desc: "Paylaşımı açtığında yalnızca takma adın, bu haftaki odak süren, bitirdiğin görev sayısı ve serin arkadaşlarına görünür.",
+        subBullets: ["Davet kodunu paylaş, arkadaşın kodu girince sana istek gelir", "İstek onaylanınca karşılıklı görürsünüz", "Paylaşımı kapatınca verilerin ve kodun silinir"],
+      },
+      {
+        title: "Birlikte odak odası",
+        desc: "Oda kur, 25/50/90 dakikalık süreyi seç, 6 haneli kodu paylaş. Herkes katılınca oda sahibi başlatır; tüm sayaçlar aynı anda akar.",
+        subBullets: ["Oturum bitince “Çalışma kaydıma ekle” ile süreni kaydet", "Odalar 8 saat sonra kendiliğinden kapanır"],
+      },
+    ],
+    proTip: "Süreler katılımcıların kendi cihazlarından gelir; sıralama yarışmadan çok motivasyon içindir.",
+  },
+  {
+    tab: "Ayarlar & Hesap",
+    route: "/profile",
+    badge: "12. KONTROL SENDE",
+    icon: Smartphone,
+    color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
+    summary: "Profil, hesap, bildirimler, yapay zekâ kullanımı, veri yedeği ve uygulamayı yükleme.",
+    details: "Ayarlar gruplara ayrılmıştır: Kişisel, Tercihler, Yapay zekâ, İçerik, Veri ve yardım.",
+    points: [
+      {
+        title: "Hesap ve güvenlik",
+        desc: "Şifre ve e-postanı değiştir, doğrulama e-postasını tekrar gönder, çıkış yap ya da hesabını sil.",
+      },
+      {
+        title: "Bildirimler",
+        desc: "Seçtiğin saatte, o gün tamamlanmamış görevin varsa hatırlatıcı al. Bildirimler Planorth tarayıcıda veya yüklü uygulamada açıkken gelir.",
+      },
+      {
+        title: "Kullanım haklarım",
+        desc: "Yol haritası oluşturma, seviye testi ve diğer yapay zekâ araçları için bugün kalan hakkını gör. Haklar UTC gece yarısı yenilenir.",
+      },
+      {
+        title: "Veri ve gizlilik",
+        desc: "Tüm verilerini JSON olarak indir, yedekten geri yükle, bulut kullanımını izle. Uygulamayı yükle bölümüyle Planorth'u ana ekrana ekleyebilirsin.",
+      },
+    ],
+    proTip: "Sorun ya da öneri için Destek sayfasındaki formu kullanabilirsin.",
   },
 ];
 
@@ -501,9 +581,41 @@ const workflows = [
       { step: "4. Adım", action: "Hafta Sonuna Dağıt", detail: "'Takvime Otomatik Dağıt' butonundan 'Yalnızca Hafta Sonu' filtresini seç ve boşluklara yerleştir." },
     ],
   },
+  {
+    title: "5. Koç ile Yol Haritası Oluşturma",
+    badge: "YENİ PLAN",
+    icon: MapIcon,
+    steps: [
+      { step: "1", action: "Hedefini yaz", detail: "Yol Haritam ekranında “Koç ile oluştur”u seç; hedefini, seviyeni, süreni ve istersen hedef tarihini gir." },
+      { step: "2", action: "Taslağı incele", detail: "Koç haftalık planı hazırlar. Beğenmediğin yer varsa kısa bir not yazarak değişiklik iste." },
+      { step: "3", action: "Planı kullan", detail: "Onayla; haftaları ve görevleri sonradan düzenleyebilirsin. “Hafta N: başlat” ile görevler günlere dağıtılır." },
+    ],
+  },
+  {
+    title: "6. Arkadaşınla Birlikte Odaklanma",
+    badge: "BİRLİKTE",
+    icon: Timer,
+    steps: [
+      { step: "1", action: "Oda kur", detail: "Birlikte Odak ekranında süreyi seç ve odayı oluştur; 6 haneli kod çıkar." },
+      { step: "2", action: "Kodu paylaş", detail: "Arkadaşların kodu girip katılır; bekleme odasında hepsini görürsün." },
+      { step: "3", action: "Birlikte başlat", detail: "Başlat'a bastığında herkesin sayacı aynı anda akar. Bitince süreni çalışma kaydına ekle." },
+    ],
+  },
 ];
 
 const faqItems = [
+  {
+    q: "Kendi ChatGPT veya Gemini hesabımı Planorth Koç'a bağlayabilir miyim?",
+    a: "Hayır; Koç Planorth'un kendi yapay zekâ altyapısıyla çalışır ve ChatGPT/Gemini abonelikleri üçüncü taraf uygulamalara bağlanamaz. Ama yol haritası oluştururken “ChatGPT / Gemini” yöntemiyle hazır bir istem kopyalayıp kendi hesabında çalıştırabilir, yanıtı Planorth'a yapıştırabilirsin.",
+  },
+  {
+    q: "Arkadaş ve birlikte odak özelliklerinde hangi bilgilerim paylaşılır?",
+    a: "Yalnızca seçtiğin takma ad, bu haftaki odak süren, bitirdiğin görev sayısı ve serin (arkadaşlar), birlikte odakta ise takma adın ve odadaki durumun. E-postan, hedeflerin, notların ve görev içerikleri asla paylaşılmaz. Paylaşımı kapattığında verilerin silinir.",
+  },
+  {
+    q: "Yapay zekâ araçlarının günlük hakları nasıl işler?",
+    a: "Yol haritası oluşturma, seviye testi ve diğer hızlı yapay zekâ araçlarının günlük bir sınırı vardır; kalan hakkını Ayarlar > Kullanım hakların bölümünde ve ilgili ekranlarda görürsün. Haklar her gün UTC gece yarısı yenilenir. Koç sohbeti adil kullanım içinde sınırsızdır.",
+  },
   {
     q: "Sayfa aralıkları kişisel alan mıdır? Sistem oraya zorla veya izinsiz bir şeyler ekler mi?",
     a: "Kesinlikle hayır. Sayfa aralıkları ve pinli belgeler bölümü tamamen kullanıcının kişisel çalışma alanıdır. Sistem buraya zorla veya habersizce içerik ya da kitap eklemez. Yapay zeka yalnızca kullanıcı açıkça talep ederse öneride bulunur. Sayfa aralıklarını tek tek silebilir veya dilediğin an topluca temizleyebilirsin.",

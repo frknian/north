@@ -256,3 +256,26 @@ Sizi tanıyan, kurallarınızı unutmayan stratejik rehberinizdir.
 * **Mobil (Telefon):** Alt navigasyon çubuğu ile tek elle hızlı erişim, dokunmatik uyumlu butonlar ve kartlar.
 * **Tablet (iPad / Dokunmatik Ekran):** Optimize edilmiş çift sütunlu düzen, yan yana kaynak inceleme.
 * **Masaüstü (Desktop / Workstation):** Geniş ekranlarda scrollsüz 100vh Odak Kokpiti, 7 günlük tam hafta akışı ve çok panelli araştırma merkezi.
+
+---
+
+## 6. Yeni Özellikler
+
+### Yol Haritası: Koç ile oluşturma ve içe aktarma
+* **Koç ile oluştur:** Hedef, seviye, süre (en çok 26 hafta), haftalık saat ve isteğe bağlı hedef tarih verilir; Koç haftalık planı yazar. Taslak önizlenir, değişiklik istenebilir.
+* **Dosya veya metin:** JSON, CSV, Markdown ve düz metin okunur; PDF/Word/Excel içeriği yapıştırılıp “Koç düzenlesin” ile plana çevrilir.
+* **ChatGPT / Gemini:** Hazır istem kopyalanır, yanıt Planorth'a yapıştırılır. Hesap bağlamak gerekmez.
+
+### Sınav takvimi ve seviye testi
+* Sınav alanlarında tarihe göre aşamalı haftalık plan, derslere süre dağılımı (son denemelere göre zayıf derslere daha fazla), planlı denemeler ve takvime ekleme.
+* Alan ekranında “Seviye Testi”: zorluğu uyarlanan 12 soruluk test, konu bazlı sonuç ve zayıf konular için görev ekleme.
+
+### Arkadaşlar ve Birlikte Odak
+* Davet koduyla arkadaş ekleme, haftalık sıralama ve haftalık özet paylaşımı. Paylaşım isteğe bağlıdır; yalnızca takma ad ve istatistikler görünür.
+* Birlikte odak: oda kur (25/50/90 dk), 6 haneli kodu paylaş, herkes katılınca aynı sayaç birlikte başlar; bitince çalışma kaydına eklenir.
+* Bu özellikler bulut hesabı gerektirir ve `firestore.rules` dosyasındaki kuralların yayınlanmasına bağlıdır.
+
+### Ayarlar, hesap ve uygulama
+* Gruplu Ayarlar: Kişisel, Tercihler, Yapay zekâ, İçerik, Veri ve yardım.
+* Şifre/e-posta değiştirme, günlük hatırlatıcı, yapay zekâ kullanım hakları, veri yedeği ve geri yükleme, `.ics` takvim dışa aktarma.
+* Uygulamayı yükle (PWA) ve Destek sayfası.
