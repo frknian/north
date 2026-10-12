@@ -851,7 +851,8 @@ export function dailySelection(state: NorthState, today=dayKey()) {
     const hour=new Date().getHours();const currentRange=hour<6?"Gece":hour<9?"Erken sabah":hour<12?"Sabah":hour<18?"Öğleden sonra":hour<22?"Akşam":"Geç gece";
     const learned=state.intelligence?.patterns.filter(p=>(p.status==="reliable"||p.status==="strong")&&!state.intelligence?.dismissedPatternIds.includes(p.id)&&!state.intelligence?.incorrectPatternIds.includes(p.id))??[];
     const timeFit=learned.some(p=>(p.patternType==="best_time"||p.patternType==="area_preference")&&p.timeRange===currentRange&&(!p.areaId||p.areaId===t.areaId))?18:0;
-    return (t.mandatory?100:0)+(t.deadline && t.deadline<=shiftDay(today,2)?80:0)+a.priority*10+(spent<allocation(state,a)?20:0)+(t.intensity===energy?15:0)-(energy==="low"&&t.intensity==="high"?35:0)+timeFit;
+    // Work the user explicitly scheduled for today, or committed to through a roadmap, outranks pooled tasks of the week.
+    return (t.date===today?120:0)+(t.roadmapTaskId?60:0)+(t.mandatory?100:0)+(t.deadline && t.deadline<=shiftDay(today,2)?80:0)+a.priority*10+(spent<allocation(state,a)?20:0)+(t.intensity===energy?15:0)-(energy==="low"&&t.intensity==="high"?35:0)+timeFit;
   };
   const ranked=[...candidates].sort((a,b)=>score(b)-score(a));
   const touched=new Set(state.activities.filter(a=>a.date===today).map(a=>a.taskId));
