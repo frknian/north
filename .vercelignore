@@ -1,2 +1,2 @@
 apps/
-tests/device-simulation-results.json
+tests/*-results.json

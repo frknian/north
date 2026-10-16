@@ -1,4 +1,4 @@
-# CyberCoach Firebase App Hosting çalışma zamanı ayarları.
+# Planorth Firebase App Hosting çalışma zamanı ayarları.
 # OPENAI_API_KEY Firebase Secret Manager'da tutulur; bu dosyada değer bulunmaz.
 runConfig:
   minInstances: 0

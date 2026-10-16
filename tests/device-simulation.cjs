@@ -669,11 +669,12 @@ assert.equal(deviceSummary.phone.passed, 5, 'All 5 Phone personas must pass');
 assert.equal(deviceSummary.tablet.passed, 5, 'All 5 Tablet personas must pass');
 assert.equal(deviceSummary.desktop.passed, 4, 'All 4 Desktop personas must pass');
 
-// Save structured results
-fs.writeFileSync('tests/device-simulation-results.json', JSON.stringify({
-  generatedAt: new Date().toISOString(),
-  summary: deviceSummary,
-  results: simulationResults
-}, null, 2), 'utf8');
-
-console.log('Results successfully saved to tests/device-simulation-results.json');
+// Save structured results when explicitly requested
+if (process.env.WRITE_SIMULATION_RESULTS === '1') {
+  fs.writeFileSync('tests/device-simulation-results.json', JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    summary: deviceSummary,
+    results: simulationResults
+  }, null, 2), 'utf8');
+  console.log('Results successfully saved to tests/device-simulation-results.json');
+}

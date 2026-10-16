@@ -1,0 +1,201 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1200" y2="680" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#090D16"/>
+      <stop offset="50%" stop-color="#0D1322"/>
+      <stop offset="100%" stop-color="#090D16"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="600" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#131B2E"/>
+      <stop offset="100%" stop-color="#0E1525"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Outer Window Background -->
+  <rect width="1200" height="680" rx="20" fill="url(#bgGrad)"/>
+  <rect x="1" y="1" width="1198" height="678" rx="19" stroke="#1E293B" stroke-width="2"/>
+
+  <!-- Top macOS-style Window Bar -->
+  <rect x="2" y="2" width="1196" height="44" rx="18" fill="#0B101B"/>
+  <line x1="2" y1="46" x2="1198" y2="46" stroke="#1E293B" stroke-width="1"/>
+  <circle cx="26" cy="24" r="6" fill="#EF4444" fill-opacity="0.8"/>
+  <circle cx="46" cy="24" r="6" fill="#F59E0B" fill-opacity="0.8"/>
+  <circle cx="66" cy="24" r="6" fill="#10B981" fill-opacity="0.8"/>
+  <rect x="460" y="12" width="280" height="24" rx="6" fill="#131B2E" stroke="#1E293B"/>
+  <text x="600" y="28" text-anchor="middle" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500">planorth — Single-Action Focus Cockpit</text>
+
+  <!-- Left Sidebar Navigation -->
+  <rect x="2" y="47" width="210" height="631" fill="#0B101B"/>
+  <line x1="212" y1="47" x2="212" y2="678" stroke="#1E293B" stroke-width="1"/>
+
+  <!-- Brand Header in Sidebar -->
+  <rect x="22" y="68" width="32" height="32" rx="8" fill="url(#accentGrad)"/>
+  <path d="M32 90 L38 76 L44 90 L38 86 Z" fill="#FFFFFF"/>
+  <text x="64" y="85" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700" letter-spacing="1">PLANORTH</text>
+  <text x="64" y="99" fill="#64748B" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10">Less decisions. Deep focus.</text>
+
+  <!-- Sidebar Nav Items -->
+  <rect x="16" y="122" width="182" height="36" rx="8" fill="#1E293B"/>
+  <circle cx="34" cy="140" r="5" fill="#38BDF8"/>
+  <text x="50" y="144" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Bugün / Today</text>
+
+  <circle cx="34" cy="182" r="4" fill="#64748B"/>
+  <text x="50" y="186" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500">Yol Haritası / Roadmap</text>
+
+  <circle cx="34" cy="220" r="4" fill="#64748B"/>
+  <text x="50" y="224" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500">Haftalık Plan / 7-Day Flow</text>
+
+  <circle cx="34" cy="258" r="4" fill="#64748B"/>
+  <text x="50" y="262" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500">Alanlar &amp; Kamplar / Areas</text>
+
+  <circle cx="34" cy="296" r="4" fill="#64748B"/>
+  <text x="50" y="300" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500">Takvim / Calendar (.ics)</text>
+
+  <circle cx="34" cy="334" r="4" fill="#64748B"/>
+  <text x="50" y="338" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500">Kaynaklar &amp; PDF / Library</text>
+
+  <circle cx="34" cy="372" r="4" fill="#64748B"/>
+  <text x="50" y="376" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500">Birlikte Odak / Together</text>
+
+  <circle cx="34" cy="410" r="4" fill="#64748B"/>
+  <text x="50" y="414" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500">İlerleme &amp; Radar / Progress</text>
+
+  <circle cx="34" cy="448" r="4" fill="#64748B"/>
+  <text x="50" y="452" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500">Planorth AI Koç / Coach</text>
+
+  <!-- Companion Status Card in Sidebar Bottom -->
+  <rect x="16" y="545" width="182" height="112" rx="12" fill="#111827" stroke="#1E293B"/>
+  <circle cx="44" cy="576" r="16" fill="#1E293B" stroke="#38BDF8" stroke-width="1.5"/>
+  <circle cx="39" cy="574" r="2.5" fill="#38BDF8"/>
+  <circle cx="49" cy="574" r="2.5" fill="#38BDF8"/>
+  <text x="70" y="572" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700">Yol Arkadaşı · Seviye 4</text>
+  <text x="70" y="587" fill="#34D399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="600">12 Günlük Aktif Seri</text>
+  <rect x="28" y="608" width="158" height="6" rx="3" fill="#1E293B"/>
+  <rect x="28" y="608" width="118" height="6" rx="3" fill="url(#accentGrad)"/>
+  <text x="28" y="634" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10">Haftalık Kapasite: 14.5 / 18 sa</text>
+
+  <!-- Main Content Area -->
+  <!-- Active Topic Sprint Banner -->
+  <rect x="236" y="66" width="940" height="46" rx="10" fill="#131C31" stroke="#1E3A5F"/>
+  <rect x="250" y="77" width="84" height="24" rx="6" fill="#0284C7" fill-opacity="0.25"/>
+  <text x="292" y="93" text-anchor="middle" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700">AKTİF KAMP</text>
+  <text x="348" y="93" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Sistem Mimarisi &amp; Güvenlik Sınav Kampı — Modül 3/5 Tamamlandı</text>
+  <text x="1030" y="93" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">Sınava 6 Gün · %68</text>
+
+  <!-- Left Column: ŠİMDİ (Single Big Action Card) -->
+  <rect x="236" y="128" width="580" height="310" rx="16" fill="url(#cardGrad)" stroke="#38BDF8" stroke-opacity="0.45" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="262" y="152" width="118" height="24" rx="12" fill="#38BDF8" fill-opacity="0.15"/>
+  <text x="321" y="168" text-anchor="middle" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" letter-spacing="0.8">ŞİMDİ · TEK ÖNCELİK</text>
+  <text x="394" y="168" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500">Siber Güvenlik &amp; Yazılım · 50 dk Derin Odak</text>
+
+  <text x="262" y="210" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700">OAuth 2.0 PKCE Akışı &amp; Token Doğrulama Labı</text>
+  <text x="262" y="238" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">Yetkilendirme kodu değişimini test et, sınır durumlarını doğrula ve kanıt notunu kaydet.</text>
+
+  <!-- Micro-steps inside ŠİMDİ card -->
+  <rect x="262" y="256" width="528" height="96" rx="10" fill="#0B101B" stroke="#1E293B"/>
+  <circle cx="282" cy="278" r="6" fill="#10B981"/>
+  <text x="298" y="282" fill="#CBD5E1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">1. RFC 7636 PKCE code_verifier &amp; code_challenge şemasını incele (10 dk)</text>
+  <circle cx="282" cy="304" r="6" stroke="#38BDF8" stroke-width="2"/>
+  <text x="298" y="308" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">2. Doğrulama uç noktasında imza ve süre kontrollerini uygula (25 dk)</text>
+  <circle cx="282" cy="330" r="6" stroke="#475569" stroke-width="1.5"/>
+  <text x="298" y="334" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">3. Test senaryolarını çalıştır ve lab kanıt özetini mühürle (15 dk)</text>
+
+  <!-- Action Buttons on ŠİMDİ Card -->
+  <rect x="262" y="372" width="190" height="42" rx="10" fill="url(#accentGrad)"/>
+  <text x="357" y="398" text-anchor="middle" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">▶ Odak Seansını Başlat</text>
+
+  <rect x="466" y="372" width="102" height="42" rx="10" fill="#1E293B"/>
+  <text x="517" y="397" text-anchor="middle" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">½ Küçült (25dk)</text>
+
+  <rect x="580" y="372" width="96" height="42" rx="10" fill="#1E293B"/>
+  <text x="628" y="397" text-anchor="middle" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">↷ Havuza Al</text>
+
+  <rect x="688" y="372" width="102" height="42" rx="10" fill="#1E293B"/>
+  <text x="739" y="397" text-anchor="middle" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500">Sabah Pusulası</text>
+
+  <!-- Bottom Left: Guilt-Free Queue & Daily Rituals -->
+  <rect x="236" y="454" width="580" height="202" rx="16" fill="#0E1525" stroke="#1E293B"/>
+  <text x="262" y="484" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">Sıradaki Adımlar &amp; Günlük Ritüeller (Borçsuz / Suçluluksuz Akış)</text>
+
+  <rect x="262" y="500" width="528" height="44" rx="8" fill="#131B2E" stroke="#1E293B"/>
+  <text x="280" y="526" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Yol Haritası · Hafta 4: Dağıtık Önbellek Tutarlılığı Makale Özeti</text>
+  <text x="710" y="526" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">35 dk · Normal</text>
+
+  <rect x="262" y="554" width="528" height="44" rx="8" fill="#131B2E" stroke="#1E293B"/>
+  <text x="280" y="580" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">Kitaplık · Designing Data-Intensive Applications (Sayfa 112–128)</text>
+  <text x="710" y="580" fill="#34D399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">25 dk · Hafif</text>
+
+  <!-- Micro-habit pills -->
+  <rect x="262" y="612" width="160" height="28" rx="14" fill="#10B981" fill-opacity="0.15" stroke="#10B981" stroke-opacity="0.4"/>
+  <text x="342" y="630" text-anchor="middle" fill="#34D399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">✓ Sabah Pusulası Tamam</text>
+
+  <rect x="434" y="612" width="168" height="28" rx="14" fill="#38BDF8" fill-opacity="0.15" stroke="#38BDF8" stroke-opacity="0.4"/>
+  <text x="518" y="630" text-anchor="middle" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">✓ 15 Sayfa Okuma Zinciri</text>
+
+  <rect x="614" y="612" width="176" height="28" rx="14" fill="#1E293B"/>
+  <text x="702" y="630" text-anchor="middle" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500">☽ Akşam Günü Kapat (2 dk)</text>
+
+  <!-- Right Column Top: Zen Focus Cockpit & Ambient Sound Mixer Preview -->
+  <rect x="832" y="128" width="344" height="252" rx="16" fill="#0E1525" stroke="#1E293B"/>
+  <text x="856" y="158" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">Zen Odak Kokpiti &amp; Ses Mikseri</text>
+  <text x="1110" y="158" fill="#34D399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700">100vh</text>
+
+  <!-- Timer Ring -->
+  <circle cx="916" cy="236" r="52" stroke="#1E293B" stroke-width="8"/>
+  <path d="M916 184 A52 52 0 1 1 868 256" stroke="url(#accentGrad)" stroke-width="8" stroke-linecap="round"/>
+  <text x="916" y="234" text-anchor="middle" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700">38:15</text>
+  <text x="916" y="252" text-anchor="middle" fill="#64748B" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10">DERİN ODAK</text>
+
+  <!-- Sound Mixer Bars -->
+  <text x="992" y="196" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Yağmur (Rain)</text>
+  <rect x="992" y="203" width="156" height="6" rx="3" fill="#1E293B"/>
+  <rect x="992" y="203" width="110" height="6" rx="3" fill="#38BDF8"/>
+
+  <text x="992" y="232" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Kafe (Cafe)</text>
+  <rect x="992" y="239" width="156" height="6" rx="3" fill="#1E293B"/>
+  <rect x="992" y="239" width="68" height="6" rx="3" fill="#6366F1"/>
+
+  <text x="992" y="268" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Şömine (Fireplace)</text>
+  <rect x="992" y="275" width="156" height="6" rx="3" fill="#1E293B"/>
+  <rect x="992" y="275" width="92" height="6" rx="3" fill="#10B981"/>
+
+  <!-- Integrated Dock Pill -->
+  <rect x="856" y="312" width="296" height="48" rx="10" fill="#131B2E" stroke="#1E293B"/>
+  <text x="872" y="333" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">📌 Yan Kaynak Dock'u &amp; Birlikte Odak Odası</text>
+  <text x="872" y="349" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10">Pinli PDF sayfa aralığı · Oda kodu: NRT-84K (3 kişi)</text>
+
+  <!-- Right Column Bottom: Planorth AI Coach & Persistent Rule Memory -->
+  <rect x="832" y="396" width="344" height="260" rx="16" fill="#0E1525" stroke="#1E293B"/>
+  <circle cx="864" cy="428" r="14" fill="#1E293B" stroke="#38BDF8" stroke-width="1.5"/>
+  <circle cx="860" cy="428" r="2" fill="#38BDF8"/>
+  <circle cx="868" cy="428" r="2" fill="#38BDF8"/>
+  <text x="888" y="424" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">Planorth AI Koç &amp; Kural Hafızası</text>
+  <text x="888" y="440" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="600">Kalıcı Tercih &amp; North Intelligence Aktif</text>
+
+  <rect x="856" y="458" width="296" height="58" rx="10" fill="#131B2E" stroke="#1E293B"/>
+  <text x="870" y="478" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700">HATIRLANAN KİŞİSEL KURAL</text>
+  <text x="870" y="495" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">"Hafta içi 21:00 sonrasına ağır teori koyma;</text>
+  <text x="870" y="509" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">yalnızca pratik lab veya kitap okuma ata."</text>
+
+  <rect x="856" y="526" width="296" height="68" rx="10" fill="#0B101B" stroke="#1E3A5F"/>
+  <text x="870" y="546" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700">NORTH INTELLIGENCE ANALİZİ (14 OTURUM)</text>
+  <text x="870" y="563" fill="#CBD5E1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Sabah 09:00–11:30 arası derin görev tamamlama</text>
+  <text x="870" y="579" fill="#CBD5E1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">oranın %88. Yarınki kamp modülü bu saate önerildi.</text>
+
+  <rect x="856" y="606" width="142" height="32" rx="8" fill="url(#emeraldGrad)"/>
+  <text x="927" y="626" text-anchor="middle" fill="#06281E" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700">✓ Öneriyi Uygula</text>
+
+  <rect x="1010" y="606" width="142" height="32" rx="8" fill="#1E293B"/>
+  <text x="1081" y="626" text-anchor="middle" fill="#CBD5E1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">Planı Koru</text>
+</svg>

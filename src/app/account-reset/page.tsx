@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { NorthLogo } from "@/components/layout/north-logo";
 import { useRouter } from "next/navigation";
@@ -64,7 +63,7 @@ export default function AccountResetPage() {
     } catch (error) {
       const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
       const message = code.includes("unauthorized-domain")
-            ? "Bu alan adı Firebase'de yetkili değil. Firebase Authentication ayarlarından cybercoach.vercel.app alan adını ekle."
+            ? "Bu alan adı Firebase'de yetkili değil. Firebase Authentication ayarlarından alan adını yetkili alanlara ekle."
             : code.includes("invalid-credential") || code.includes("wrong-password")
               ? "Şifren doğru değil."
               : code.includes("too-many-requests")

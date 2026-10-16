@@ -445,6 +445,8 @@ const passedCount = results.filter(r => r.status === 'PASS').length;
 console.log(`Simulation complete: ${passedCount}/${personas.length} personas passed.`);
 assert.equal(passedCount, personas.length, 'All personas must pass simulation');
 
-// Output structured JSON summary for reporting
-fs.writeFileSync('tests/persona-results.json', JSON.stringify(results, null, 2), 'utf8');
-console.log('Results written to tests/persona-results.json');
+// Output structured JSON summary for reporting when explicitly requested
+if (process.env.WRITE_SIMULATION_RESULTS === '1') {
+  fs.writeFileSync('tests/persona-results.json', JSON.stringify(results, null, 2), 'utf8');
+  console.log('Results written to tests/persona-results.json');
+}

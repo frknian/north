@@ -1,4 +1,3 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 function createCsp(nonce: string) {
@@ -29,45 +28,8 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
 
-  const nextResponse = () => {
-    const next = NextResponse.next({ request: { headers: requestHeaders } });
-    next.headers.set("Content-Security-Policy", csp);
-    return next;
-  };
-  const redirectResponse = (url: URL) => {
-    const redirect = NextResponse.redirect(url);
-    redirect.headers.set("Content-Security-Policy", csp);
-    return redirect;
-  };
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return nextResponse();
-
-  let response = nextResponse();
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll: () => request.cookies.getAll(),
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = nextResponse();
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-      },
-    },
-  });
-  const { data: { user } } = await supabase.auth.getUser();
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/auth");
-
-  if (!user && !isAuthRoute) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    return redirectResponse(loginUrl);
-  }
-  if (user && request.nextUrl.pathname === "/login") {
-    const homeUrl = request.nextUrl.clone();
-    homeUrl.pathname = "/";
-    return redirectResponse(homeUrl);
-  }
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", csp);
   return response;
 }
 

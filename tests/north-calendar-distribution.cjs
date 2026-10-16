@@ -10,10 +10,10 @@ function load(path) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const exports = {};
-  const module = { exports };
+  const mod = { exports };
   vm.runInNewContext(output, {
     exports,
-    module,
+    module: mod,
     require: (id) => {
       if (id === '@/lib/utils' || id.endsWith('/utils')) {
         return { cn: (...args) => args.filter(Boolean).join(' ') };
@@ -30,7 +30,7 @@ function load(path) {
     Array,
     console,
   });
-  return module.exports;
+  return mod.exports;
 }
 
 const { distributeTasksAcrossMonth, distributePlanTasksToCalendar, shiftDay } = load('src/lib/north.ts');

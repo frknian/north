@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     "apps/**",
   ]),
   {
+    files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
     // Existing code predates these rules; keep them visible as warnings until the large components are split.
     rules: {
       "react-hooks/set-state-in-effect": "warn",
